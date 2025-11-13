@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout2}" lang="en">
+<head>
+  <title>View Logbook</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <h3 class="text-center fw-bold mb-4">📖 My Logbook Entries</h3>
+
+  <table class="table table-bordered text-center">
+    <thead class="table-primary">
+    <tr>
+      <th>#</th>
+      <th>Week Start</th>
+      <th>Status</th>
+      <th>Export</th>
+      <th>Delete</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="entry, iterStat : ${logbookEntries}">
+      <td th:text="${iterStat.index + 1}">1</td>
+      <td th:text="${entry.weekStartDate}">2025-05-03</td>
+      <td>
+        <span th:if="${entry.endorsed}" class="text-success">✔ Endorsed</span>
+        <span th:unless="${entry.endorsed}" class="text-danger">✘ Not Endorsed</span>
+      </td>
+
+      <!-- ✅ 新增导出按钮列 -->
+      <td>
+        <a th:href="@{'/student/logbook/download/' + ${entry.id}}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-download"></i> Export
+        </a>
+      </td>
+
+      <td>
+        <a th:href="@{'/student/logbook/delete/' + ${entry.id}}"
+           onclick="return confirm('Are you sure you want to delete this entry?');"
+           class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-trash"></i> Delete
+        </a>
+      </td>
+
+    </tr>
+
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

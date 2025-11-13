@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}"
+      lang="en">
+<head>
+    <title>Visit Schedule List</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="card p-4 shadow-sm">
+        <h5 class="mb-4 text-primary">My Scheduled Visits</h5>
+        <a class="btn btn-outline-secondary mb-3" th:href="@{/lecturer/schedule}">
+            + Schedule New Visit
+        </a>
+
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-primary text-center">
+            <tr>
+                <th>No</th>
+                <th>Student</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Mode</th>
+                <th>Notes</th>
+                <th>Actions</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody class="text-center">
+            <tr th:each="v, iterStat : ${visitList}">
+                <td th:text="${iterStat.index + 1}"></td>
+                <td th:text="${studentNameMap[v.studentId]}"></td>
+                <td th:text="${v.visitDate}"></td>
+                <td th:text="${v.visitTime}"></td>
+                <td th:text="${v.mode}"></td>
+                <td th:text="${v.notes}"></td>
+
+                <td>
+                    <span th:if="${v.status == 'Confirmed'}" class="text-success fw-bold">Confirmed</span>
+                    <span th:if="${v.status == 'Pending'}" class="text-secondary">Pending</span>
+                    <span th:if="${v.status == 'RescheduleRequested'}" class="text-warning fw-bold">Reschedule Requested</span>
+                </td>
+
+                <td>
+                    <a class="btn btn-sm btn-outline-primary me-1"
+                       th:href="@{/lecturer/schedule/edit/{id}(id=${v.id})}">Edit</a>
+                    <a class="btn btn-sm btn-outline-danger"
+                       th:href="@{/lecturer/schedule/delete/{id}(id=${v.id})}"
+                       onclick="return confirm('Are you sure you want to delete this visit?');">Delete</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="en">
+
+<head>
+  <title>Student Evaluation Form</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <div class="card p-4 shadow-sm">
+    <h5 class="text-primary mb-4">Student Evaluation Form</h5>
+
+    <div class="alert alert-info" th:if="${evaluation.id != null}">
+      You have already submitted this evaluation. You may edit and resubmit if necessary.
+    </div>
+
+    <form th:action="@{/lecturer/evaluation/submit}" method="post" th:object="${evaluation}">
+      <input type="hidden" th:field="*{visitId}">
+      <input type="hidden" th:field="*{lecturerId}">
+      <input type="hidden" th:field="*{studentId}">
+
+      <!-- 仅携带“用户之前选择的 session”；没选就传空 -->
+      <input type="hidden" name="session" th:value="${selectedSession}"/>
+
+      <h6 class="fw-bold text-secondary">Part A: Visit Details</h6>
+      <div class="mb-3">
+        <label class="form-label">Summary of Discussion / On-site Observations</label>
+        <textarea class="form-control" th:field="*{summary}" rows="4" required></textarea>
+      </div>
+
+      <h6 class="fw-bold text-secondary mt-4">Part B: Evaluation Criteria</h6>
+      <div class="mb-3">
+        <label class="form-label">Interview Outcome</label>
+        <textarea class="form-control" th:field="*{interviewOutcome}" rows="2" required></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Logbook Review</label>
+        <textarea class="form-control" th:field="*{logbookReview}" rows="2" required></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Workplace Suitability</label>
+        <textarea class="form-control" th:field="*{workplaceSuitability}" rows="2" required></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Career Potential at Host Company</label>
+        <textarea class="form-control" th:field="*{careerPotential}" rows="2" required></textarea>
+      </div>
+
+      <!-- Part C: Visiting Lecturer Scoring -->
+      <h6 class="fw-bold text-secondary mt-4">Part C: Visiting Lecturer Scoring</h6>
+
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Evaluation (10%)</label>
+          <input class="form-control" type="number" th:field="*{vlEvaluation10}"
+                 min="0" max="10" required oninput="recalcVLSubtotal()">
+          <div class="form-text">0–10</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Attendance (5%)</label>
+          <input class="form-control" type="number" th:field="*{vlAttendance5}"
+                 min="0" max="5" required oninput="recalcVLSubtotal()">
+          <div class="form-text">0–5</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Logbook (5%)</label>
+          <input class="form-control" type="number" th:field="*{vlLogbook5}"
+                 min="0" max="5" required oninput="recalcVLSubtotal()">
+          <div class="form-text">0–5</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Final Report (40%)</label>
+          <input class="form-control" type="number" th:field="*{vlFinalReport40}"
+                 min="0" max="40" required oninput="recalcVLSubtotal()">
+          <div class="form-text">0–40</div>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-3">
+        Visiting Lecturer subtotal: <strong id="vlSubtotal">0</strong> / 60
+      </div>
+
+      <script>
+        function recalcVLSubtotal() {
+          const v = (name) => Number(document.querySelector(`[name="${name}"]`)?.value || 0);
+          const sum = v('vlEvaluation10') + v('vlAttendance5') + v('vlLogbook5') + v('vlFinalReport40');
+          document.getElementById('vlSubtotal').innerText = sum.toFixed(0);
+        }
+        document.addEventListener('DOMContentLoaded', recalcVLSubtotal);
+      </script>
+
+      <button type="submit" class="btn btn-primary w-100">Submit Evaluation</button>
+    </form>
+
+    <!-- 返回列表：有筛选时才带 session；否则不带参数 -->
+    <a class="btn btn-outline-secondary w-100 mt-2"
+       th:if="${selectedSession != null and selectedSession != ''}"
+       th:href="@{/lecturer/evaluation/list(session=${selectedSession})}">
+      ← Back to Evaluation List
+    </a>
+    <a class="btn btn-outline-secondary w-100 mt-2"
+       th:if="${selectedSession == null or selectedSession == ''}"
+       th:href="@{/lecturer/evaluation/list}">
+      ← Back to Evaluation List
+    </a>
+
+  </div>
+</div>
+</body>
+</html>

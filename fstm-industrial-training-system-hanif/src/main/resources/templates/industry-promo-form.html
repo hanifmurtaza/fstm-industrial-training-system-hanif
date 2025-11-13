@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Opportunity</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background:#f6f8fb; }
+        .wrap { max-width: 980px; }
+        .card { border:0; box-shadow:0 6px 20px rgba(0,0,0,.06); }
+        .field-error { color:#dc3545; font-size:.875rem; margin-top:.25rem; }
+        .required::after { content:" *"; color:#dc3545; }
+    </style>
+</head>
+<body>
+<div class="container py-4 wrap">
+    <div class="d-flex align-items-center mb-3">
+        <a class="btn btn-outline-secondary btn-sm me-2" th:href="@{/industry/opportunities}">← Back</a>
+        <h1 class="h4 mb-0" th:text="${promo.id} != null ? 'Edit Opportunity' : 'New Opportunity'">Opportunity</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form th:action="@{/industry/opportunities}" th:object="${promo}" method="post" enctype="multipart/form-data" novalidate>
+                <!-- keep id when editing -->
+                <input type="hidden" th:if="*{id}" th:field="*{id}"/>
+
+                <!-- TOP ERROR SUMMARY (must be inside the th:object form) -->
+                <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger">
+                    <div class="fw-semibold mb-1">Please fix the following:</div>
+                    <ul class="mb-0">
+                        <li th:each="e : ${#fields.errors('*')}" th:text="${e}">Error</li>
+                    </ul>
+                </div>
+
+                <!-- Company Name -->
+                <div class="mb-3">
+                    <label for="companyName" class="form-label required">Company Name</label>
+                    <input id="companyName" type="text" class="form-control" th:field="*{companyName}" placeholder="e.g., GK AQUA SDN BHD">
+                    <div class="field-error" th:errors="*{companyName}"></div>
+                </div>
+
+                <!-- Title -->
+                <div class="mb-3">
+                    <label for="title" class="form-label required">Title</label>
+                    <input id="title" type="text" class="form-control" th:field="*{title}" placeholder="e.g., Food Science Intern">
+                    <div class="field-error" th:errors="*{title}"></div>
+                </div>
+
+                <!-- Location -->
+                <div class="mb-3">
+                    <label for="location" class="form-label required">Location</label>
+                    <input id="location" type="text" class="form-control" th:field="*{location}" placeholder="e.g., Kuala Lumpur / Remote">
+                    <div class="field-error" th:errors="*{location}"></div>
+                </div>
+
+                <!-- Work Mode + Role Type -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="workMode" class="form-label">Work Mode</label>
+                        <select id="workMode" class="form-select" th:field="*{workMode}">
+                            <option value="">- Select -</option>
+                            <option value="Onsite">Onsite</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="Remote">Remote</option>
+                        </select>
+                        <div class="field-error" th:errors="*{workMode}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="roleType" class="form-label">Role Type</label>
+                        <select id="roleType" class="form-select" th:field="*{roleType}">
+                            <option value="">- Select -</option>
+                            <option value="Internship">Internship</option>
+                            <option value="Part-time">Part-time</option>
+                            <option value="Full-time">Full-time</option>
+                        </select>
+                        <div class="field-error" th:errors="*{roleType}"></div>
+                    </div>
+                </div>
+
+                <!-- Sector tags -->
+                <div class="mb-3 mt-3">
+                    <label for="sectorTags" class="form-label">Sector Tags (comma-separated)</label>
+                    <input id="sectorTags" type="text" class="form-control" th:field="*{sectorTags}" placeholder="e.g., Bakery,Catering">
+                    <div class="field-error" th:errors="*{sectorTags}"></div>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="description" class="form-label required">Description</label>
+                    <textarea id="description" class="form-control" th:field="*{description}" rows="7"
+                              placeholder="Describe the opportunity, responsibilities, and requirements..."></textarea>
+                    <div class="field-error" th:errors="*{description}"></div>
+                </div>
+
+                <!-- External link -->
+                <div class="mb-3">
+                    <label for="externalLink" class="form-label">External Link</label>
+                    <input id="externalLink" type="url" class="form-control" th:field="*{externalLink}" placeholder="https://...">
+                    <div class="field-error" th:errors="*{externalLink}"></div>
+                </div>
+
+                <!-- Image upload -->
+                <div class="mb-3">
+                    <label for="image" class="form-label">Image</label>
+                    <input id="image" type="file" class="form-control" name="image" accept="image/*">
+                    <div class="form-text">Optional. JPG/PNG, a landscape banner looks best.</div>
+                </div>
+
+                <!-- Contact -->
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="contactName" class="form-label required">Contact Name</label>
+                        <input id="contactName" type="text" class="form-control" th:field="*{contactName}">
+                        <div class="field-error" th:errors="*{contactName}"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="contactEmail" class="form-label required">Contact Email</label>
+                        <input id="contactEmail" type="email" class="form-control" th:field="*{contactEmail}">
+                        <div class="field-error" th:errors="*{contactEmail}"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="contactPhone" class="form-label">Contact Phone</label>
+                        <input id="contactPhone" type="text" class="form-control" th:field="*{contactPhone}">
+                        <div class="field-error" th:errors="*{contactPhone}"></div>
+                    </div>
+                </div>
+
+                <!-- Deadline + Status -->
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label for="deadline" class="form-label">Deadline</label>
+                        <input id="deadline" type="date" class="form-control" th:field="*{deadline}">
+                        <div class="field-error" th:errors="*{deadline}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="status" class="form-label">Status</label>
+                        <select id="status" class="form-select" th:field="*{status}">
+                            <option th:value="${T(com.example.itsystem.model.PromoStatus).DRAFT}">Draft</option>
+                            <option th:value="${T(com.example.itsystem.model.PromoStatus).PUBLISHED}">Published</option>
+                            <option th:value="${T(com.example.itsystem.model.PromoStatus).ARCHIVED}">Archived</option>
+                        </select>
+                        <div class="field-error" th:errors="*{status}"></div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <span th:text="${promo.id} != null ? 'Save Changes' : 'Create'">Create</span>
+                    </button>
+                    <a th:href="@{/industry/opportunities}" class="btn btn-light">Cancel</a>
+                </div>
+            </form>
+
+            <!-- Separate publish form (only when editing). Not nested inside the main form. -->
+            <form th:if="${promo.id} != null" th:action="@{'/industry/opportunities/' + ${promo.id} + '/publish'}"
+                  method="post" class="mt-2">
+                <button type="submit" class="btn btn-success">Publish</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

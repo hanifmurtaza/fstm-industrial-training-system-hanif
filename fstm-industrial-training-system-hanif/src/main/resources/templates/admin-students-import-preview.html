@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bulk Import Preview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<main class="container py-4" style="max-width: 960px;" th:with="pv=${preview}">
+  <h3 class="mb-3">Bulk Import Preview</h3>
+
+  <div class="mb-3">
+    <span class="badge bg-success me-2">
+      Valid: <span th:text="${pv.validCount}">0</span>
+    </span>
+    <span class="badge bg-danger">
+      With Errors: <span th:text="${pv.errorCount}">0</span>
+    </span>
+  </div>
+
+  <div class="table-responsive mb-3">
+    <table class="table table-sm table-bordered align-middle bg-white">
+      <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Matric No</th>
+        <th>Name</th>
+        <th>Session</th>
+        <th>Access Start</th>
+        <th>Access End</th>
+        <th>Status</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="r : ${pv.rows}">
+        <td th:text="${r.rowNumber}">1</td>
+        <td th:text="${r.matricNo}">200000</td>
+        <td th:text="${r.name}">Ali Bin Abu</td>
+        <td th:text="${r.session}">2025/2026-1</td>
+        <td th:text="${r.accessStart}">2025-07-01</td>
+        <td th:text="${r.accessEnd}">2025-12-31</td>
+        <td>
+          <span th:if="${r.error == null}" class="badge bg-success">OK</span>
+          <span th:if="${r.error != null}" class="badge bg-danger" th:text="${r.error}">Error</span>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Commit: send rows back as hidden fields -->
+  <form th:action="@{/admin/students/import/commit}" method="post">
+    <div class="d-flex justify-content-between">
+      <a class="btn btn-outline-secondary" th:href="@{/admin/students/import}">Back</a>
+      <button class="btn btn-primary"
+              type="submit"
+              th:disabled="${preview.validCount == 0}">
+        Commit Valid Rows
+      </button>
+    </div>
+  </form>
+
+
+  <div class="mt-3">
+    <a class="btn btn-link" th:href="@{/admin/students}">&larr; Back to students</a>
+  </div>
+</main>
+</body>
+</html>

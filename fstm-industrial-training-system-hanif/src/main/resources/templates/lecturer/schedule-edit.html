@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}"
+      lang="en">
+<head>
+  <title>Edit Visit</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <div class="card p-4 shadow-sm">
+    <h4 class="mb-4 text-primary">Edit Visit Schedule</h4>
+
+    <form th:action="@{/lecturer/schedule/update}" method="post" th:object="${visitSchedule}">
+      <!-- hidden id field -->
+      <input type="hidden" th:field="*{id}" />
+
+      <div class="mb-3">
+        <label class="form-label">Student</label>
+        <select class="form-select" th:field="*{studentId}" required>
+          <option th:each="s : ${students}" th:value="${s.id}" th:text="${s.name}"></option>
+        </select>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label class="form-label">Visit Date</label>
+          <input type="date" class="form-control" th:field="*{visitDate}" required>
+        </div>
+        <div class="col">
+          <label class="form-label">Visit Time</label>
+          <input type="time" class="form-control" th:field="*{visitTime}" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Visit Mode</label>
+        <select class="form-select" th:field="*{mode}" required>
+          <option value="Physical">Physical</option>
+          <option value="Virtual">Virtual</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-control" th:field="*{notes}" rows="3"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Update Visit</button>
+    </form>
+
+    <!-- 返回按钮 -->
+    <a th:href="@{/lecturer/schedule/list}" class="btn btn-outline-secondary w-100 mt-2">← Back to List</a>
+  </div>
+</div>
+</body>
+</html>

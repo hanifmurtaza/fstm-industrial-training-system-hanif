@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout2}" lang="en">
+<head>
+  <title>Student Dashboard</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <!-- Welcome -->
+  <h2 class="fw-bold mb-4 text-center">Welcome <span th:text="${name}">Student Name</span> 🎓</h2>
+
+  <!-- Visit notice -->
+  <div th:if="${visitSchedule != null}" class="alert alert-info text-center">
+    <p>
+      Lecturer will visit on <strong th:text="${visitSchedule.visitDate}">2025-05-01</strong> at
+      <strong th:text="${visitSchedule.visitTime}">15:00</strong> via
+      <strong th:text="${visitSchedule.mode}">Virtual</strong>.
+    </p>
+
+    <div th:if="${visitSchedule.status == 'Pending'}" class="d-flex justify-content-center gap-2">
+      <form th:action="@{/student/visit/confirm}" method="post">
+        <input type="hidden" name="visitId" th:value="${visitSchedule.id}">
+        <button type="submit" class="btn btn-success btn-sm">Confirm</button>
+      </form>
+
+      <form th:action="@{/student/visit/reschedule}" method="post">
+        <input type="hidden" name="visitId" th:value="${visitSchedule.id}">
+        <button type="submit" class="btn btn-warning btn-sm">Request Reschedule</button>
+      </form>
+    </div>
+
+    <div th:if="${visitSchedule.status == 'Confirmed'}" class="text-success fw-bold">
+      ✔ You have confirmed this visit.
+    </div>
+
+    <div th:if="${visitSchedule.status == 'RescheduleRequested'}" class="text-warning fw-bold">
+      ⏳ You have requested a reschedule.
+    </div>
+  </div>
+
+  <!-- Evaluation Progress (保持你的 Pending 卡片) -->
+  <div class="row mt-4 justify-content-center">
+    <div class="col-md-10">
+      <div class="card p-4 shadow-sm">
+        <h5 class="text-center mb-4">📊 Evaluation Progress</h5>
+
+        <div class="row row-cols-1 row-cols-md-4 g-3">
+          <div class="col" th:each="entry : ${evaluationStatus}">
+            <div class="card text-center h-100">
+              <div class="card-body">
+                <h6 class="card-title text-capitalize" th:text="${entry.key}">visitingLecturer</h6>
+                <p class="card-text fw-bold fs-5"
+                   th:text="${entry.value} != null ? ${entry.value} + ' / ' + ${maxMap[entry.key]} : 'Pending'">
+                  Pending
+                </p>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== Detailed Scores: VL & Supervisor ===== -->
+    <div class="my-5"
+         th:with="
+           totalSafe=(${total100} == null ? 0 : ${total100}),
+           gradeSafe=${grade},
+           vlSumSafe=(${vlSum} == null ? 0 : ${vlSum}),
+           vlEval10Safe=(${vlEval10} == null ? 0 : ${vlEval10}),
+           vlAttend5Safe=(${vlAttend5} == null ? 0 : ${vlAttend5}),
+           vlLog5Safe=(${vlLog5} == null ? 0 : ${vlLog5}),
+           vlRep40Safe=(${vlRep40} == null ? 0 : ${vlRep40}),
+           isSumSafe=(${isSum} == null ? 0 : ${isSum}),
+           isSkill20Safe=(${isSkill20} == null ? 0 : ${isSkill20}),
+           isComm10Safe=(${isComm10} == null ? 0 : ${isComm10}),
+           isTeam10Safe=(${isTeam10} == null ? 0 : ${isTeam10})">
+
+      <!-- 顶部总分徽章 -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold m-0">📊 Detailed Scores</h5>
+        <div>
+          <span class="badge bg-primary me-2">
+            Total: <span th:text="${totalSafe}">0</span> / 100
+          </span>
+          <span class="badge bg-success" th:if="${gradeSafe != null}">
+            Grade: <span th:text="${gradeSafe}">A</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <!-- Visiting Lecturer (60) -->
+        <div class="col-md-6">
+          <div class="card h-100" th:classappend="${hasVL} ? '' : ' opacity-50'">
+            <div class="card-body">
+              <h6 class="mb-2">Visiting Lecturer <span class="text-muted">(60)</span></h6>
+
+              <!-- 总进度 -->
+              <div class="mb-2 d-flex justify-content-between small">
+                <span>Total</span>
+                <strong th:text="|${vlSumSafe} / 60|">0 / 60</strong>
+              </div>
+              <div class="progress mb-3" style="height:10px;">
+                <div class="progress-bar"
+                     role="progressbar" aria-valuemin="0" aria-valuemax="60"
+                     th:aria-valuenow="${vlSumSafe}"
+                     th:style="|width: ${vlSumSafe * 100 / 60}%;|"></div>
+              </div>
+
+              <!-- 子项 -->
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Evaluation (10)</span><span th:text="|${vlEval10Safe} / 10|">0 / 10</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-info" th:style="|width: ${vlEval10Safe * 10}%;|"></div>
+              </div>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Attendance (5)</span><span th:text="|${vlAttend5Safe} / 5|">0 / 5</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-info" th:style="|width: ${vlAttend5Safe * 20}%;|"></div>
+              </div>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Logbook (5)</span><span th:text="|${vlLog5Safe} / 5|">0 / 5</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-info" th:style="|width: ${vlLog5Safe * 20}%;|"></div>
+              </div>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Final Report (40)</span><span th:text="|${vlRep40Safe} / 40|">0 / 40</span>
+              </div>
+              <div class="progress" style="height:6px;">
+                <div class="progress-bar bg-info" th:style="|width: ${vlRep40Safe * 100 / 40}%;|"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Industry Supervisor (40) -->
+        <div class="col-md-6">
+          <div class="card h-100" th:classappend="${hasIS} ? '' : ' opacity-50'">
+            <div class="card-body">
+              <h6 class="mb-2">Industrial Training Supervisor <span class="text-muted">(40)</span></h6>
+
+              <!-- 总进度 -->
+              <div class="mb-2 d-flex justify-content-between small">
+                <span>Total</span>
+                <strong th:text="|${isSumSafe} / 40|">0 / 40</strong>
+              </div>
+              <div class="progress mb-3" style="height:10px;">
+                <div class="progress-bar"
+                     role="progressbar" aria-valuemin="0" aria-valuemax="40"
+                     th:aria-valuenow="${isSumSafe}"
+                     th:style="|width: ${isSumSafe * 100 / 40}%;|"></div>
+              </div>
+
+              <!-- 子项 -->
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Skills (20)</span><span th:text="|${isSkill20Safe} / 20|">0 / 20</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-warning" th:style="|width: ${isSkill20Safe * 5}%;|"></div>
+              </div>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Communication (10)</span><span th:text="|${isComm10Safe} / 10|">0 / 10</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-warning" th:style="|width: ${isComm10Safe * 10}%;|"></div>
+              </div>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Teamwork (10)</span><span th:text="|${isTeam10Safe} / 10|">0 / 10</span>
+              </div>
+              <div class="progress" style="height:6px;">
+                <div class="progress-bar bg-warning" th:style="|width: ${isTeam10Safe * 10}%;|"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- /row -->
+    </div> <!-- /my-5 -->
+  </div> <!-- /row (outer) -->
+
+</div> <!-- /content -->
+</body>
+</html>

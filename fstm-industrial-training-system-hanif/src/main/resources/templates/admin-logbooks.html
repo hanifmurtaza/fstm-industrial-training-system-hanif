@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin · Logbooks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+    <style>
+        body { background:#f5f7fa; font-family: Inter, system-ui, sans-serif; }
+        .navbar { background:#0d6efd }
+        .navbar-brand, .nav-link { color:#fff !important }
+        .card { border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08) }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/admin/dashboard}">Admin Panel</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/admin/notifications}">Notifications</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="m-0">Logbooks</h3>
+        <div>
+            <a class="btn btn-outline-success"
+               th:href="@{/admin/logbooks/export(status=${status}, studentId=${studentId})}">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form class="card p-3 mb-3" method="get" th:action="@{/admin/logbooks}">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option th:selected="${status == null}" value="">All</option>
+                    <option value="PENDING" th:selected="${status?.name() == 'PENDING'}">Pending</option>
+                    <option value="APPROVED" th:selected="${status?.name() == 'APPROVED'}">Approved</option>
+                    <option value="REJECTED" th:selected="${status?.name() == 'REJECTED'}">Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Student ID (DB id)</label>
+                <input class="form-control" type="number" name="studentId" th:value="${studentId}">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary mt-4"><i class="bi bi-funnel"></i> Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Table -->
+    <div class="card p-0">
+        <div class="table-responsive">
+            <table class="table align-middle m-0">
+                <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Student</th>
+                    <th>Week Start</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Sup Endorsed</th>
+                    <th>Lec Endorsed</th>
+                    <th>Reviewed By</th>
+                    <th>Reviewed At</th>
+                    <th>Main Task</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${logbooks.content}">
+                    <td th:text="${e.id}"></td>
+                    <td th:text="${e.studentId}"></td>
+                    <td th:text="${e.weekStartDate} ?: '-'"></td>
+                    <td th:text="${e.createdAt} ?: '-'"></td>
+                    <td>
+            <span class="badge"
+                  th:classappend="${e.status.name() == 'PENDING'} ? 'bg-warning text-dark' :
+                                  (${e.status.name() == 'APPROVED'} ? 'bg-success' : 'bg-danger')"
+                  th:text="${e.status}">PENDING</span>
+                    </td>
+                    <td>
+            <span class="badge" th:classappend="${e.endorsed} ? 'bg-info text-dark' : 'bg-secondary'"
+                  th:text="${e.endorsed} ? 'YES' : 'NO'">NO</span>
+                    </td>
+                    <td>
+            <span class="badge" th:classappend="${e.endorsedByLecturer} ? 'bg-success' : 'bg-secondary'"
+                  th:text="${e.endorsedByLecturer} ? 'YES' : 'NO'">NO</span>
+                    </td>
+                    <td th:text="${e.reviewedBy} ?: '-'"></td>
+                    <td th:text="${e.reviewedAt} ?: '-'"></td>
+                    <td th:text="${e.mainTask} ?: '-'"></td>
+                </tr>
+                <tr th:if="${logbooks.totalElements == 0}">
+                    <td colspan="10" class="text-center text-muted py-4">No logbooks found.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center p-3">
+            <div class="text-muted">
+                <span th:text="'Page ' + ${logbooks.number + 1} + ' / ' + ${logbooks.totalPages}"></span>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary btn-sm" th:if="${!logbooks.first}"
+                   th:href="@{/admin/logbooks(page=${logbooks.number-1}, status=${status}, studentId=${studentId})}">← Prev</a>
+                <a class="btn btn-outline-secondary btn-sm" th:if="${!logbooks.last}"
+                   th:href="@{/admin/logbooks(page=${logbooks.number+1}, status=${status}, studentId=${studentId})}">Next →</a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

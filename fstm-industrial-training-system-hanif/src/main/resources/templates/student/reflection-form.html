@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout2}" lang="en">
+<head>
+  <title>Submit Reflection</title>
+</head>
+
+<body>
+<section layout:fragment="content">
+  <div class="container mt-5">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="bi bi-check-circle-fill"></i>
+      <span th:text="${successMessage}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow p-4">
+          <h3 class="text-center mb-4">📝 Self-Reflection Form</h3>
+
+          <form th:action="@{/student/reflection/submit}" th:object="${reflection}" method="post">
+            <div class="mb-3">
+              <label for="learningExperience" class="form-label fw-bold">Key Learning Experiences</label>
+              <textarea id="learningExperience" th:field="*{learningExperience}" class="form-control" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="softSkills" class="form-label fw-bold">Soft Skills Developed</label>
+              <textarea id="softSkills" th:field="*{softSkills}" class="form-control" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="feedback" class="form-label fw-bold">Feedback or Suggestions</label>
+              <textarea id="feedback" th:field="*{feedback}" class="form-control" rows="4" required></textarea>
+            </div>
+
+            <div class="text-center">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-send-fill"></i> Submit
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

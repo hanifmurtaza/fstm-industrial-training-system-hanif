@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="en">
+<head>
+    <title>Student Logbooks</title>
+</head>
+<body>
+<div layout:fragment="body">
+    <div class="container mt-4">
+        <h3 class="mb-4">📘 Logbook Entries for <span th:text="${student.name}">Student Name</span></h3>
+
+        <table class="table table-bordered table-striped">
+            <thead>
+            <tr>
+                <th>Week Start</th>
+                <th>Activity</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${logbooks}">
+                <td th:text="${entry.weekStartDate}"></td>
+                <td th:text="${entry.content}"></td>
+                <td>
+                    <span th:if="${entry.endorsed}" class="text-success fw-bold">✔ Endorsed</span>
+                    <span th:if="${!entry.endorsed}" class="text-danger">❌ Not Endorsed</span>
+                </td>
+                <td>
+                    <form th:action="@{/lecturer/logbook/endorse}" method="post" th:if="${!entry.endorsed}">
+                        <input type="hidden" name="entryId" th:value="${entry.id}">
+                        <button type="submit" class="btn btn-sm btn-success">Endorse</button>
+                    </form>
+                    <span th:if="${entry.endorsed}" class="text-muted">-</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="mt-3">
+            <a th:href="@{/lecturer/students}" class="btn btn-secondary">← Back to Students</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="en">
+<head>
+  <title>Student Reflections</title>
+</head>
+<body>
+<section layout:fragment="content">
+  <div class="container mt-4">
+    <h3 class="text-center mb-4">
+      🗂️ Reflections from <span th:text="${student.name}">Student Name</span>
+    </h3>
+
+    <div class="table-responsive">
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-primary">
+        <tr>
+          <th>#</th>
+          <th>Submitted At</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="r, iterStat : ${reflections}">
+          <td th:text="${iterStat.index + 1}">1</td>
+          <td th:text="${#temporals.format(r.submittedAt, 'yyyy-MM-dd HH:mm')}">Date</td>
+          <td>
+            <a th:href="@{'/student/reflection/export/' + ${r.id}}"
+               class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-file-earmark-arrow-down"></i> Export
+            </a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+</body>
+</html>

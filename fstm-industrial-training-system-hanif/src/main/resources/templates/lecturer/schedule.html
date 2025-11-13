@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}"
+      lang="en">
+
+<head>
+  <title>Schedule Visit</title>
+</head>
+
+<body>
+<div layout:fragment="content">
+
+  <div class="card p-4 shadow-sm">
+    <h4 class="mb-4 text-primary">Schedule Student Visit</h4>
+
+    <div th:if="${successMessage}" class="alert alert-success mb-3" role="alert">
+      <span th:text="${successMessage}"></span>
+    </div>
+
+    <form th:action="@{/lecturer/schedule}" method="post" th:object="${visitSchedule}">
+      <div class="mb-3">
+        <label class="form-label">Student</label>
+        <select class="form-select" th:field="*{studentId}">
+          <option th:each="s : ${students}" th:value="${s.id}" th:text="${s.name}"></option>
+        </select>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label class="form-label">Visit Date</label>
+          <input type="date" class="form-control" th:field="*{visitDate}" required>
+        </div>
+        <div class="col">
+          <label class="form-label">Visit Time</label>
+          <input type="time" class="form-control" th:field="*{visitTime}" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Visit Mode</label>
+        <select class="form-select" th:field="*{mode}">
+          <option value="Physical">Physical</option>
+          <option value="Virtual">Virtual</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-control" th:field="*{notes}" rows="3"></textarea>
+      </div>
+
+      <button class="btn btn-primary w-100" type="submit">Submit Schedule</button>
+    </form>
+    <a class="btn btn-outline-primary w-100 mt-2" th:href="@{/lecturer/schedule/list}">
+      View Scheduled Visits
+    </a>
+
+  </div>
+
+</div>
+</body>
+</html>

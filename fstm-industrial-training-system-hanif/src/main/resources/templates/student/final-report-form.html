@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout2}" lang="en">
+<head>
+    <title>Submit Final Report</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow p-4">
+                    <h3 class="text-center mb-4">📤 Final Report Submission</h3>
+
+                    <form th:action="@{/student/final-report/submit}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="reportFile" class="form-label fw-bold">Upload Report (PDF)</label>
+                            <input type="file" name="reportFile" class="form-control" accept=".pdf" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="videoFile" class="form-label fw-bold">Upload Video (MP4)</label>
+                            <input type="file" name="videoFile" class="form-control" accept="video/mp4" required>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-upload"></i> Submit
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

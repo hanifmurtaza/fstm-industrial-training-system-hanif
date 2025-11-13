@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Logbooks – Industry Supervisor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color:#f5f7fa; }
+        .navbar { background-color:#0d6efd; }
+        .navbar-brand, .nav-link { color:#fff !important; font-weight:500; }
+        .card { border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08); }
+        .badge-soft { background-color:#eef2ff; color:#0d6efd; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/industry/dashboard}">Industry Supervisor</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" th:href="@{/industry/logbooks}">Logbooks</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/logout}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+        <h4 class="me-3 mb-0">Logbook Entries</h4>
+        <span class="text-muted" th:if="${status != null}">
+      (Filtered by: <span class="badge text-bg-primary" th:text="${status}">PENDING</span>)
+    </span>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form class="row g-3 align-items-end" th:action="@{/industry/logbooks}" method="get">
+                <div class="col-md-3">
+                    <label class="form-label">Student ID</label>
+                    <input class="form-control" type="number" name="studentId" th:value="${studentId}" placeholder="e.g. 101"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option th:selected="${status == null}" value="">All</option>
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"
+                                th:selected="${status == s}"></option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+                    <a class="btn btn-outline-secondary ms-1" th:href="@{/industry/logbooks}">
+                        Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Student ID</th>
+                    <th>Week (Start)</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(entries.content)}">
+                    <td colspan="5" class="text-center py-4 text-muted">No entries found.</td>
+                </tr>
+
+                <tr th:each="e : ${entries.content}">
+                    <td th:text="${e.id}">1</td>
+                    <td th:text="${e.studentId}">1001</td>
+                    <td th:text="${e.weekStartDate}">2025-01-01</td>
+                    <td>
+            <span th:classappend="${e.status.name()=='PENDING'} ? 'badge text-bg-warning' :
+                                   (${e.status.name()=='APPROVED'} ? 'badge text-bg-success' : 'badge text-bg-danger')"
+                  th:text="${e.status}">PENDING</span>
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{|/industry/logbooks/${e.id}|}">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="text-muted">
+                    Page <span th:text="${currentPage + 1}">1</span> of
+                    <span th:text="${totalPages}">1</span>
+                </div>
+                <div class="btn-group">
+                    <a class="btn btn-outline-secondary"
+                       th:classappend="${currentPage == 0} ? ' disabled'"
+                       th:href="@{/industry/logbooks(page=${currentPage - 1}, size=${entries.size}, status=${status}, studentId=${studentId})}">
+                        ← Prev
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       th:classappend="${currentPage + 1 >= totalPages} ? ' disabled'"
+                       th:href="@{/industry/logbooks(page=${currentPage + 1}, size=${entries.size}, status=${status}, studentId=${studentId})}">
+                        Next →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

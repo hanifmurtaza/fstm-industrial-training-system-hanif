@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}" lang="en">
+<head>
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- 顶部欢迎 -->
+    <div class="card shadow-sm p-4 mb-3">
+        <h5 class="mb-1">
+            Welcome back,
+            <span th:text="${userName} ?: (${session.user} != null ? ${session.user.name} : 'Visiting Lecturer')">
+              Visiting Lecturer
+            </span> 👋
+        </h5>
+    </div>
+
+    <!-- === Announcements + Calendar === -->
+    <div class="row g-3">
+        <!-- Announcements -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h6 class="m-0">Announcements</h6>
+                        <!-- 已按要求移除 View evaluations 链接 -->
+                    </div>
+
+                    <!-- 列表 -->
+                    <ul class="list-group list-group-flush mt-3"
+                        th:if="${announcements != null and !#lists.isEmpty(announcements)}">
+                        <li class="list-group-item px-0" th:each="a : ${announcements}">
+                            <div class="d-flex">
+                                <div class="me-2 mt-1">
+                                    <i class="bi bi-megaphone text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" th:text="${a.title}">Title</div>
+                                    <div class="text-muted small" th:text="${a.message}">Message…</div>
+                                    <div class="text-muted small mt-1">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        <span th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">2025-10-26</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <!-- 空状态 -->
+                    <div class="text-muted small py-4 text-center"
+                         th:if="${announcements == null or #lists.isEmpty(announcements)}">
+                        <i class="bi bi-inbox me-1"></i>No announcements yet.
+                    </div>
+
+                    <!-- 已按要求删除与 Evaluation 相关的提示语 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h6 class="m-0">Schedule Calendar</h6>
+                        <!-- 简洁起见，这里保留副标题也可以去掉 -->
+                        <span class="text-muted small">Your visits at a glance</span>
+                    </div>
+                    <div id="vl-calendar" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FullCalendar assets -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const el = document.getElementById('vl-calendar');
+            if (!el) return;
+
+            // 如需显示事件，保留此接口；不需要可改为 const events = [];
+            let events = [];
+            try {
+                const res = await fetch('/lecturer/dashboard/events', { credentials: 'same-origin', cache: 'no-store' });
+                events = res.ok ? await res.json() : [];
+            } catch (_) {}
+
+            const calendar = new FullCalendar.Calendar(el, {
+                initialView: 'dayGridMonth',     // 仅月视图
+                height: 'auto',
+                headerToolbar: {                 // 只有前后翻页与标题
+                    left: 'prev,next',
+                    center: 'title',
+                    right: ''
+                },
+                navLinks: false,
+                nowIndicator: false,
+                displayEventTime: false,
+                dayMaxEventRows: 3,
+                events,
+                eventDidMount: (info) => {
+                    // 轻量配色（可选）
+                    const s = info.event.extendedProps.status?.toLowerCase();
+                    info.el.style.border = '0';
+                    if (s === 'confirmed') info.el.style.backgroundColor = '#e6f7ed';
+                    else if (s === 'pending') info.el.style.backgroundColor = '#fff7e6';
+                    else info.el.style.backgroundColor = '#eef2f6';
+                },
+                // 不做点击跳转，保持纯查看
+                eventClick: null
+            });
+
+            calendar.render();
+        });
+    </script>
+
+</div>
+
+<div layout:fragment="script">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        async function loadKpis() {
+            try {
+                const res = await fetch('/lecturer/dashboard/kpis', {
+                    cache: 'no-store',
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+
+                // 如果页面上没有这些元素，也不会报错；保留原逻辑以兼容你之前的实现
+                const ids = ['kpiLogbook','kpiStudents','kpiSchedule','kpiEval'];
+                const vals = [data.pendingLogbook ?? 0, data.students ?? 0, data.unvisitedSchedules ?? 0, data.pendingEvaluations ?? 0];
+                ids.forEach((id, i) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = vals[i];
+                });
+                console.log('KPIs loaded:', data);
+            } catch (e) {
+                console.error('Failed to load KPIs:', e);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadKpis);
+    </script>
+</div>
+
+</body>
+</html>

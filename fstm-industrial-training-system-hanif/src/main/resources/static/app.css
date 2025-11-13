@@ -1,0 +1,148 @@
+/* ===========================
+   UPM Industrial Training – app.css
+   =========================== */
+
+/* Theme tokens */
+:root{
+    --brand:#ec4e0a;           /* header bar */
+    --primary:#0d6efd;         /* Bootstrap primary */
+    --bg:#f5f7fa;              /* page background */
+    --text:#1f2937;            /* gray-800 */
+    --muted:#6b7280;           /* gray-500 */
+    --border:#e5e7eb;          /* gray-200 */
+    --radius:16px;
+    --shadow:0 8px 18px rgba(0,0,0,.06);
+}
+
+/* Base */
+html,body{ background:var(--bg); color:var(--text); }
+.container-narrow{ max-width:1240px; }
+
+/* Header bar */
+.header-bar{ background:var(--brand); color:#fff; padding:10px 0; }
+.header-brand img{ height:44px; width:auto; }
+.header-title{ font-weight:600; font-size:1.05rem; margin:0 0 0 .75rem; }
+
+/* Cards */
+.card{ border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+.card-title{ margin:0; font-weight:700; }
+
+/* Auth (login) */
+.auth-card{ max-width:420px; margin-inline:auto; }
+.brand-mark{ height:48px; width:auto; object-fit:contain; }
+
+/* Inputs & button rhythm */
+.auth-card .form-label{ margin-bottom:.35rem; }
+.auth-card .form-control{ padding:.65rem .85rem; height:44px; }
+.auth-card .btn-primary{ height:44px; }
+
+/* Role segmented control */
+.role-switch-wrap{ margin-top:.5rem; margin-bottom:.75rem; }
+.role-switch{
+    background:#fff; border:1.5px solid #cfd6e4; border-radius:999px;
+    padding:6px; display:inline-flex; gap:6px; flex-wrap:wrap;
+}
+.role-switch .btn{
+    border:none; border-radius:999px; padding:.5rem 1rem;
+    font-weight:600; color:#374151;
+}
+.role-switch .btn.active, .btn-check:checked + .btn{
+    background:var(--primary); color:#fff;
+}
+.btn-check:focus + .btn, .btn:focus{ box-shadow:0 0 0 .2rem rgba(13,110,253,.2); }
+
+/* Partners grid */
+.partners .logo{
+    width:100%; height:56px; object-fit:contain; filter:grayscale(15%);
+}
+
+/* Chart sizing */
+.chart-wrap{ height:360px; }
+.chart-wrap canvas{ width:100%!important; height:100%!important; }
+
+/* Table wrapper (keeps page compact) */
+.table-wrap{
+    max-height:420px; overflow:auto;
+    border:1px solid var(--border); border-radius:12px;
+}
+.table-wrap thead th{ position:sticky; top:0; background:#fff; z-index:1; }
+
+/* Small typographic helpers */
+.section-h{ font-size:1rem; font-weight:700; margin-bottom:.5rem; }
+.subtle{ color:var(--muted); }
+
+/* Optional: soften default alerts */
+.alert{ border-radius:12px; }
+
+/* Optional: tidy tables */
+.table thead th{ font-weight:600; color:#374151; border-bottom:1px solid var(--border); }
+.table td{ vertical-align:middle; }
+
+/* enforce vertical rhythm inside the auth card */
+.auth-card form{ display:flex; flex-direction:column; row-gap:12px; }  /* NEW */
+.auth-card .form-control{ height:44px; padding:.65rem .85rem; }       /* already there, ok */
+.role-switch-wrap{ margin-top:.25rem; margin-bottom:1rem; }            /* more bottom space */
+.role-switch{ padding:8px; gap:8px; flex-wrap:wrap; }                  /* a bit more padding */
+.auth-card .btn-primary{ height:44px; margin-top:.25rem; }             /* tiny nudge */
+
+/* ===== Compact sizing overrides ===== */
+.auth-card{ max-width:360px; }                 /* narrower card */
+.brand-mark{ height:40px; }                    /* smaller logo */
+.auth-card h2{ font-size:1.5rem; margin-bottom:.75rem; }
+
+.auth-card form{ row-gap:10px; }               /* a bit tighter */
+.auth-card .form-control{ height:40px; padding:.5rem .75rem; font-size:.95rem; }
+.role-switch-wrap{ margin-top:.2rem; margin-bottom:.75rem; }
+.role-switch{ padding:6px; gap:6px; }
+.role-switch .btn{ padding:.4rem .8rem; font-size:.9rem; }
+.auth-card .btn-primary{ height:40px; font-size:.95rem; }
+
+/* cards slightly tighter too */
+.card{ border-radius:14px; }
+.card .card-title{ font-size:1.05rem; }
+
+/* chart/table a bit shorter */
+.chart-wrap{ height:320px; }
+.table-wrap{ max-height:360px; }
+
+/* make base text a touch smaller without hurting readability */
+body{ font-size:15px; }
+
+/* guaranteed spacing between segmented control and button */
+.stack-12{ display:flex; flex-direction:column; gap:12px; }
+
+/* make sure no old margins fight this */
+.role-switch-wrap{ margin:0; }          /* neutralize margins */
+.auth-card .btn-primary{ margin:0; }    /* let the gap do the work */
+
+/* Keep everything inside the rounded card; clip big focus rings */
+.auth-card{ overflow:hidden; }
+
+/* Guarantee breathing room from the card’s edges */
+.auth-card .role-switch-wrap{ padding: 0 6px; margin: 6px 0 12px; }
+.auth-card .role-switch{
+    width:100%;
+    box-sizing:border-box;
+    justify-content:space-between;
+    padding:6px;
+    gap:6px;
+}
+
+/* Enforce a hard gap between the pill and the button */
+.stack-12{ display:flex; flex-direction:column; gap:14px; }
+
+/* Make sure 100%-width controls don’t overshoot due to box-sizing quirks */
+.auth-card .form-control,
+.auth-card .btn{ box-sizing:border-box; }
+
+/* Buttons sit visually inside the card radius */
+.auth-card .btn-primary{ height:40px; border-radius:12px; margin:0; }
+.auth-card .role-switch .btn{ padding:.4rem .8rem; border-radius:999px; }
+
+/* Softer focus ring so it doesn't bleed past the card edge before being clipped */
+.auth-card .btn:focus{ box-shadow:0 0 0 .15rem rgba(13,110,253,.20); }
+
+/* Optional: slightly narrower card so contents don't hug the edges */
+@media (min-width: 992px){
+    .auth-card{ max-width:340px; }
+}

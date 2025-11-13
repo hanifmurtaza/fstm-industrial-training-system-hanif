@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}" lang="en">
+<head>
+    <title>Evaluation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- 成功提示 -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div class="card p-4 mb-4 shadow-sm">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h5 class="m-0">List of Student for Organisation Evaluation</h5>
+            <div class="text-muted small">
+                Total:&nbsp;<span class="fw-semibold" th:text="${#lists.size(visitList)}">0</span>
+            </div>
+        </div>
+
+        <!-- 过滤器（Session） -->
+        <form class="row g-2 align-items-end mt-3" method="get" th:action="@{/lecturer/evaluation/list}">
+            <div class="col-auto">
+                <label for="sessionSelect" class="form-label mb-0 fw-semibold">Session</label>
+                <select id="sessionSelect" name="session" class="form-select form-select-sm">
+                    <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
+                    <th:block th:each="s : ${sessions}">
+                        <option th:value="${s}" th:selected="${selectedSession != null and selectedSession.equals(s)}"
+                                th:text="${s}">2025/2026-1</option>
+                    </th:block>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <a class="btn btn-outline-secondary btn-sm" th:href="@{/lecturer/evaluation/list}">
+                    Reset
+                </a>
+            </div>
+        </form>
+
+        <!-- 信息提示 -->
+        <div class="alert alert-info py-2 px-3 mt-3 mb-0" role="alert">
+            <i class="bi bi-info-circle me-1"></i>
+            Note: A student will appear here only after their visit has been <strong>confirmed</strong>.
+        </div>
+
+        <!-- 表格 -->
+        <div class="table-responsive mt-4">
+            <table class="table table-bordered align-middle">
+                <thead class="table-primary text-center">
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th>Name</th>
+                    <th style="width: 10%;">Evaluate</th>
+                    <th style="width: 10%;">PDF</th>
+                </tr>
+                </thead>
+
+                <!-- 有数据 -->
+                <tbody class="text-center" th:if="${visitList != null and !#lists.isEmpty(visitList)}">
+                <tr th:each="v, iterStat : ${visitList}">
+                    <td th:text="${iterStat.count}"></td>
+                    <td class="text-start" th:text="${studentNameMap[v.studentId]}">Student Name</td>
+
+                    <!-- 评估入口（带上 selectedSession） -->
+                    <td>
+                        <a th:href="@{/lecturer/evaluation/form/{visitId}(visitId=${v.id}, session=${selectedSession})}"
+                           title="Evaluate">
+                            <i class="bi bi-clipboard-check"></i>
+                        </a>
+                    </td>
+
+                    <!-- 导出 PDF（带上 selectedSession） -->
+                    <td>
+                        <a th:href="@{/lecturer/evaluation/pdf/{id}(id=${v.id}, session=${selectedSession})}" target="_blank"
+                           title="Export PDF">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+
+                <!-- 空状态 -->
+                <tbody class="text-center" th:if="${visitList == null or #lists.isEmpty(visitList)}">
+                <tr>
+                    <td colspan="4" class="text-muted py-5">No students to evaluate yet.</td>
+                </tr>
+                </tbody>
+
+            </table>
+        </div>
+
+        <!-- Footer 记录数 -->
+        <div class="mt-2 text-muted small">
+            Record 1 to <span th:text="${#lists.size(visitList)}">0</span> daripada
+            <span th:text="${#lists.size(visitList)}">0</span> record(s)
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

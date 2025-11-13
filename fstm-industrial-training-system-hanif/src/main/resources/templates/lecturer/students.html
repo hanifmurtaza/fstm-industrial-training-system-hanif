@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+  <title>My Students</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <!-- 顶部欢迎卡片 -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5 th:text="${lecturer}">Lecturer Name</h5>
+    <p>User Role: <span class="badge bg-success">✔ Visiting Lecturer</span></p>
+  </div>
+
+  <div class="card p-4 shadow-sm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="mb-0">List of My Students</h5>
+    </div>
+
+    <!-- Session 筛选（极稳写法） -->
+    <form class="row g-2 align-items-end mb-3" method="get" th:action="@{/lecturer/students}">
+      <div class="col-auto">
+        <label for="sessionSelect" class="form-label mb-0 fw-semibold">Session</label>
+        <select id="sessionSelect" name="session" class="form-select form-select-sm">
+          <!-- “全部”选项 -->
+          <option value="" th:selected="${selectedSession == null or selectedSession == ''}">
+            All sessions
+          </option>
+
+          <!-- sessions 可能为 null，不报错 -->
+          <th:block th:if="${sessions != null}" th:each="s : ${sessions}">
+            <option th:value="${s}"
+                    th:text="${s}"
+                    th:selected="${selectedSession != null and selectedSession.equals(s)}">
+            </option>
+          </th:block>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+        <a class="btn btn-outline-secondary btn-sm" th:href="@{/lecturer/students}">Reset</a>
+      </div>
+    </form>
+
+    <!-- 表格 -->
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="table-light">
+        <tr>
+          <th>No</th>
+          <th>Student Name</th>
+          <th>Student ID</th>
+          <th>Session</th>
+          <th>Company</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="student, iterStat : ${students}">
+          <td th:text="${iterStat.count}">1</td>
+          <td th:text="${student.name}">Name</td>
+          <td th:text="${student.studentId}">213793</td>
+          <td th:text="${student.session}">2025/2026-1</td>
+          <td th:text="${student.company}">Company</td>
+          <td>
+            <a th:href="@{'/lecturer/reflection/history/' + ${student.id}}"
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-journal-text"></i> Reflections
+            </a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

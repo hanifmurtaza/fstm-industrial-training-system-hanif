@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}"
+      lang="en">
+<head>
+    <title>Documents</title>
+</head>
+<body>
+
+<div layout:fragment="content">
+
+    <div class="card p-4 shadow-sm">
+        <h5>List of Documents</h5>
+
+        <!-- Filters -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label>Show
+                    <select class="form-select form-select-sm d-inline w-auto">
+                        <option>50</option>
+                        <option>100</option>
+                    </select> records
+                </label>
+            </div>
+            <div class="col-md-4 offset-md-5 text-end">
+                <label class="me-2">Keyword</label>
+                <input type="text" class="form-control form-control-sm d-inline w-auto" placeholder="Search...">
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-primary text-center">
+            <tr>
+                <th style="width: 50px;">No</th>
+                <th>Name</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td>1</td><td>ADDITIONAL RULES FOR INTERNATIONAL INTERNSHIPS</td></tr>
+            <tr><td>2</td><td>APPROVAL SHEET FORM</td></tr>
+            <tr><td>3</td><td>INDUSTRIAL TRAINING FINAL BRIEFING (SEMESTER II 2023/2024)</td></tr>
+            <tr><td>4</td><td>INDUSTRIAL TRAINING INITIAL BRIEFING (SEMESTER II 2024/2025)</td></tr>
+            <tr><td>5</td><td>INDUSTRIAL TRAINING WORK/TASK SCOPE GUIDELINE</td></tr>
+            <tr><td>6</td><td>SOP FOR LI APPLICATION _ NOV 2023</td></tr>
+            <tr><td>7</td><td>TAKLIMAT PENSYARAH PEMANTAU LATIHAN INDUSTRI (2025)</td></tr>
+            <tr><td>8</td><td>[REPORT DUTY FORM] SUBMISSION OF INDUSTRIAL TRAINING REPORT DUTY CONFIRMATION FORM</td></tr>
+            <tr><td>9</td><td>[SLIDE BRIEFING] INTERNSHIP BRIEFING - 2024-2025</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Footer -->
+        <div class="d-flex justify-content-between small text-muted">
+            <div>Record 1 to 9 daripada 9 record(s)</div>
+            <div>Page 1 of 1 page(s)</div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

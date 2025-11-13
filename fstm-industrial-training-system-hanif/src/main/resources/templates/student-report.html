@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.thymeleaf.org/thymeleaf-extras-layout"
+      layout:decorate="~{layout}"
+      lang="en">
+<head>
+    <title>Student Report</title>
+</head>
+<body>
+
+<div layout:fragment="content">
+
+    <div class="card p-4 shadow-sm">
+        <h5>List of Student</h5>
+
+        <!-- Filter Row -->
+        <div class="row mb-3">
+            <div class="col-md-2">
+                <label>Show
+                    <select class="form-select form-select-sm d-inline w-auto">
+                        <option>50</option>
+                        <option>100</option>
+                    </select> records
+                </label>
+            </div>
+            <div class="col-md-3">
+                <label>Session</label>
+                <select class="form-select form-select-sm">
+                    <option selected>All Session</option>
+                    <option>2024/2025 2</option>
+                    <option>2023/2024 2</option>
+                    <option>2022/2023 2</option>
+                    <option>2020/2021 2</option>
+                </select>
+            </div>
+            <div class="col-md-4 offset-md-3 text-end">
+                <label class="me-2">Keyword</label>
+                <input type="text" class="form-control form-control-sm d-inline w-auto" placeholder="Search...">
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-primary text-center">
+            <tr>
+                <th style="width: 50px;">No</th>
+                <th>Name</th>
+                <th>Session</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td>1</td><td>ATHIMAHENDRAN A/L PANNEERSELVAM</td><td>2015/2016 2</td></tr>
+            <tr><td>2</td><td>AZAN FAIZ BIN AHMAD NOOR</td><td>2018/2019 2</td></tr>
+            <tr><td>3</td><td>CHONG WAI KEI</td><td>2022/2023 2</td></tr>
+            <tr><td>4</td><td>FATIN AINA NAJHAH BINTI HAMDAN</td><td>2020/2021 2</td></tr>
+            <tr><td>5</td><td>HELMI HUSAIN BIN MOHD HISHAM</td><td>2020/2021 2</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Footer -->
+        <div class="d-flex justify-content-between small text-muted">
+            <div>Record 1 to 5 daripada 5 record(s)</div>
+            <div>Page 1 of 1 page(s)</div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

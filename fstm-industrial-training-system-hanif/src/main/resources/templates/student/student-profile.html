@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout2}" lang="en">
+<head>
+  <title>Student Profile</title>
+</head>
+<body>
+<div layout:fragment="content"> <!-- 注意这里改成 content -->
+
+  <div class="container mt-5" style="max-width: 600px;">
+    <h3 class="text-center fw-bold mb-4">👤 My Profile</h3>
+
+    <table class="table table-striped table-bordered">
+      <tr>
+        <th>Name</th>
+        <td th:text="${user.name}">John Doe</td>
+      </tr>
+      <tr>
+        <th>Student ID</th>
+        <td th:text="${user.studentId}">123456</td>
+      </tr>
+      <tr>
+        <th>Session</th>
+        <td th:text="${user.session}">2024/2025</td>
+      </tr>
+      <tr>
+        <th>Company</th>
+        <td th:text="${user.company}">ABC Sdn Bhd</td>
+      </tr>
+      <tr>
+        <th>Username</th>
+        <td th:text="${user.username}">john123</td>
+      </tr>
+
+      <tr>
+        <th>My Lecturer</th>
+        <td>
+          <form th:action="@{/student/profile}" method="post" class="d-flex">
+            <select name="lecturerId" class="form-select me-2" required>
+              <option th:each="lec : ${lecturers}"
+                      th:value="${lec.id}"
+                      th:text="${lec.name}"
+                      th:selected="${lec.id} == ${user.lecturer?.id}">
+              </option>
+            </select>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </td>
+      </tr>
+
+
+    </table>
+
+    <div class="text-center mt-3">
+      <a th:href="@{/student-dashboard}" class="btn btn-outline-primary">← Back to Dashboard</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

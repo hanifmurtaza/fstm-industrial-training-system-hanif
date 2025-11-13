@@ -1,0 +1,40 @@
+package com.example.itsystem.repository;
+
+import com.example.itsystem.model.LogbookEntry;
+import com.example.itsystem.model.ReviewStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long> {
+
+    // --- basic finders (common in both versions) ---
+    List<LogbookEntry> findByLecturerId(Long lecturerId);
+    List<LogbookEntry> findByStudentId(Long studentId);
+    List<LogbookEntry> findByStudentIdOrderByCreatedAtDesc(Long studentId);
+
+    // --- paging helpers (from first version) ---
+    Page<LogbookEntry> findByStatus(ReviewStatus status, Pageable pageable);
+    Page<LogbookEntry> findByStudentId(Long studentId, Pageable pageable);
+    Page<LogbookEntry> findByStudentIdAndStatus(Long studentId, ReviewStatus status, Pageable pageable);
+
+    long countByStatus(ReviewStatus status);
+
+    // --- queues for review flow (from first version) ---
+    Page<LogbookEntry> findByStatusAndEndorsedFalse(ReviewStatus status, Pageable pageable);
+    Page<LogbookEntry> findByEndorsedTrueAndEndorsedByLecturerFalse(Pageable pageable);
+
+    long countByStatusAndEndorsedFalse(ReviewStatus status);
+    long countByEndorsedTrueAndEndorsedByLecturerFalse();
+
+    // --- extra counters (from second version) ---
+    // count un-endorsed logs for a list of students
+    long countByStudentIdInAndEndorsedFalse(List<Long> studentIds);
+
+    // count un-endorsed logs for a specific lecturer
+    long countByLecturerIdAndEndorsedFalse(Long lecturerId);
+}
