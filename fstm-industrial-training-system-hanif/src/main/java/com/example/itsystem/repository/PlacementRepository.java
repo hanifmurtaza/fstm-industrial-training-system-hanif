@@ -22,6 +22,8 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     // Optional convenience if you need "All statuses" for a supervisor:
     Page<Placement> findBySupervisorUserId(Long supervisorUserId, Pageable pageable);
 
+    java.util.Optional<Placement> findFirstByCompanyInfoId(Long companyInfoId);
+
     // --- NEW: items that are approved and still missing a supervisor evaluation ---
     @Query("""
        select p from Placement p
