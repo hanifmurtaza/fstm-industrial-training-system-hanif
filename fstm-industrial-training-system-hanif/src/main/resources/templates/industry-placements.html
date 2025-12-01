@@ -70,8 +70,8 @@
                 <thead class="table-light">
                 <tr>
                     <th>ID</th>
-                    <th>Student ID</th>
-                    <th>Company ID</th>
+                    <th>Student</th>
+                    <th>Company</th>
                     <th>Status</th>
                     <th>Report Duty</th>
                     <th></th>
@@ -80,9 +80,22 @@
                 <tbody>
                 <tr th:each="p : ${items}">
                     <td th:text="${p.id}">1</td>
-                    <td th:text="${p.studentId}">1001</td>
-                    <td th:text="${p.companyId}">2001</td>
-                    <td><span class="badge bg-secondary" th:text="${p.status}">AWAITING_SUPERVISOR</span></td>
+                    <td>
+                        <div class="fw-semibold" th:text="${studentNames[p.studentId] ?: p.studentId}">Student</div>
+                        <div class="text-muted small">ID: <span th:text="${p.studentId}">1001</span></div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold" th:text="${companyNames[p.companyId] ?: p.companyId}">Company</div>
+                        <div class="text-muted small">#<span th:text="${p.companyId}">2001</span></div>
+                    </td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${p.status == T(com.example.itsystem.model.PlacementStatus).AWAITING_SUPERVISOR} ? ' bg-warning text-dark'
+                                              : (${p.status == T(com.example.itsystem.model.PlacementStatus).AWAITING_ADMIN} ? ' bg-info text-dark'
+                                              : (${p.status == T(com.example.itsystem.model.PlacementStatus).APPROVED} ? ' bg-success'
+                                              : ' bg-secondary'))"
+                              th:text="${p.status}">AWAITING_SUPERVISOR</span>
+                    </td>
                     <td th:text="${p.reportDutyDate}">2025-07-01</td>
                     <td><a th:href="@{|/industry/placements/${p.id}|}" class="btn btn-sm btn-outline-primary">Open</a></td>
                 </tr>

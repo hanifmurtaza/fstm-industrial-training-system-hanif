@@ -88,10 +88,9 @@
                                 <button class="btn btn-outline-primary btn-sm">Promote to Master</button>
                             </form>
 
-                            <form th:action="@{|/admin/company-info/${ci.id}/create-placement|}" method="post" class="d-inline">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="btn btn-primary btn-sm">Create Placement</button>
-                            </form>
+                            <a class="btn btn-primary btn-sm" th:href="@{|/admin/company-info/${ci.id}/process|}">
+                                Process Submission
+                            </a>
 
                         </div>
                     </td>
