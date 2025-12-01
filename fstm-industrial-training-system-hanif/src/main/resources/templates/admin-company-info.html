@@ -53,8 +53,8 @@
                     <td th:text="${iter.index + 1}">1</td>
                     <td>
                         <div class="fw-semibold"
-                             th:text="${userById[ci.studentId] ?: ci.studentId}">Student Name</div>
-                        <div class="text-muted small">ID: <span th:text="${ci.studentId}">0</span></div>
+                             th:text="${userById[ci.studentId] != null ? userById[ci.studentId] : (ci.studentId != null ? ci.studentId : '-')}">Student Name</div>
+                        <div class="text-muted small">ID: <span th:text="${ci.studentId != null ? ci.studentId : '-'}">0</span></div>
                     </td>
                     <td>
                         <div class="fw-semibold" th:text="${ci.companyName}">Acme Sdn Bhd</div>
@@ -66,11 +66,11 @@
                     </td>
                     <td>
             <span class="badge"
-                  th:classappend="${ci.status.name()=='PENDING'} ? 'bg-warning text-dark'
-                                  : (${ci.status.name()=='VERIFIED'} ? 'bg-success' : 'bg-secondary')"
-                  th:text="${ci.status}">PENDING</span>
+                  th:classappend="${ci.status != null and ci.status.name()=='PENDING'} ? 'bg-warning text-dark'
+                                  : (${ci.status != null and ci.status.name()=='VERIFIED'} ? 'bg-success' : 'bg-secondary')"
+                  th:text="${ci.status != null ? ci.status : 'UNKNOWN'}">PENDING</span>
                     </td>
-                    <td th:text="${ci.linkedCompanyId} ?: '-'">-</td>
+                    <td th:text="${ci.linkedCompanyId != null ? ci.linkedCompanyId : '-'}">-</td>
                     <td>
                         <div class="d-flex flex-wrap gap-2">
                             <form th:action="@{|/admin/company-info/${ci.id}/verify|}" method="post" class="d-inline">

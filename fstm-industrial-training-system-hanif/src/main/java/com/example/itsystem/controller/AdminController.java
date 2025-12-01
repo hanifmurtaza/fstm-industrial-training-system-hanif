@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -710,7 +711,12 @@ public class AdminController {
                 : companyInfoRepository.findByStatus(status, p);
 
         // build id -> name map
-        var ids = data.stream().map(CompanyInfo::getStudentId).distinct().toList();
+        var ids = data.stream()
+                .map(CompanyInfo::getStudentId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
         var users = userRepository.findAllById(ids);
         java.util.Map<Long,String> userById = new java.util.HashMap<>();
         for (var u : users) userById.put(u.getId(), u.getName() != null ? u.getName() : u.getUsername());
