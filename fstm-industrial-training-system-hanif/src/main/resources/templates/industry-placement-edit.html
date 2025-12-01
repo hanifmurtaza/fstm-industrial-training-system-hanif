@@ -39,8 +39,16 @@
     <div class="card-body">
       <div class="row g-3">
         <div class="col-md-4"><strong>Placement ID:</strong> <span th:text="${placement.id}">1</span></div>
-        <div class="col-md-4"><strong>Student ID:</strong> <span th:text="${placement.studentId}">1001</span></div>
-        <div class="col-md-4"><strong>Company ID:</strong> <span th:text="${placement.companyId}">2001</span></div>
+        <div class="col-md-4">
+          <strong>Student:</strong>
+          <div><span th:text="${studentName ?: placement.studentId}">Student</span></div>
+          <div class="text-muted small">ID: <span th:text="${placement.studentId}">1001</span></div>
+        </div>
+        <div class="col-md-4">
+          <strong>Company:</strong>
+          <div><span th:text="${companyName ?: placement.companyId}">Company</span></div>
+          <div class="text-muted small">#<span th:text="${placement.companyId}">2001</span></div>
+        </div>
       </div>
 
       <form th:action="@{|/industry/placements/${placement.id}/verify|}" method="post" class="row g-3 mt-2">

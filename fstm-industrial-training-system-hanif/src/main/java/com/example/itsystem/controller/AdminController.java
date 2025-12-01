@@ -11,8 +11,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.example.itsystem.model.CompanyInfoStatus;
 
 
@@ -21,8 +23,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Controller
 @RequestMapping("/admin")
@@ -706,7 +711,12 @@ public class AdminController {
                 : companyInfoRepository.findByStatus(status, p);
 
         // build id -> name map
-        var ids = data.stream().map(CompanyInfo::getStudentId).distinct().toList();
+        var ids = data.stream()
+                .map(CompanyInfo::getStudentId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
         var users = userRepository.findAllById(ids);
         java.util.Map<Long,String> userById = new java.util.HashMap<>();
         for (var u : users) userById.put(u.getId(), u.getName() != null ? u.getName() : u.getUsername());
@@ -717,6 +727,181 @@ public class AdminController {
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
         return "admin-company-info";
+    }
+
+    @GetMapping("/company-info/{id}/process")
+    public String processCompanyInfoForm(@PathVariable Long id,
+                                         Model model) {
+        CompanyInfo info = companyInfoRepository.findById(id).orElseThrow();
+
+        List<com.example.itsystem.model.Company> companies = (companyRepository == null)
+                ? java.util.List.of()
+                : companyRepository.findAll(Sort.by("name").ascending());
+
+        List<User> supervisors = userRepository.findByRole("industry");
+
+        Placement existingPlacement = null;
+        if (placementRepository != null) {
+            existingPlacement = placementRepository.findFirstByCompanyInfoId(info.getId()).orElse(null);
+        }
+
+        model.addAttribute("info", info);
+        model.addAttribute("companies", companies);
+        model.addAttribute("supervisors", supervisors);
+        model.addAttribute("placement", existingPlacement);
+        model.addAttribute("sectorOptions", CompanySector.values());
+        return "admin-company-info-process";
+    }
+
+    @PostMapping("/company-info/{id}/process")
+    @Transactional
+    public String processCompanyInfo(@PathVariable Long id,
+                                     @RequestParam String companyMode,
+                                     @RequestParam(required = false) Long existingCompanyId,
+                                     @RequestParam(required = false) String newCompanyName,
+                                     @RequestParam(required = false) String newCompanyAddress,
+                                     @RequestParam(required = false) String newCompanySector,
+                                     @RequestParam(required = false) String supervisorMode,
+                                     @RequestParam(required = false) Long existingSupervisorId,
+                                     @RequestParam(required = false) String supervisorName,
+                                     @RequestParam(required = false) String supervisorUsername,
+                                     @RequestParam(required = false) String supervisorPassword,
+                                     @RequestParam(required = false) String supervisorPhone,
+                                     @RequestParam(required = false) String placementNotes,
+                                     @RequestParam(required = false) String session,
+                                     @RequestParam(required = false, defaultValue = "false") boolean publicListing,
+                                     RedirectAttributes redirectAttributes) {
+
+        CompanyInfo info = companyInfoRepository.findById(id).orElseThrow();
+
+        Long companyId;
+        if ("existing".equalsIgnoreCase(companyMode)) {
+            if (existingCompanyId == null) {
+                throw new IllegalArgumentException("Existing company must be selected.");
+            }
+            companyId = existingCompanyId;
+        } else {
+            requireBean(companyRepository, "CompanyRepository");
+            com.example.itsystem.model.Company company;
+            if (info.getLinkedCompanyId() != null) {
+                company = companyRepository.findById(info.getLinkedCompanyId()).orElse(new com.example.itsystem.model.Company());
+            } else {
+                company = new com.example.itsystem.model.Company();
+            }
+
+            String name = (newCompanyName != null && !newCompanyName.isBlank())
+                    ? newCompanyName.trim()
+                    : info.getCompanyName();
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("Company name is required.");
+            }
+
+            company.setName(name);
+            company.setAddress((newCompanyAddress != null && !newCompanyAddress.isBlank())
+                    ? newCompanyAddress.trim()
+                    : info.getAddress());
+            if (newCompanySector != null && !newCompanySector.isBlank()) {
+                company.setSector(newCompanySector.trim());
+            }
+            companyRepository.save(company);
+            companyId = company.getId();
+        }
+
+        Long supervisorUserId = null;
+        if ("existing".equalsIgnoreCase(supervisorMode)) {
+            if (existingSupervisorId == null) {
+                throw new IllegalArgumentException("Existing supervisor must be selected.");
+            }
+            supervisorUserId = existingSupervisorId;
+        } else if ("new".equalsIgnoreCase(supervisorMode)) {
+            String username = (supervisorUsername != null && !supervisorUsername.isBlank())
+                    ? supervisorUsername.trim().toLowerCase()
+                    : (info.getSupervisorEmail() != null ? info.getSupervisorEmail().trim().toLowerCase() : null);
+            if (username == null || username.isBlank()) {
+                throw new IllegalArgumentException("Supervisor username/email is required for new account.");
+            }
+
+            if (userRepository.findByUsername(username).isPresent()) {
+                throw new IllegalStateException("Username already exists: " + username);
+            }
+
+            String rawPassword = (supervisorPassword != null && !supervisorPassword.isBlank())
+                    ? supervisorPassword
+                    : generateTempPassword();
+
+            User supervisor = new User();
+            supervisor.setUsername(username);
+            supervisor.setPassword(encode(rawPassword));
+            supervisor.setRole("industry");
+            supervisor.setName((supervisorName != null && !supervisorName.isBlank())
+                    ? supervisorName.trim()
+                    : info.getSupervisorName());
+            supervisor.setCompany(info.getCompanyName());
+            supervisor.setEnabled(true);
+            supervisor.setAccessStart(java.time.LocalDate.now());
+            supervisor.setAccessEnd(java.time.LocalDate.now().plus(1, ChronoUnit.YEARS));
+            userRepository.save(supervisor);
+            supervisorUserId = supervisor.getId();
+
+            redirectAttributes.addFlashAttribute("newSupervisorUsername", username);
+            redirectAttributes.addFlashAttribute("newSupervisorPassword", rawPassword);
+        } else if (supervisorMode == null || supervisorMode.isBlank()) {
+            supervisorUserId = null; // optional: admin may finish later
+        } else {
+            throw new IllegalArgumentException("Unsupported supervisor mode: " + supervisorMode);
+        }
+
+        if (placementRepository == null) {
+            throw new IllegalStateException("PlacementRepository is not wired yet.");
+        }
+
+        Placement placement = placementRepository.findFirstByCompanyInfoId(info.getId()).orElseGet(Placement::new);
+        boolean isNewPlacement = placement.getId() == null;
+
+        placement.setStudentId(info.getStudentId());
+        placement.setCompanyId(companyId);
+        placement.setCompanyInfoId(info.getId());
+        placement.setSupervisorUserId(supervisorUserId);
+        placement.setStatus(PlacementStatus.AWAITING_SUPERVISOR);
+        if (placementNotes != null && !placementNotes.isBlank()) {
+            placement.setJobScope(placementNotes.trim());
+        }
+        placementRepository.save(placement);
+
+        info.setLinkedCompanyId(companyId);
+        info.setStatus(CompanyInfoStatus.VERIFIED);
+        info.setIsPublicListing(publicListing ? Boolean.TRUE : Boolean.FALSE);
+        if (session != null && !session.isBlank()) {
+            info.setSession(session.trim());
+        }
+        if (supervisorName != null && !supervisorName.isBlank()) {
+            info.setSupervisorName(supervisorName.trim());
+        }
+        if (supervisorUsername != null && !supervisorUsername.isBlank()) {
+            info.setSupervisorEmail(supervisorUsername.trim());
+        }
+        if (supervisorPhone != null && !supervisorPhone.isBlank()) {
+            info.setSupervisorPhone(supervisorPhone.trim());
+        }
+        if (placementNotes != null && !placementNotes.isBlank()) {
+            info.setJobScope(placementNotes.trim());
+        }
+        if (newCompanySector != null && !newCompanySector.isBlank()) {
+            try {
+                info.setSector(CompanySector.valueOf(newCompanySector.trim()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        companyInfoRepository.save(info);
+
+        logAction("PROCESS_COMPANY_INFO",
+                (isNewPlacement ? "Created" : "Updated") + " placement " + placement.getId()
+                        + " for CompanyInfo#" + id + " (company=" + companyId
+                        + ", supervisor=" + (supervisorUserId != null ? supervisorUserId : "none") + ")");
+
+        redirectAttributes.addFlashAttribute("successMessage",
+                "Placement " + placement.getId() + " is now awaiting supervisor verification.");
+
+        return "redirect:/admin/company-info/" + id + "/process";
     }
 
     // Verify (mark as VERIFIED) — does NOT create catalog or placement yet
@@ -765,35 +950,7 @@ public class AdminController {
     // One-click: Promote (if needed) + Create Placement (AWAITING_ADMIN)
     @PostMapping("/company-info/{id}/create-placement")
     public String createPlacementFromInfo(@PathVariable Long id) {
-        requireBean(companyRepository, "CompanyRepository");
-        requireBean(placementRepository, "PlacementRepository");
-
-        CompanyInfo ci = companyInfoRepository.findById(id).orElseThrow();
-
-        // Ensure catalog company exists
-        Long companyId = ci.getLinkedCompanyId();
-        if (companyId == null) {
-            var company = companyRepository.findByNameIgnoreCase(ci.getCompanyName())
-                    .orElseGet(com.example.itsystem.model.Company::new);
-            company.setName(ci.getCompanyName());
-            company.setAddress(ci.getAddress());
-            companyRepository.save(company);
-            companyId = company.getId();
-            ci.setLinkedCompanyId(companyId);
-            if (ci.getStatus() == CompanyInfoStatus.PENDING) ci.setStatus(CompanyInfoStatus.VERIFIED);
-            companyInfoRepository.save(ci);
-        }
-
-        // Create placement
-        Placement p = new Placement();
-        p.setStudentId(ci.getStudentId());
-        p.setCompanyId(companyId);
-        p.setCompanyInfoId(ci.getId()); // backref
-        p.setStatus(PlacementStatus.AWAITING_ADMIN);
-        placementRepository.save(p);
-
-        logAction("CREATE_PLACEMENT_FROM_INFO", "Placement " + p.getId() + " from CompanyInfo#" + id);
-        return "redirect:/admin/placements?status=AWAITING_ADMIN";
+        return "redirect:/admin/company-info/" + id + "/process";
     }
 
 
@@ -809,6 +966,16 @@ public class AdminController {
         auditLog.setDescription(description);
         auditLog.setTimestamp(LocalDateTime.now());
         auditLogRepository.save(auditLog);
+    }
+
+    private String generateTempPassword() {
+        final String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+        StringBuilder sb = new StringBuilder(10);
+        for (int i = 0; i < 10; i++) {
+            int idx = ThreadLocalRandom.current().nextInt(alphabet.length());
+            sb.append(alphabet.charAt(idx));
+        }
+        return sb.toString();
     }
 
     private java.util.Optional<String> getActorUsername() {

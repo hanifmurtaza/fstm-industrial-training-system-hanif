@@ -94,16 +94,19 @@
                     <td th:text="${p.id}">1</td>
 
                     <td>
-                        <div class="fw-semibold" th:text="${p.studentId}">123</div>
-                        <div class="text-muted small">studentId</div>
+                        <div class="fw-semibold" th:text="${userById[p.studentId] ?: p.studentId}">Student Name</div>
+                        <div class="text-muted small">ID: <span th:text="${p.studentId}">123</span></div>
                     </td>
 
                     <td>
-                        <div class="fw-semibold" th:text="${p.supervisorUserId}">55</div>
-                        <div class="text-muted small">industry</div>
+                        <div class="fw-semibold" th:text="${userById[p.supervisorUserId] ?: (p.supervisorUserId != null ? p.supervisorUserId : '-')}">Supervisor</div>
+                        <div class="text-muted small" th:text="${p.supervisorUserId != null ? ('ID: ' + p.supervisorUserId) : 'Not linked'}">industry</div>
                     </td>
 
-                    <td th:text="${p.companyId}">2</td>
+                    <td>
+                        <div class="fw-semibold" th:text="${companyById[p.companyId] ?: p.companyId}">Company</div>
+                        <div class="text-muted small">#<span th:text="${p.companyId}">2</span></div>
+                    </td>
 
                     <td th:text="${p.startDate != null ? p.startDate : '-'}">-</td>
                     <td th:text="${p.endDate   != null ? p.endDate   : '-'}">-</td>
