@@ -701,10 +701,19 @@ public class AdminController {
     }
 
     @GetMapping("/company-info")
-    public String listCompanyInfo(@RequestParam(value="status", required=false) CompanyInfoStatus status,
+    public String listCompanyInfo(@RequestParam(value="status", required=false) String statusValue,
                                   @RequestParam(value="page", defaultValue="0") int page,
                                   @RequestParam(value="size", defaultValue="10") int size,
                                   Model model) {
+        CompanyInfoStatus status = null;
+        if (statusValue != null && !statusValue.isBlank()) {
+            try {
+                status = CompanyInfoStatus.valueOf(statusValue);
+            } catch (IllegalArgumentException ignored) {
+                // Invalid status filter should behave like "all"
+            }
+        }
+
         Pageable p = PageRequest.of(page, size, Sort.by("id").descending());
         Page<CompanyInfo> data = (status == null)
                 ? companyInfoRepository.findAll(p)
@@ -724,6 +733,7 @@ public class AdminController {
         model.addAttribute("infos", data);
         model.addAttribute("userById", userById);
         model.addAttribute("status", status);
+        model.addAttribute("statusValue", statusValue);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
         return "admin-company-info";
