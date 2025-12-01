@@ -7,9 +7,11 @@ import com.example.itsystem.model.Placement;
 import com.example.itsystem.model.PlacementStatus;
 import com.example.itsystem.model.SupervisorEvaluation;
 import com.example.itsystem.repository.AuditLogRepository;
+import com.example.itsystem.repository.CompanyRepository;
 import com.example.itsystem.repository.LogbookEntryRepository;
 import com.example.itsystem.repository.PlacementRepository;
 import com.example.itsystem.repository.SupervisorEvaluationRepository;
+import com.example.itsystem.repository.UserRepository;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -26,9 +28,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/industry")
@@ -38,15 +43,21 @@ public class IndustrySupervisorController {
     private final AuditLogRepository auditLogRepo;
     private final PlacementRepository placementRepo;
     private final SupervisorEvaluationRepository evalRepo;
+    private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
 
     public IndustrySupervisorController(LogbookEntryRepository logbookRepo,
                                         AuditLogRepository auditLogRepo,
                                         PlacementRepository placementRepo,
-                                        SupervisorEvaluationRepository evalRepo) {
+                                        SupervisorEvaluationRepository evalRepo,
+                                        UserRepository userRepository,
+                                        CompanyRepository companyRepository) {
         this.logbookRepo = logbookRepo;
         this.auditLogRepo = auditLogRepo;
         this.placementRepo = placementRepo;
         this.evalRepo = evalRepo;
+        this.userRepository = userRepository;
+        this.companyRepository = companyRepository;
     }
 
     private boolean notIndustry(HttpSession session) {
@@ -186,10 +197,32 @@ public class IndustrySupervisorController {
 
         Page<Placement> items = placementRepo.findBySupervisorUserIdAndStatus(me, st, pageable);
 
+        Map<Long, String> studentNames = new HashMap<>();
+        Map<Long, String> companyNames = new HashMap<>();
+
+        Set<Long> studentIds = new HashSet<>();
+        Set<Long> companyIds = new HashSet<>();
+
+        for (Placement p : items.getContent()) {
+            if (p.getStudentId() != null) studentIds.add(p.getStudentId());
+            if (p.getCompanyId() != null) companyIds.add(p.getCompanyId());
+        }
+
+        if (!studentIds.isEmpty()) {
+            userRepository.findAllById(studentIds).forEach(u ->
+                    studentNames.put(u.getId(),
+                            (u.getName() != null && !u.getName().isBlank()) ? u.getName() : u.getUsername()));
+        }
+        if (!companyIds.isEmpty()) {
+            companyRepository.findAllById(companyIds).forEach(c -> companyNames.put(c.getId(), c.getName()));
+        }
+
         model.addAttribute("items", items);
         model.addAttribute("status", st);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", items.getTotalPages());
+        model.addAttribute("studentNames", studentNames);
+        model.addAttribute("companyNames", companyNames);
         return "industry-placements";
     }
 
@@ -198,7 +231,17 @@ public class IndustrySupervisorController {
         if (notIndustry(session)) return "redirect:/login";
         Optional<Placement> opt = placementRepo.findById(id);
         if (opt.isEmpty()) return "redirect:/industry/placements";
-        model.addAttribute("placement", opt.get());
+        Placement placement = opt.get();
+        model.addAttribute("placement", placement);
+        if (placement.getStudentId() != null) {
+            userRepository.findById(placement.getStudentId()).ifPresent(u ->
+                    model.addAttribute("studentName",
+                            (u.getName() != null && !u.getName().isBlank()) ? u.getName() : u.getUsername()));
+        }
+        if (placement.getCompanyId() != null) {
+            companyRepository.findById(placement.getCompanyId()).ifPresent(c ->
+                    model.addAttribute("companyName", c.getName()));
+        }
         model.addAttribute("sectorOptions", List.of("Bakery","Food Manufacturing","Frozen Food","Catering","Others"));
         return "industry-placement-edit";
     }
