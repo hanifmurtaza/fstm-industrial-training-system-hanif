@@ -30,10 +30,10 @@
         <h3 class="m-0">Company Submissions</h3>
         <form method="get" th:action="@{/admin/company-info}" class="d-flex gap-2">
             <select class="form-select" name="status">
-                <option value="" th:selected="${status == null}">All</option>
-                <option value="PENDING"  th:selected="${status?.name() == 'PENDING'}">Pending</option>
-                <option value="VERIFIED" th:selected="${status?.name() == 'VERIFIED'}">Verified</option>
-                <option value="REJECTED" th:selected="${status?.name() == 'REJECTED'}">Rejected</option>
+                <option value="" th:selected="${statusValue == null or #strings.isEmpty(statusValue)}">All</option>
+                <option value="PENDING"  th:selected="${status != null and status.name() == 'PENDING'}">Pending</option>
+                <option value="VERIFIED" th:selected="${status != null and status.name() == 'VERIFIED'}">Verified</option>
+                <option value="REJECTED" th:selected="${status != null and status.name() == 'REJECTED'}">Rejected</option>
             </select>
             <button class="btn btn-primary">Filter</button>
         </form>
@@ -53,8 +53,8 @@
                     <td th:text="${iter.index + 1}">1</td>
                     <td>
                         <div class="fw-semibold"
-                             th:text="${userById[ci.studentId]} ?: ${ci.studentId}">Student Name</div>
-                        <div class="text-muted small">ID: <span th:text="${ci.studentId}">0</span></div>
+                             th:text="${userById[ci.studentId] != null ? userById[ci.studentId] : (ci.studentId != null ? ci.studentId : '-')}">Student Name</div>
+                        <div class="text-muted small">ID: <span th:text="${ci.studentId != null ? ci.studentId : '-'}">0</span></div>
                     </td>
                     <td>
                         <div class="fw-semibold" th:text="${ci.companyName}">Acme Sdn Bhd</div>
@@ -66,11 +66,11 @@
                     </td>
                     <td>
             <span class="badge"
-                  th:classappend="${ci.status.name()=='PENDING'} ? 'bg-warning text-dark'
-                                  : (${ci.status.name()=='VERIFIED'} ? 'bg-success' : 'bg-secondary')"
-                  th:text="${ci.status}">PENDING</span>
+                  th:classappend="${ci.status != null and ci.status.name()=='PENDING'} ? 'bg-warning text-dark'
+                                  : (${ci.status != null and ci.status.name()=='VERIFIED'} ? 'bg-success' : 'bg-secondary')"
+                  th:text="${ci.status != null ? ci.status : 'UNKNOWN'}">PENDING</span>
                     </td>
-                    <td th:text="${ci.linkedCompanyId} ?: '-'">-</td>
+                    <td th:text="${ci.linkedCompanyId != null ? ci.linkedCompanyId : '-'}">-</td>
                     <td>
                         <div class="d-flex flex-wrap gap-2">
                             <form th:action="@{|/admin/company-info/${ci.id}/verify|}" method="post" class="d-inline">
@@ -88,10 +88,9 @@
                                 <button class="btn btn-outline-primary btn-sm">Promote to Master</button>
                             </form>
 
-                            <form th:action="@{|/admin/company-info/${ci.id}/create-placement|}" method="post" class="d-inline">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="btn btn-primary btn-sm">Create Placement</button>
-                            </form>
+                            <a class="btn btn-primary btn-sm" th:href="@{|/admin/company-info/${ci.id}/process|}">
+                                Process Submission
+                            </a>
 
                         </div>
                     </td>
@@ -107,9 +106,9 @@
             <div class="text-muted" th:text="'Page ' + ${infos.number + 1} + ' / ' + ${infos.totalPages}">Page 1/1</div>
             <div class="d-flex gap-2">
                 <a class="btn btn-outline-secondary btn-sm" th:if="${!infos.first}"
-                   th:href="@{/admin/company-info(page=${infos.number-1}, status=${status})}">← Prev</a>
+                   th:href="@{/admin/company-info(page=${infos.number-1}, status=${statusValue})}">← Prev</a>
                 <a class="btn btn-outline-secondary btn-sm" th:if="${!infos.last}"
-                   th:href="@{/admin/company-info(page=${infos.number+1}, status=${status})}">Next →</a>
+                   th:href="@{/admin/company-info(page=${infos.number+1}, status=${statusValue})}">Next →</a>
             </div>
         </div>
     </div>
