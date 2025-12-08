@@ -15,9 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import com.example.itsystem.model.CompanyInfoStatus;
-
-
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -26,31 +23,28 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
-    // ----- Existing repos -----
+    // ----- Repositories -----
     @Autowired private UserRepository userRepository;
     @Autowired private EvaluationRepository evaluationRepository;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private DocumentRepository documentRepository;
     @Autowired private CompanyInfoRepository companyInfoRepository;
-    @Autowired(required = false) private PlacementRepository placementRepository; // Placement + status FSM
-    @Autowired(required = false) private CompanyRepository companyRepository;     // Company master list
+    @Autowired(required = false) private PlacementRepository placementRepository;
+    @Autowired(required = false) private CompanyRepository companyRepository;
     @Autowired(required = false) private LogbookEntryRepository logbookEntryRepository;
     @Autowired private com.example.itsystem.service.BulkStudentImportService bulkImportService;
 
-
-
     // ----- Services -----
-    @Autowired(required = false) private AdminMetricsService adminMetricsService; // KPIs for dashboard
-    @Autowired(required = false) private GradingService gradingService;           // Final grade compute + XLSX
+    @Autowired(required = false) private AdminMetricsService adminMetricsService;
+    @Autowired(required = false) private GradingService gradingService;
 
-    // Hash passwords on create/update (optional if you already wire it)
+    // Password encoder
     @Autowired(required = false) private PasswordEncoder passwordEncoder;
 
     // ============================
@@ -92,13 +86,16 @@ public class AdminController {
     public String notifications(Model model) {
         model.addAttribute("placementsAwaiting",
                 placementRepository == null ? Page.empty()
-                        : placementRepository.findByStatus(PlacementStatus.AWAITING_ADMIN, PageRequest.of(0, 10)));
+                        : placementRepository.findByStatus(PlacementStatus.AWAITING_ADMIN,
+                        PageRequest.of(0, 10)));
 
         if (logbookEntryRepository != null) {
             model.addAttribute("logbooksAwaitingSup",
-                    logbookEntryRepository.findByStatusAndEndorsedFalse(ReviewStatus.PENDING, PageRequest.of(0, 10)));
+                    logbookEntryRepository.findByStatusAndEndorsedFalse(
+                            ReviewStatus.PENDING, PageRequest.of(0, 10)));
             model.addAttribute("logbooksAwaitingLec",
-                    logbookEntryRepository.findByEndorsedTrueAndEndorsedByLecturerFalse(PageRequest.of(0, 10)));
+                    logbookEntryRepository.findByEndorsedTrueAndEndorsedByLecturerFalse(
+                            PageRequest.of(0, 10)));
         } else {
             model.addAttribute("logbooksAwaitingSup", Page.empty());
             model.addAttribute("logbooksAwaitingLec", Page.empty());
@@ -106,10 +103,8 @@ public class AdminController {
         return "admin-notifications";
     }
 
-
-
     // ============================
-    // Students (existing + access window + enable/disable)
+    // Students
     // ============================
     @GetMapping("/students")
     public String students(@RequestParam(value = "search", required = false) String search,
@@ -141,14 +136,12 @@ public class AdminController {
         return "admin-students";
     }
 
-
     @GetMapping("/students/add")
     public String addStudentForm(Model model) {
         model.addAttribute("student", new User());
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
         return "admin-student-form";
     }
-
 
     @PostMapping("/students/add")
     public String saveNewStudent(@RequestParam String name,
@@ -170,7 +163,7 @@ public class AdminController {
             throw new IllegalArgumentException("Password cannot be blank.");
         }
         user.setPassword(encode(password));
-        // default access window (optional): open now → +6 months
+
         if (user.getAccessStart() == null) user.setAccessStart(LocalDate.now());
         if (user.getAccessEnd() == null)   user.setAccessEnd(LocalDate.now().plusMonths(6));
         user.setEnabled(true);
@@ -187,26 +180,22 @@ public class AdminController {
         return "admin-student-form";
     }
 
-
     @PostMapping("/students/save")
     public String saveStudent(@ModelAttribute("student") User incoming) {
-        incoming.setRole("student"); // enforce role
+        incoming.setRole("student");
         if (incoming.getId() != null) {
             User current = userRepository.findById(incoming.getId()).orElse(null);
             if (current != null) {
-                // keep existing password if left blank
                 if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
                     incoming.setPassword(current.getPassword());
                 } else {
                     incoming.setPassword(encode(incoming.getPassword()));
                 }
-                // keep existing enable/access if not supplied
                 if (incoming.getEnabled() == null) incoming.setEnabled(current.getEnabled());
                 if (incoming.getAccessStart() == null) incoming.setAccessStart(current.getAccessStart());
                 if (incoming.getAccessEnd() == null) incoming.setAccessEnd(current.getAccessEnd());
             }
         } else {
-            // creating via this endpoint
             if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
                 throw new IllegalArgumentException("Password cannot be blank.");
             }
@@ -228,7 +217,7 @@ public class AdminController {
         return "redirect:/admin/students";
     }
 
-    // NEW: enable/disable + access window (works for any user, reuse on lecturers too)
+    // enable/disable user
     @PostMapping("/users/{id}/status")
     public String toggleUser(@PathVariable Long id,
                              @RequestParam boolean enabled,
@@ -240,6 +229,7 @@ public class AdminController {
         return "redirect:/admin/" + backTo;
     }
 
+    // access window
     @PostMapping("/users/{id}/access-window")
     public String setAccessWindow(@PathVariable Long id,
                                   @RequestParam String start,
@@ -254,23 +244,21 @@ public class AdminController {
     }
 
     @PostMapping("/students/bulk")
-    public String bulkStudents(
-            @RequestParam(value = "ids", required = false) java.util.List<Long> ids,
-            @RequestParam("mode") String mode,
-            @RequestParam(value = "enabled", required = false) Boolean enabled,
-            @RequestParam(value = "start", required = false) String start,
-            @RequestParam(value = "end", required = false) String end,
-            org.springframework.web.servlet.mvc.support.RedirectAttributes ra) {
+    public String bulkStudents(@RequestParam(value = "ids", required = false) List<Long> ids,
+                               @RequestParam("mode") String mode,
+                               @RequestParam(value = "enabled", required = false) Boolean enabled,
+                               @RequestParam(value = "start", required = false) String start,
+                               @RequestParam(value = "end", required = false) String end,
+                               RedirectAttributes ra) {
 
         if (ids == null || ids.isEmpty()) {
             ra.addFlashAttribute("toast", "No students selected for bulk action.");
             return "redirect:/admin/students";
         }
 
-        java.util.List<User> users = userRepository.findAllById(ids);
+        List<User> users = userRepository.findAllById(ids);
 
         if ("status".equals(mode) && enabled != null) {
-
             for (User u : users) {
                 u.setEnabled(enabled);
             }
@@ -282,8 +270,8 @@ public class AdminController {
                 && start != null && !start.isBlank()
                 && end != null && !end.isBlank()) {
 
-            java.time.LocalDate s = java.time.LocalDate.parse(start);
-            java.time.LocalDate e = java.time.LocalDate.parse(end);
+            LocalDate s = LocalDate.parse(start);
+            LocalDate e = LocalDate.parse(end);
 
             if (e.isBefore(s)) {
                 ra.addFlashAttribute("toast", "End date cannot be before start date.");
@@ -304,10 +292,9 @@ public class AdminController {
         return "redirect:/admin/students";
     }
 
-
     @GetMapping("/students/import")
     public String importForm(Model model) {
-        model.addAttribute("sessionOptions", rollingSessions(3,1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 1));
         return "admin-students-import";
     }
 
@@ -318,8 +305,6 @@ public class AdminController {
                                 jakarta.servlet.http.HttpSession session) throws IOException {
 
         var preview = bulkImportService.preview(file, defaultSession);
-
-        // Store preview in session so commit can reuse it
         session.setAttribute("bulkImportPreview", preview);
 
         model.addAttribute("preview", preview);
@@ -327,10 +312,9 @@ public class AdminController {
         return "admin-students-import-preview";
     }
 
-
     @PostMapping("/students/import/commit")
     public String importCommit(jakarta.servlet.http.HttpSession session,
-                               org.springframework.web.servlet.mvc.support.RedirectAttributes ra) {
+                               RedirectAttributes ra) {
 
         com.example.itsystem.dto.BulkPreviewResult preview =
                 (com.example.itsystem.dto.BulkPreviewResult) session.getAttribute("bulkImportPreview");
@@ -341,8 +325,6 @@ public class AdminController {
         }
 
         int created = bulkImportService.commit(preview.validRows(), this::ensureUser);
-
-        // Clear it so you don't accidentally re-use old data
         session.removeAttribute("bulkImportPreview");
 
         logAction("BULK_IMPORT_STUDENTS", "Imported " + created + " students");
@@ -350,10 +332,6 @@ public class AdminController {
         return "redirect:/admin/students";
     }
 
-
-
-
-    // Minimal user bootstrap if missing
     private void ensureUser(String matric, String name) {
         userRepository.findByUsername(matric).orElseGet(() -> {
             User u = new User();
@@ -363,15 +341,14 @@ public class AdminController {
             u.setRole("student");
             u.setPassword(encode("changeme"));
             u.setEnabled(false);
-            if (u.getAccessStart() == null) u.setAccessStart(java.time.LocalDate.now());
-            if (u.getAccessEnd() == null)   u.setAccessEnd(java.time.LocalDate.now().plusMonths(6));
+            if (u.getAccessStart() == null) u.setAccessStart(LocalDate.now());
+            if (u.getAccessEnd() == null)   u.setAccessEnd(LocalDate.now().plusMonths(6));
             return userRepository.save(u);
         });
     }
 
-
     // ============================
-    // Evaluations (existing)  — keep for Admin-owned report marks (10%)
+    // Evaluations
     // ============================
     @GetMapping("/evaluations")
     public String manageEvaluations(@RequestParam(value = "search", required = false) String search,
@@ -380,7 +357,8 @@ public class AdminController {
                                     Model model) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<Evaluation> evaluations = (search != null && !search.isBlank())
-                ? evaluationRepository.findByStudent_NameContainingOrStudent_StudentIdContaining(search.trim(), search.trim(), pageable)
+                ? evaluationRepository.findByStudent_NameContainingOrStudent_StudentIdContaining(
+                search.trim(), search.trim(), pageable)
                 : evaluationRepository.findAll(pageable);
 
         model.addAttribute("evaluations", evaluations);
@@ -395,7 +373,7 @@ public class AdminController {
         User student = userRepository.findById(id).orElse(null);
         if (student != null) {
             model.addAttribute("student", student);
-            model.addAttribute("evaluation", new Evaluation()); // Admin’s 10% report slot if you use it this way
+            model.addAttribute("evaluation", new Evaluation());
         }
         return "admin-student-evaluation";
     }
@@ -412,7 +390,7 @@ public class AdminController {
     }
 
     // ============================
-    // Lecturers (existing)
+    // Lecturers
     // ============================
     @GetMapping("/lecturers")
     public String manageLecturers(Model model) {
@@ -456,11 +434,11 @@ public class AdminController {
     }
 
     // ============================
-    // Placements (NEW): list + approve (final lock)
+    // Placements
     // ============================
     @GetMapping("/placements")
     public String listPlacements(@RequestParam(value = "status", required = false) PlacementStatus status,
-                                 @RequestParam(value = "q", required = false) String q,   // <- added
+                                 @RequestParam(value = "q", required = false) String q,
                                  @RequestParam(value = "page", defaultValue = "0") int page,
                                  @RequestParam(value = "size", defaultValue = "10") int size,
                                  Model model) {
@@ -471,10 +449,9 @@ public class AdminController {
                 ? placementRepository.findAll(pageable)
                 : placementRepository.findByStatus(status, pageable);
 
-        // ---- Build ID -> Name maps for just the items on this page ----
-        java.util.Set<Long> studentIds   = new java.util.HashSet<>();
-        java.util.Set<Long> supervisorIds= new java.util.HashSet<>();
-        java.util.Set<Long> companyIds   = new java.util.HashSet<>();
+        java.util.Set<Long> studentIds    = new java.util.HashSet<>();
+        java.util.Set<Long> supervisorIds = new java.util.HashSet<>();
+        java.util.Set<Long> companyIds    = new java.util.HashSet<>();
 
         for (Placement p : placements.getContent()) {
             if (p.getStudentId() != null)        studentIds.add(p.getStudentId());
@@ -482,30 +459,29 @@ public class AdminController {
             if (p.getCompanyId() != null)        companyIds.add(p.getCompanyId());
         }
 
-        // users (students + supervisors)
-        java.util.Map<Long,String> userById = new java.util.HashMap<>();
+        // Map of userId -> User (for both student + supervisor)
+        java.util.Map<Long, User> userById = new java.util.HashMap<>();
         if (!studentIds.isEmpty() || !supervisorIds.isEmpty()) {
             java.util.Set<Long> allUserIds = new java.util.HashSet<>(studentIds);
             allUserIds.addAll(supervisorIds);
             for (User u : userRepository.findAllById(allUserIds)) {
-                userById.put(u.getId(), (u.getName() != null && !u.getName().isBlank()) ? u.getName() : u.getUsername());
+                userById.put(u.getId(), u);
             }
         }
 
-        // companies
-        java.util.Map<Long,String> companyById = new java.util.HashMap<>();
+        // Map of companyId -> Company
+        java.util.Map<Long, Company> companyById = new java.util.HashMap<>();
         if (!companyIds.isEmpty() && companyRepository != null) {
             for (Company c : companyRepository.findAllById(companyIds)) {
-                companyById.put(c.getId(), c.getName());
+                companyById.put(c.getId(), c);
             }
         }
 
         model.addAttribute("placements", placements);
         model.addAttribute("status", status);
-        model.addAttribute("q", q);                 // keep q in model so template links work
-        model.addAttribute("userById", userById);   // maps for names
+        model.addAttribute("q", q);
+        model.addAttribute("userById", userById);
         model.addAttribute("companyById", companyById);
-
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", placements.getTotalPages());
         return "admin-placements";
@@ -518,84 +494,13 @@ public class AdminController {
 
         Placement plc = placementRepository.findById(id).orElseThrow();
         if (plc.getStatus() != PlacementStatus.AWAITING_ADMIN) {
-            // only approve when already verified by supervisor
             return "redirect:/admin/placements?status=" + plc.getStatus();
         }
         plc.setStatus(PlacementStatus.APPROVED);
         placementRepository.save(plc);
 
-        // TODO (optional): lock critical fields / propagate to Student-Company links
         logAction("APPROVE_PLACEMENT", "Approved placement id=" + id);
         return "redirect:/admin/placements";
-    }
-
-
-    // --- Company MASTER (new, separate from CompanyInfo) ---
-    @GetMapping("/company-master")
-    public String companyMaster(@RequestParam(value = "q", required = false) String q,
-                                @RequestParam(value = "page", defaultValue = "0") int page,
-                                @RequestParam(value = "size", defaultValue = "10") int size,
-                                Model model) {
-        requireBean(companyRepository, "CompanyRepository"); // master repo
-
-        org.springframework.data.domain.Pageable p =
-                org.springframework.data.domain.PageRequest.of(page, size,
-                        org.springframework.data.domain.Sort.by("name").ascending());
-
-        org.springframework.data.domain.Page<com.example.itsystem.model.Company> data =
-                (q == null || q.isBlank())
-                        ? companyRepository.findAll(p)
-                        : companyRepository.findByNameContainingIgnoreCase(q.trim(), p);
-
-        model.addAttribute("companies", data);   // Page<Company>
-        model.addAttribute("q", q);
-        return "admin-company-master";           // new template below
-    }
-
-    @PostMapping("/company-master")
-    public String upsertCompany(@RequestParam(required = false) Long id,
-                                @RequestParam String name,
-                                @RequestParam(required = false) String address,
-                                @RequestParam(required = false) String sector,
-                                @RequestParam(required = false) String defaultJobScope,
-                                @RequestParam(required = false) java.math.BigDecimal typicalAllowance,
-                                @RequestParam(required = false, defaultValue = "false") boolean accommodation) {
-        requireBean(companyRepository, "CompanyRepository");
-
-        var c = (id == null)
-                ? new com.example.itsystem.model.Company()
-                : companyRepository.findById(id).orElse(new com.example.itsystem.model.Company());
-
-        c.setName(name);
-        c.setAddress(address);
-        c.setSector(sector);
-        c.setDefaultJobScope(defaultJobScope);
-        c.setTypicalAllowance(typicalAllowance);
-        c.setAccommodation(accommodation);
-
-        companyRepository.save(c);
-        logAction("UPSERT_COMPANY_MASTER", (id == null ? "Created" : "Updated") + " company: " + name);
-        return "redirect:/admin/company-master";
-    }
-
-    @PostMapping("/company-master/{id}/delete")
-    public String deleteCompany(@PathVariable Long id) {
-        requireBean(companyRepository, "CompanyRepository");
-        companyRepository.deleteById(id);
-        logAction("DELETE_COMPANY_MASTER", "Deleted company id=" + id);
-        return "redirect:/admin/company-master";
-    }
-
-    // ============================
-    // Final grades export (NEW)
-    // ============================
-    @GetMapping("/grades/export")
-    public void exportGrades(@RequestParam String semester, HttpServletResponse resp) throws IOException {
-        requireBean(gradingService, "GradingService");
-
-        // Will set headers and write XLSX bytes to response
-        gradingService.exportXlsx(semester, resp);
-        logAction("EXPORT_GRADES", "Exported final grades for semester=" + semester);
     }
 
     @GetMapping("/placements/new")
@@ -607,26 +512,34 @@ public class AdminController {
         return "admin-placement-form";
     }
 
-
     @PostMapping("/placements")
     public String createPlacement(@RequestParam Long studentId,
                                   @RequestParam Long supervisorUserId,
                                   @RequestParam Long companyId,
-                                  @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
-                                  @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+                                  @RequestParam(required = false)
+                                  @org.springframework.format.annotation.DateTimeFormat(
+                                          iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                                  LocalDate startDate,
+                                  @RequestParam(required = false)
+                                  @org.springframework.format.annotation.DateTimeFormat(
+                                          iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                                  LocalDate endDate) {
         requireBean(placementRepository, "PlacementRepository");
-        com.example.itsystem.model.Placement p = new com.example.itsystem.model.Placement();
+        Placement p = new Placement();
         p.setStudentId(studentId);
         p.setSupervisorUserId(supervisorUserId);
         p.setCompanyId(companyId);
         p.setStartDate(startDate);
         p.setEndDate(endDate);
-        p.setStatus(com.example.itsystem.model.PlacementStatus.AWAITING_ADMIN); // simulate after supervisor verify
+        p.setStatus(PlacementStatus.AWAITING_ADMIN);
         placementRepository.save(p);
         logAction("CREATE_PLACEMENT", "Created placement for studentId=" + studentId);
         return "redirect:/admin/placements?status=AWAITING_ADMIN";
     }
 
+    // ============================
+    // Logbooks
+    // ============================
     @GetMapping("/logbooks")
     public String logbooks(@RequestParam(value="status", required=false) ReviewStatus status,
                            @RequestParam(value="studentId", required=false) Long studentId,
@@ -661,9 +574,11 @@ public class AdminController {
 
         List<LogbookEntry> rows;
         if (studentId != null) {
-            rows = logbookEntryRepository.findByStudentId(studentId, PageRequest.of(0, 10000)).getContent();
+            rows = logbookEntryRepository.findByStudentId(
+                    studentId, PageRequest.of(0, 10000)).getContent();
         } else if (status != null) {
-            rows = logbookEntryRepository.findByStatus(status, PageRequest.of(0, 10000)).getContent();
+            rows = logbookEntryRepository.findByStatus(
+                    status, PageRequest.of(0, 10000)).getContent();
         } else {
             rows = logbookEntryRepository.findAll();
         }
@@ -700,6 +615,9 @@ public class AdminController {
         return s == null ? "" : s.replace("\n"," ").replace("\r"," ").replace(",", " ");
     }
 
+    // ============================
+    // Company Info (student submissions)
+    // ============================
     @GetMapping("/company-info")
     public String listCompanyInfo(@RequestParam(value="status", required=false) String statusValue,
                                   @RequestParam(value="page", defaultValue="0") int page,
@@ -710,7 +628,7 @@ public class AdminController {
             try {
                 status = CompanyInfoStatus.valueOf(statusValue);
             } catch (IllegalArgumentException ignored) {
-                // Invalid status filter should behave like "all"
+                // invalid status → treat as "all"
             }
         }
 
@@ -719,7 +637,6 @@ public class AdminController {
                 ? companyInfoRepository.findAll(p)
                 : companyInfoRepository.findByStatus(status, p);
 
-        // build id -> name map
         var ids = data.stream()
                 .map(CompanyInfo::getStudentId)
                 .filter(Objects::nonNull)
@@ -727,8 +644,12 @@ public class AdminController {
                 .toList();
 
         var users = userRepository.findAllById(ids);
-        java.util.Map<Long,String> userById = new java.util.HashMap<>();
-        for (var u : users) userById.put(u.getId(), u.getName() != null ? u.getName() : u.getUsername());
+
+        // ✅ Map <User.id, User> so Thymeleaf can access name + matric
+        java.util.Map<Long, User> userById = new java.util.HashMap<>();
+        for (User u : users) {
+            userById.put(u.getId(), u);
+        }
 
         model.addAttribute("infos", data);
         model.addAttribute("userById", userById);
@@ -739,13 +660,14 @@ public class AdminController {
         return "admin-company-info";
     }
 
-    @GetMapping("/company-info/{id}/process")
-    public String processCompanyInfoForm(@PathVariable Long id,
-                                         Model model) {
+
+    // shared helper for the process form
+    // shared helper for the process form
+    private String loadCompanyInfoProcessForm(Long id, Model model) {
         CompanyInfo info = companyInfoRepository.findById(id).orElseThrow();
 
-        List<com.example.itsystem.model.Company> companies = (companyRepository == null)
-                ? java.util.List.of()
+        List<Company> companies = (companyRepository == null)
+                ? List.of()
                 : companyRepository.findAll(Sort.by("name").ascending());
 
         List<User> supervisors = userRepository.findByRole("industry");
@@ -755,12 +677,32 @@ public class AdminController {
             existingPlacement = placementRepository.findFirstByCompanyInfoId(info.getId()).orElse(null);
         }
 
+        // 🔹 NEW: resolve student by info.studentId (this is User.id)
+        User student = null;
+        if (info.getStudentId() != null) {
+            student = userRepository.findById(info.getStudentId()).orElse(null);
+        }
+
         model.addAttribute("info", info);
+        model.addAttribute("student", student);           // 🔹 add to model
         model.addAttribute("companies", companies);
         model.addAttribute("supervisors", supervisors);
         model.addAttribute("placement", existingPlacement);
         model.addAttribute("sectorOptions", CompanySector.values());
         return "admin-company-info-process";
+    }
+
+
+    // Path-variable version (used by POST redirect)
+    @GetMapping("/company-info/{id}/process")
+    public String processCompanyInfoFormPath(@PathVariable Long id, Model model) {
+        return loadCompanyInfoProcessForm(id, model);
+    }
+
+    // Query-param version (used by button)
+    @GetMapping("/company-info/process")
+    public String processCompanyInfoFormParam(@RequestParam("id") Long id, Model model) {
+        return loadCompanyInfoProcessForm(id, model);
     }
 
     @PostMapping("/company-info/{id}/process")
@@ -792,11 +734,12 @@ public class AdminController {
             companyId = existingCompanyId;
         } else {
             requireBean(companyRepository, "CompanyRepository");
-            com.example.itsystem.model.Company company;
+            Company company;
             if (info.getLinkedCompanyId() != null) {
-                company = companyRepository.findById(info.getLinkedCompanyId()).orElse(new com.example.itsystem.model.Company());
+                company = companyRepository.findById(info.getLinkedCompanyId())
+                        .orElse(new Company());
             } else {
-                company = new com.example.itsystem.model.Company();
+                company = new Company();
             }
 
             String name = (newCompanyName != null && !newCompanyName.isBlank())
@@ -848,15 +791,15 @@ public class AdminController {
                     : info.getSupervisorName());
             supervisor.setCompany(info.getCompanyName());
             supervisor.setEnabled(true);
-            supervisor.setAccessStart(java.time.LocalDate.now());
-            supervisor.setAccessEnd(java.time.LocalDate.now().plus(1, ChronoUnit.YEARS));
+            supervisor.setAccessStart(LocalDate.now());
+            supervisor.setAccessEnd(LocalDate.now().plus(1, ChronoUnit.YEARS));
             userRepository.save(supervisor);
             supervisorUserId = supervisor.getId();
 
             redirectAttributes.addFlashAttribute("newSupervisorUsername", username);
             redirectAttributes.addFlashAttribute("newSupervisorPassword", rawPassword);
         } else if (supervisorMode == null || supervisorMode.isBlank()) {
-            supervisorUserId = null; // optional: admin may finish later
+            supervisorUserId = null;
         } else {
             throw new IllegalArgumentException("Unsupported supervisor mode: " + supervisorMode);
         }
@@ -865,7 +808,8 @@ public class AdminController {
             throw new IllegalStateException("PlacementRepository is not wired yet.");
         }
 
-        Placement placement = placementRepository.findFirstByCompanyInfoId(info.getId()).orElseGet(Placement::new);
+        Placement placement = placementRepository.findFirstByCompanyInfoId(info.getId())
+                .orElseGet(Placement::new);
         boolean isNewPlacement = placement.getId() == null;
 
         placement.setStudentId(info.getStudentId());
@@ -914,7 +858,6 @@ public class AdminController {
         return "redirect:/admin/company-info/" + id + "/process";
     }
 
-    // Verify (mark as VERIFIED) — does NOT create catalog or placement yet
     @PostMapping("/company-info/{id}/verify")
     public String verifyCompanyInfo(@PathVariable Long id) {
         CompanyInfo ci = companyInfoRepository.findById(id).orElseThrow();
@@ -924,47 +867,286 @@ public class AdminController {
         return "redirect:/admin/company-info?status=VERIFIED";
     }
 
-    // Reject
     @PostMapping("/company-info/{id}/reject")
     public String rejectCompanyInfo(@PathVariable Long id) {
         CompanyInfo ci = companyInfoRepository.findById(id).orElseThrow();
         ci.setStatus(CompanyInfoStatus.REJECTED);
         companyInfoRepository.save(ci);
         logAction("REJECT_COMPANY_INFO", "Rejected CompanyInfo id=" + id);
-        return "redirect:/admin/company-info?status=REJECTED"; // <- change to REJECTED
+        return "redirect:/admin/company-info?status=REJECTED";
     }
 
-
-    // Promote to master Company (dedupe by name); leaves status as-is (usually VERIFIED)
     @PostMapping("/company-info/{id}/promote")
     public String promoteCompanyInfo(@PathVariable Long id) {
         requireBean(companyRepository, "CompanyRepository");
         CompanyInfo ci = companyInfoRepository.findById(id).orElseThrow();
 
-        var company = companyRepository.findByNameIgnoreCase(ci.getCompanyName())
-                .orElseGet(com.example.itsystem.model.Company::new);
+        Company company = companyRepository.findByNameIgnoreCase(ci.getCompanyName())
+                .orElseGet(Company::new);
 
         company.setName(ci.getCompanyName());
         company.setAddress(ci.getAddress());
-        // Optionally set sector/defaultJobScope if you capture them on CompanyInfo
         companyRepository.save(company);
 
         ci.setLinkedCompanyId(company.getId());
-        if (ci.getStatus() == CompanyInfoStatus.PENDING) ci.setStatus(CompanyInfoStatus.VERIFIED);
+        if (ci.getStatus() == CompanyInfoStatus.PENDING) {
+            ci.setStatus(CompanyInfoStatus.VERIFIED);
+        }
         companyInfoRepository.save(ci);
 
         logAction("PROMOTE_COMPANY", "Promoted '" + company.getName() + "' from CompanyInfo#" + id);
         return "redirect:/admin/company-info?status=VERIFIED";
     }
 
-    // One-click: Promote (if needed) + Create Placement (AWAITING_ADMIN)
     @PostMapping("/company-info/{id}/create-placement")
     public String createPlacementFromInfo(@PathVariable Long id) {
         return "redirect:/admin/company-info/" + id + "/process";
     }
 
+    // ============================
+    // Company MASTER (separate list)
+    // ============================
+    // ============================
+    // Company MASTER (separate list)
+    // ============================
+    @GetMapping("/company-master")
+    public String companyMaster(@RequestParam(value = "q", required = false) String q,
+                                @RequestParam(value = "page", defaultValue = "0") int page,
+                                @RequestParam(value = "size", defaultValue = "10") int size,
+                                Model model) {
+        requireBean(companyRepository, "CompanyRepository");
+
+        Pageable p = PageRequest.of(page, size, Sort.by("name").ascending());
+
+        Page<Company> data = (q == null || q.isBlank())
+                ? companyRepository.findAll(p)
+                : companyRepository.findByNameContainingIgnoreCase(q.trim(), p);
+
+        model.addAttribute("companies", data);
+        model.addAttribute("q", q);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", data.getTotalPages());
+        model.addAttribute("size", size);
+        return "admin-company-master";
+    }
+
+    @PostMapping("/company-master")
+    public String upsertCompany(@RequestParam(required = false) Long id,
+                                @RequestParam String name,
+                                @RequestParam(required = false) String address,
+                                @RequestParam(required = false) String sector,
+                                @RequestParam(required = false) String defaultJobScope,
+                                @RequestParam(required = false) BigDecimal typicalAllowance,
+                                @RequestParam(required = false, defaultValue = "false") boolean accommodation,
+                                @RequestParam(required = false) String contactName,
+                                @RequestParam(required = false) String contactEmail,
+                                @RequestParam(required = false) String contactPhone,
+                                @RequestParam(required = false) String website,
+                                @RequestParam(required = false) String notes) {
+        requireBean(companyRepository, "CompanyRepository");
+
+        Company c = (id == null)
+                ? new Company()
+                : companyRepository.findById(id).orElse(new Company());
+
+        c.setName(name);
+        c.setAddress(address);
+        c.setSector(sector);
+        c.setDefaultJobScope(defaultJobScope);
+        c.setTypicalAllowance(typicalAllowance);
+        c.setAccommodation(accommodation);
+
+        c.setContactName(contactName);
+        c.setContactEmail(contactEmail);
+        c.setContactPhone(contactPhone);
+        c.setWebsite(website);
+        c.setNotes(notes);
+
+        companyRepository.save(c);
+        logAction("UPSERT_COMPANY_MASTER", (id == null ? "Created" : "Updated") + " company: " + name);
+        return "redirect:/admin/company-master";
+    }
+
+    @PostMapping("/company-master/{id}/delete")
+    public String deleteCompany(@PathVariable Long id, RedirectAttributes ra) {
+        requireBean(companyRepository, "CompanyRepository");
+        try {
+            companyRepository.deleteById(id);
+            logAction("DELETE_COMPANY_MASTER", "Deleted company id=" + id);
+            ra.addFlashAttribute("toast", "Company deleted.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast",
+                    "Unable to delete company. It may be referenced by placements or other data.");
+        }
+        return "redirect:/admin/company-master";
+    }
+
+    // Detailed view of a single company + supervisor management
+    @GetMapping("/company-master/{id}")
+    public String companyDetail(@PathVariable Long id, Model model) {
+        requireBean(companyRepository, "CompanyRepository");
+        Company company = companyRepository.findById(id).orElseThrow();
+
+        // All industry users
+        List<User> allIndustry = userRepository.findByRole("industry");
+
+        String companyName = company.getName() != null ? company.getName().trim() : null;
+        java.util.List<User> supervisors = new java.util.ArrayList<>();
+
+        for (User u : allIndustry) {
+            if (companyName != null &&
+                    u.getCompany() != null &&
+                    companyName.equalsIgnoreCase(u.getCompany().trim())) {
+                supervisors.add(u);
+            }
+        }
+
+        model.addAttribute("company", company);
+        model.addAttribute("supervisors", supervisors);
+        // list of all industry users – used in "link existing" dropdown
+        model.addAttribute("availableSupervisors", allIndustry);
+        return "admin-company-detail";
+    }
+
+    // Link an existing industry user to this company
+    @PostMapping("/company-master/{companyId}/link-supervisor")
+    public String linkSupervisorToCompany(@PathVariable Long companyId,
+                                          @RequestParam Long supervisorId,
+                                          RedirectAttributes ra) {
+        requireBean(companyRepository, "CompanyRepository");
+        Company company = companyRepository.findById(companyId).orElseThrow();
+        User sup = userRepository.findById(supervisorId).orElseThrow();
+
+        sup.setRole("industry"); // make sure it is an industry user
+        sup.setCompany(company.getName());
+        userRepository.save(sup);
+
+        logAction("LINK_INDUSTRY_SUPERVISOR",
+                "Linked userId=" + supervisorId + " to companyId=" + companyId);
+        ra.addFlashAttribute("toast", "Supervisor linked to company.");
+        return "redirect:/admin/company-master/" + companyId;
+    }
+
+    // Create a brand new industry supervisor for this company
+    @PostMapping("/company-master/{companyId}/create-supervisor")
+    public String createSupervisorForCompany(@PathVariable Long companyId,
+                                             @RequestParam String name,
+                                             @RequestParam String username,
+                                             @RequestParam(required = false) String password,
+                                             RedirectAttributes ra) {
+        requireBean(companyRepository, "CompanyRepository");
+        Company company = companyRepository.findById(companyId).orElseThrow();
+
+        String normalized = username.trim().toLowerCase();
+        if (userRepository.findByUsername(normalized).isPresent()) {
+            ra.addFlashAttribute("toast", "Username already exists: " + normalized);
+            return "redirect:/admin/company-master/" + companyId;
+        }
+
+        String rawPassword = (password != null && !password.isBlank())
+                ? password
+                : generateTempPassword();
+
+        User sup = new User();
+        sup.setUsername(normalized);
+        sup.setPassword(encode(rawPassword));
+        sup.setRole("industry");
+        sup.setName(name);
+        sup.setCompany(company.getName());
+        sup.setEnabled(true);
+        sup.setAccessStart(LocalDate.now());
+        sup.setAccessEnd(LocalDate.now().plusYears(1));
+        userRepository.save(sup);
+
+        logAction("CREATE_INDUSTRY_SUPERVISOR",
+                "Created industry supervisor " + normalized + " for company " + company.getName());
+
+        ra.addFlashAttribute("showCred", true);
+        ra.addFlashAttribute("newSupervisorUsername", normalized);
+        ra.addFlashAttribute("newSupervisorPassword", rawPassword);
+        ra.addFlashAttribute("toast", "New industry supervisor created and linked.");
+        return "redirect:/admin/company-master/" + companyId;
+    }
+
+    // Update supervisor basic details (name + username/email)
+    @PostMapping("/company-master/{companyId}/supervisors/{userId}/update")
+    public String updateSupervisorForCompany(@PathVariable Long companyId,
+                                             @PathVariable Long userId,
+                                             @RequestParam String name,
+                                             @RequestParam String username,
+                                             RedirectAttributes ra) {
+        User sup = userRepository.findById(userId).orElseThrow();
+
+        String newUsername = username.trim().toLowerCase();
+
+        if (!newUsername.equalsIgnoreCase(sup.getUsername())) {
+            if (userRepository.findByUsername(newUsername).isPresent()) {
+                ra.addFlashAttribute("toast", "Username already in use: " + newUsername);
+                return "redirect:/admin/company-master/" + companyId;
+            }
+            sup.setUsername(newUsername);
+        }
+
+        sup.setName(name);
+        userRepository.save(sup);
+
+        logAction("UPDATE_INDUSTRY_SUPERVISOR",
+                "Updated industry supervisor id=" + userId);
+        ra.addFlashAttribute("toast", "Supervisor details updated.");
+        return "redirect:/admin/company-master/" + companyId;
+    }
+
+    // Unlink supervisor from this company (keeps their account)
+    @PostMapping("/company-master/{companyId}/supervisors/{userId}/unlink")
+    public String unlinkSupervisorFromCompany(@PathVariable Long companyId,
+                                              @PathVariable Long userId,
+                                              RedirectAttributes ra) {
+        requireBean(companyRepository, "CompanyRepository");
+        Company company = companyRepository.findById(companyId).orElseThrow();
+        User sup = userRepository.findById(userId).orElseThrow();
+
+        if (sup.getCompany() != null &&
+                company.getName() != null &&
+                company.getName().equalsIgnoreCase(sup.getCompany())) {
+            sup.setCompany(null);
+            userRepository.save(sup);
+
+            logAction("UNLINK_INDUSTRY_SUPERVISOR",
+                    "Unlinked userId=" + userId + " from companyId=" + companyId);
+            ra.addFlashAttribute("toast", "Supervisor unlinked from company.");
+        } else {
+            ra.addFlashAttribute("toast", "Supervisor is not currently linked to this company.");
+        }
+        return "redirect:/admin/company-master/" + companyId;
+    }
+
+    // Completely delete supervisor account (danger – may fail if referenced)
+    @PostMapping("/company-master/{companyId}/supervisors/{userId}/delete")
+    public String deleteSupervisorAccount(@PathVariable Long companyId,
+                                          @PathVariable Long userId,
+                                          RedirectAttributes ra) {
+        try {
+            userRepository.deleteById(userId);
+            logAction("DELETE_INDUSTRY_SUPERVISOR",
+                    "Deleted industry supervisor id=" + userId);
+            ra.addFlashAttribute("toast", "Supervisor user account deleted.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast",
+                    "Unable to delete supervisor – the account may be used in placements or logbooks.");
+        }
+        return "redirect:/admin/company-master/" + companyId;
+    }
 
 
+    // ============================
+    // Grades export
+    // ============================
+    @GetMapping("/grades/export")
+    public void exportGrades(@RequestParam String semester, HttpServletResponse resp) throws IOException {
+        requireBean(gradingService, "GradingService");
+        gradingService.exportXlsx(semester, resp);
+        logAction("EXPORT_GRADES", "Exported final grades for semester=" + semester);
+    }
 
     // ============================
     // Helpers
@@ -997,7 +1179,6 @@ public class AdminController {
                 return java.util.Optional.of(auth.getName());
             }
         } catch (Throwable ignored) {}
-        // fallback so logging never crashes
         return java.util.Optional.of("admin");
     }
 
@@ -1009,9 +1190,8 @@ public class AdminController {
             out.add(base + "-2");
             out.add(base + "-1");
         }
-        return out; // newest first
+        return out;
     }
-
 
     private String encode(String raw) {
         if (passwordEncoder == null || raw == null) return raw;

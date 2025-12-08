@@ -11,6 +11,7 @@ public class Company {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // BASIC INFO
     @Column(nullable = false)
     private String name;
 
@@ -23,11 +24,23 @@ public class Company {
 
     private Boolean accommodation;       // accommodation provided?
 
-    // Aggregated feedback (from reflections/evaluations)
+    // NEW — PROFESSIONAL COMPANY INFO
+    private String contactName;          // Person in charge / supervisor name
+    private String contactEmail;
+    private String contactPhone;
+
+    private String website;
+
+    @Column(length = 2000)
+    private String notes;               // internal admin notes
+
+    // EXISTING — AGGREGATED FEEDBACK
     private Double ratingAvg;
     private Integer ratingCount;
 
-    // -------- Getters & Setters --------
+    // ==============================
+    // Getters & Setters
+    // ==============================
 
     public Long getId() {
         return id;
@@ -83,6 +96,46 @@ public class Company {
 
     public void setAccommodation(Boolean accommodation) {
         this.accommodation = accommodation;
+    }
+
+    public String getContactName() {
+        return contactName;
+    }
+
+    public void setContactName(String contactName) {
+        this.contactName = contactName;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public Double getRatingAvg() {

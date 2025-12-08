@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -26,10 +28,13 @@ import com.example.itsystem.model.LogbookEntry;
 import com.example.itsystem.model.User;
 import com.example.itsystem.model.VisitSchedule;
 import com.example.itsystem.model.StudentAssessment;
+import com.example.itsystem.model.CompanyInfo;
+import com.example.itsystem.model.CompanyInfoStatus;
 
 import com.example.itsystem.repository.LogbookEntryRepository;
 import com.example.itsystem.repository.UserRepository;
 import com.example.itsystem.repository.StudentAssessmentRepository;
+import com.example.itsystem.repository.CompanyInfoRepository;
 
 import com.example.itsystem.service.LogbookEntryService;
 import com.example.itsystem.service.VisitScheduleService;
@@ -39,9 +44,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class StudentController {
@@ -53,6 +56,9 @@ public class StudentController {
 
     // ★ 新增：访问评分表
     @Autowired private StudentAssessmentRepository studentAssessmentRepository;
+
+    // ★ 新增：学生公司信息表
+    @Autowired private CompanyInfoRepository companyInfoRepository;
 
     // ★ 新增：当前学期（优先取用户资料里的 session）
     private String currentSession(User user) {
@@ -74,26 +80,23 @@ public class StudentController {
         VisitSchedule visit = visitScheduleService.findUpcomingForStudent(user.getId());
         model.addAttribute("visitSchedule", visit);
 
-// ===== 关键差异开始：为避免学期不一致拿不到成绩，按优先级尝试 =====
-// VisitSchedule 暂时没有 session 字段，先置为 null（以后有了再用 visit.getSession()/getSemester()/getTerm()）
+        // ===== 关键差异开始：为避免学期不一致拿不到成绩，按优先级尝试 =====
         String byVisit = null;
 
-// ① 用户档案里的学期
+        // ① 用户档案里的学期
         String byUser  = (user.getSession() != null && !user.getSession().isBlank())
                 ? user.getSession()
                 : null;
 
-// ② 系统默认学期（按你系统需要调整）
+        // ② 系统默认学期
         String fallbackDefault = "2024/2025-2";
 
-// 按优先级去重组织候选学期
         ArrayList<String> candidates = new ArrayList<>();
         if (byVisit != null && !byVisit.isBlank()) candidates.add(byVisit.trim());
         if (byUser  != null && !byUser.isBlank())  candidates.add(byUser.trim());
         if (fallbackDefault != null)               candidates.add(fallbackDefault.trim());
         candidates = new ArrayList<>(new LinkedHashSet<>(candidates)); // 去重保序
 
-// 依次尝试；都没命中时，回退到该学生“最新一条”评分记录
         StudentAssessment sa = null;
         for (String s : candidates) {
             sa = studentAssessmentRepository
@@ -106,10 +109,9 @@ public class StudentController {
                     .findTopByStudentUserIdOrderByIdDesc(user.getId())
                     .orElse(null);
         }
-// ===== 关键差异结束 =====
+        // ===== 关键差异结束 =====
 
-
-        // 取各项分数（null → 0 用于详细进度条；“是否已评分”仍用 null 判断）
+        // 取各项分数（null → 0）
         int vlEval10  = sa != null && sa.getVlEvaluation10()  != null ? sa.getVlEvaluation10().intValue()  : 0;
         int vlAttend5 = sa != null && sa.getVlAttendance5()   != null ? sa.getVlAttendance5().intValue()   : 0;
         int vlLog5    = sa != null && sa.getVlLogbook5()      != null ? sa.getVlLogbook5().intValue()      : 0;
@@ -122,7 +124,6 @@ public class StudentController {
         Integer total100 = sa != null && sa.getTotal100() != null ? sa.getTotal100().intValue() : null;
         String grade = sa != null ? sa.getGrade() : null;
 
-        // 是否已评分（0 分也算已评分）
         boolean hasVL = sa != null && (
                 sa.getVlEvaluation10()  != null ||
                         sa.getVlAttendance5()   != null ||
@@ -137,7 +138,6 @@ public class StudentController {
         boolean hasLogbook = sa != null && sa.getVlLogbook5()      != null;
         boolean hasFinal   = sa != null && sa.getVlFinalReport40() != null;
 
-        // Evaluation Progress 四张卡：已评分显示分数，否则 Pending(null)
         Integer vlShown  = hasVL      ? (vlEval10 + vlAttend5 + vlLog5 + vlRep40) : null; // /60
         Integer isShown  = hasIS      ? (isSkill20 + isComm10 + isTeam10)         : null; // /40
         Integer logShown = hasLogbook ? vlLog5                                    : null; // /5
@@ -157,7 +157,6 @@ public class StudentController {
         maxMap.put("VisitingLecturer",   60);
         model.addAttribute("maxMap", maxMap);
 
-        // 详细分与总分
         int vlSum = vlEval10 + vlAttend5 + vlLog5 + vlRep40;
         int isSum = isSkill20 + isComm10 + isTeam10;
 
@@ -183,6 +182,77 @@ public class StudentController {
         return "student-dashboard";
     }
 
+    // ======================================================
+    //      NEW: Student Company Info (one active submission)
+    // ======================================================
+
+    @GetMapping("/student/company-info")
+    public String companyInfoPage(HttpSession session, Model model) {
+        User student = (User) session.getAttribute("user");
+        if (student == null || !"student".equals(student.getRole())) {
+            return "redirect:/login";
+        }
+
+        CompanyInfo latest = companyInfoRepository
+                .findFirstByStudentIdOrderByIdDesc(student.getId())
+                .orElse(null);
+
+        boolean canSubmit = (latest == null || latest.getStatus() == CompanyInfoStatus.REJECTED);
+
+        model.addAttribute("student", student);
+        model.addAttribute("latestInfo", latest);
+        model.addAttribute("canSubmit", canSubmit);
+
+        // <-- IMPORTANT: this must match your template name
+        return "student/company-form";
+    }
+
+
+    @PostMapping("/student/company-info")
+    public String submitCompanyInfo(@RequestParam String companyName,
+                                    @RequestParam(required = false) String companyAddress,
+                                    @RequestParam String supervisorName,
+                                    @RequestParam String supervisorEmail,
+                                    @RequestParam(required = false) String supervisorPhone,
+                                    HttpSession session,
+                                    RedirectAttributes ra) {
+
+        User student = (User) session.getAttribute("user");
+        if (student == null || !"student".equals(student.getRole())) {
+            return "redirect:/login";
+        }
+
+        // latest submission (if any)
+        CompanyInfo latest = companyInfoRepository
+                .findFirstByStudentIdOrderByIdDesc(student.getId())
+                .orElse(null);
+
+        // Block if there is an existing NON-rejected submission
+        if (latest != null && latest.getStatus() != CompanyInfoStatus.REJECTED) {
+            ra.addFlashAttribute("error",
+                    "You already submitted your company information. " +
+                            "Current status: " + latest.getStatus() +
+                            ". Please wait for admin to process it.");
+            return "redirect:/student/company-info";
+        }
+
+        // Either first time, or last one was REJECTED → allow new PENDING submission
+        CompanyInfo info = new CompanyInfo();
+        info.setStudentId(student.getId());
+        info.setCompanyName(companyName.trim());
+        info.setAddress(companyAddress);
+        info.setSupervisorName(supervisorName.trim());
+        info.setSupervisorEmail(supervisorEmail.trim());
+        info.setSupervisorPhone(supervisorPhone);
+        info.setStatus(CompanyInfoStatus.PENDING);
+        // if your entity has submittedAt or session fields, you can set them here
+
+        companyInfoRepository.save(info);
+
+        ra.addFlashAttribute("success",
+                "Your company information has been submitted and is now pending approval.");
+        return "redirect:/student/company-info";
+    }
 
     // ===== 下面保持你原有的其余映射不变 =====
 
@@ -314,7 +384,8 @@ public class StudentController {
         }
 
         response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=logbook_" + entry.getWeekStartDate() + ".pdf");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=logbook_" + entry.getWeekStartDate() + ".pdf");
 
         PdfWriter writer = new PdfWriter(response.getOutputStream());
         PdfDocument pdfDoc = new PdfDocument(writer);

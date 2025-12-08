@@ -20,6 +20,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByLecturer_Id(Long lecturerId);
 
+    // UserRepository.java
+    List<User> findByRoleAndCompany(String role, String company);
+
+
     Optional<User> findTopByUsernameAndRoleOrderByIdDesc(String username, String role);
 
     // (kept for backward compatibility, but prefer searchStudents below)
@@ -64,5 +68,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByRoleIgnoreCase(String role);
     long countByRole(String role);
+
+
 
 }

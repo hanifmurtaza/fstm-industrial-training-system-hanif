@@ -16,4 +16,6 @@ public interface CompanyInfoRepository extends JpaRepository<CompanyInfo, Long> 
 
     // For dashboard cards: pending count, etc.
     long countByStatus(CompanyInfoStatus status);
+
+    Optional<CompanyInfo> findFirstByStudentIdOrderByIdDesc(Long studentId);
 }

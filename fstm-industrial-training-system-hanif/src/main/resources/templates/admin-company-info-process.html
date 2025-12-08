@@ -1,229 +1,357 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8" />
     <title>Process Company Submission</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
-    <style>
-        body { background:#f5f7fa; font-family: 'Inter', system-ui, sans-serif; }
-        .navbar { background:#0d6efd; }
-        .navbar-brand, .nav-link { color:#fff !important; }
-        .card { border-radius:14px; box-shadow:0 12px 30px rgba(15,30,70,.08); }
-        .badge-soft { background:#eef2ff; color:#0d6efd; border-radius:20px; padding:.35rem .75rem; }
-        .section-title { font-size:1.05rem; font-weight:600; color:#344767; }
-        .form-section { border:1px solid #e0e6f0; border-radius:12px; padding:1.25rem; background:#fff; }
-        .info-chip { background:#fff; border:1px dashed #b9c4d4; border-radius:999px; padding:.35rem .75rem; font-size:.85rem; }
-    </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-        <a class="navbar-brand" th:href="@{/admin/company-info}">Company Submissions</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" th:href="@{/admin/company-master}">Company Master</a></li>
-                <li class="nav-item"><a class="nav-link" th:href="@{/admin/placements}">Placements</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
+<section layout:fragment="content">
+    <div class="container mt-4">
+        <h2 class="mb-3">
+            <i class="bi bi-building-check"></i>
+            Process Company Submission
+        </h2>
 
-<div class="container py-4">
-    <a th:href="@{/admin/company-info}" class="btn btn-link ps-0">&larr; Back to list</a>
+        <!-- Basic info from CompanyInfo -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title" th:text="${info.companyName}">Company Name</h5>
 
-    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
-        <span th:text="${successMessage}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+                <p class="mb-1">
+                    <strong>Student:</strong>
+                    <span th:if="${student != null}"
+                          th:text="${student.name}">Student Name</span>
+                    <span th:if="${student == null}">Unknown Student</span>
+                </p>
 
-    <div th:if="${newSupervisorUsername}" class="alert alert-info alert-dismissible fade show" role="alert">
-        <strong>New supervisor account created.</strong>
-        <div>Username: <code th:text="${newSupervisorUsername}"></code></div>
-        <div>Temporary password: <code th:text="${newSupervisorPassword}"></code></div>
-        <small>Please share these credentials with the supervisor and advise a password change.</small>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+                <p class="mb-1">
+                    <strong>Matric No.:</strong>
+                    <span th:if="${student != null and student.studentId != null}"
+                          th:text="${student.studentId}">A12345</span>
+                    <span th:if="${student == null or student.studentId == null}">-</span>
+                </p>
 
-    <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card p-4">
-                <h5 class="mb-3">Student Submission</h5>
-                <div class="mb-2">
-                    <span class="section-title d-block">Student</span>
-                    <span class="info-chip" th:text="${info.studentId}">ID</span>
-                    <div class="text-muted small" th:text="${info.session} ?: 'Session not set'"></div>
-                </div>
-                <div class="mb-2">
-                    <span class="section-title d-block">Company</span>
-                    <div class="fw-semibold" th:text="${info.companyName}">Company Name</div>
-                    <div class="text-muted" th:text="${info.address}">Address</div>
-                </div>
-                <div class="mb-2">
-                    <span class="section-title d-block">Supervisor (Student Input)</span>
-                    <div class="fw-semibold" th:text="${info.supervisorName}">Supervisor Name</div>
-                    <div class="text-muted" th:text="${info.supervisorEmail}">email@example.com</div>
-                    <div class="text-muted" th:text="${info.supervisorPhone}">012345678</div>
-                </div>
-                <div class="mt-3">
-                    <span class="badge-soft" th:text="${info.status}">PENDING</span>
-                    <div class="small text-muted">Created <span th:text="${#temporals.format(info.createdAt, 'dd MMM yyyy, HH:mm')}">date</span></div>
-                </div>
-                <div th:if="${placement}" class="mt-4">
-                    <h6>Existing Placement</h6>
-                    <div class="small text-muted">ID <span th:text="${placement.id}"></span></div>
-                    <div class="small">Status: <strong th:text="${placement.status}">AWAITING_SUPERVISOR</strong></div>
-                    <div class="small" th:if="${placement.supervisorUserId != null}">Supervisor ID: <span th:text="${placement.supervisorUserId}"></span></div>
-                </div>
+                <p class="mb-1">
+                    <strong>Address:</strong>
+                    <span th:text="${info.address}">Address</span>
+                </p>
+                <p class="mb-1">
+                    <strong>Supervisor Name:</strong>
+                    <span th:text="${info.supervisorName}">Supervisor</span>
+                </p>
+                <p class="mb-1">
+                    <strong>Supervisor Email:</strong>
+                    <span th:text="${info.supervisorEmail}">email@example.com</span>
+                </p>
+                <p class="mb-0">
+                    <strong>Status:</strong>
+                    <span class="badge bg-warning text-dark"
+                          th:if="${info.status.name() == 'PENDING'}"
+                          th:text="${info.status}">PENDING</span>
+
+                    <span class="badge bg-success"
+                          th:if="${info.status.name() == 'VERIFIED'}"
+                          th:text="${info.status}">VERIFIED</span>
+
+                    <span class="badge bg-danger"
+                          th:if="${info.status.name() == 'REJECTED'}"
+                          th:text="${info.status}">REJECTED</span>
+
+                    <span class="badge bg-secondary"
+                          th:if="${info.status.name() != 'PENDING'
+                         and info.status.name() != 'VERIFIED'
+                         and info.status.name() != 'REJECTED'}"
+                          th:text="${info.status}">
+                UNKNOWN
+            </span>
+                </p>
             </div>
         </div>
 
-        <div class="col-lg-8">
-            <form class="card p-4" method="post" th:action="@{|/admin/company-info/${info.id}/process|}">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                <h5 class="mb-3">Link to Master Company</h5>
 
-                <div class="form-section mb-4">
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="companyMode" id="companyExisting" value="existing"
+        <!-- If there is already a placement, show quick summary -->
+        <div class="alert alert-info mb-3" th:if="${placement != null}">
+            Existing placement for this Student.
+            Status <strong th:text="${placement.status}">AWAITING_SUPERVISOR</strong>.
+            Updating this form will update that placement.
+        </div>
+
+        <!-- MAIN FORM -->
+        <form th:action="@{'/admin/company-info/' + ${info.id} + '/process'}"
+              method="post" class="card">
+            <div class="card-body">
+
+                <!-- ======================== -->
+                <!-- 1. COMPANY SECTION       -->
+                <!-- ======================== -->
+                <h5 class="mb-3">Company</h5>
+
+                <!-- mode radios -->
+                <div class="mb-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="companyMode"
+                               id="companyModeExisting"
+                               value="existing"
                                th:checked="${info.linkedCompanyId != null}">
-                        <label class="form-check-label" for="companyExisting">Use existing master company</label>
+                        <label class="form-check-label" for="companyModeExisting">
+                            Use existing company
+                        </label>
                     </div>
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-8">
-                            <label class="form-label">Master Company</label>
-                            <select class="form-select" name="existingCompanyId">
-                                <option value="" disabled selected>Select company…</option>
-                                <option th:each="c : ${companies}" th:value="${c.id}"
-                                        th:selected="${info.linkedCompanyId != null and info.linkedCompanyId == c.id}"
-                                        th:text="${c.name}"></option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Session</label>
-                            <input class="form-control" name="session" th:value="${info.session}" placeholder="e.g. 2024/25-1">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section mb-4">
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="companyMode" id="companyNew" value="new"
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="companyMode"
+                               id="companyModeNew"
+                               value="new"
                                th:checked="${info.linkedCompanyId == null}">
-                        <label class="form-check-label" for="companyNew">Create or update master company using this submission</label>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Company Name</label>
-                            <input class="form-control" name="newCompanyName" th:value="${info.companyName}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Sector</label>
-                            <select class="form-select" name="newCompanySector">
-                                <option value="">--</option>
-                                <option th:each="s : ${sectorOptions}" th:value="${s}"
-                                        th:selected="${info.sector != null and info.sector.name() == s.name()}"
-                                        th:text="${s.name()}"></option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Address</label>
-                            <textarea class="form-control" name="newCompanyAddress" rows="2"
-                                      th:text="${info.address}"></textarea>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="publicListing" value="true" id="publicListing"
-                                       th:checked="${info.isPublicListing}">
-                                <label class="form-check-label" for="publicListing">Allow this company to appear in public student listing</label>
-                            </div>
-                        </div>
+                        <label class="form-check-label" for="companyModeNew">
+                            Create new company
+                        </label>
                     </div>
                 </div>
 
-                <h5 class="mb-3">Industry Supervisor</h5>
-                <div class="form-section mb-4">
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="supervisorMode" id="supExisting" value="existing"
-                               th:checked="${placement != null and placement.supervisorUserId != null}">
-                        <label class="form-check-label" for="supExisting">Link to existing account</label>
-                    </div>
-                    <label class="form-label">Supervisor Account</label>
-                    <select class="form-select" name="existingSupervisorId">
-                        <option value="" selected disabled>Select supervisor…</option>
-                        <option th:each="sup : ${supervisors}" th:value="${sup.id}"
-                                th:selected="${placement != null and placement.supervisorUserId != null and placement.supervisorUserId == sup.id}"
-                                th:text="${sup.name != null ? sup.name : sup.username}"></option>
+                <!-- existing company dropdown -->
+                <div class="mb-3" id="existingCompanyBlock">
+                    <label class="form-label fw-semibold">Link to Master Company</label>
+                    <select class="form-select" name="existingCompanyId">
+                        <option value="">-- Select company --</option>
+                        <option th:each="c : ${companies}"
+                                th:value="${c.id}"
+                                th:selected="${info.linkedCompanyId != null} ? ${c.id} == ${info.linkedCompanyId} : false"
+                                th:text="${c.name}">
+                            Company
+                        </option>
                     </select>
-                    <div class="form-text">Accounts shown are users with the “industry” role.</div>
-                </div>
-
-                <div class="form-section mb-4">
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="supervisorMode" id="supNew" value="new"
-                               th:checked="${placement == null or placement.supervisorUserId == null}">
-                        <label class="form-check-label" for="supNew">Create new supervisor account</label>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Name</label>
-                            <input class="form-control" name="supervisorName" th:value="${info.supervisorName}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Username / Email</label>
-                            <input class="form-control" name="supervisorUsername" th:value="${info.supervisorEmail}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Temporary Password</label>
-                            <input class="form-control" name="supervisorPassword" placeholder="Leave empty for auto-generated">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Phone</label>
-                            <input class="form-control" name="supervisorPhone" th:value="${info.supervisorPhone}">
-                        </div>
+                    <div class="form-text">
+                        Choose an existing company from the master list.
                     </div>
                 </div>
 
-                <h5 class="mb-3">Placement Notes</h5>
-                <div class="form-section mb-4">
-                    <label class="form-label">Notes for supervisor (optional)</label>
+                <!-- new company fields -->
+                <div class="border rounded p-3 mb-3 bg-light" id="newCompanyBlock">
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">New company name</label>
+                        <input type="text" class="form-control"
+                               name="newCompanyName"
+                               th:placeholder="${info.companyName}"
+                               th:value="${info.companyName}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Address (optional)</label>
+                        <input type="text" class="form-control"
+                               name="newCompanyAddress"
+                               th:placeholder="${info.address}"
+                               th:value="${info.address}">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">Sector (optional)</label>
+                        <select class="form-select" name="newCompanySector">
+                            <option value="">-- Select sector --</option>
+                            <option th:each="s : ${sectorOptions}"
+                                    th:value="${s.name()}"
+                                    th:text="${s.name()}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="my-4"/>
+
+                <!-- ======================== -->
+                <!-- 2. SUPERVISOR SECTION    -->
+                <!-- ======================== -->
+                <h5 class="mb-3">Industry Supervisor</h5>
+
+                <div class="mb-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="supervisorMode"
+                               id="supModeExisting"
+                               value="existing"
+                               checked>
+                        <label class="form-check-label" for="supModeExisting">
+                            Use existing supervisor account
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="supervisorMode"
+                               id="supModeNew"
+                               value="new">
+                        <label class="form-check-label" for="supModeNew">
+                            Create new supervisor account
+                        </label>
+                    </div>
+                </div>
+
+                <!-- existing supervisor dropdown -->
+                <div class="mb-3" id="existingSupervisorBlock">
+                    <label class="form-label fw-semibold">Industry Supervisor (existing account)</label>
+                    <select class="form-select" name="existingSupervisorId">
+                        <option value="">-- Select supervisor --</option>
+                        <option th:each="s : ${supervisors}"
+                                th:value="${s.id}"
+                                th:text="${s.name != null ? s.name + ' (' + s.username + ')' : s.username}">
+                            Supervisor
+                        </option>
+                    </select>
+                    <div class="form-text">
+                        Pick the industry supervisor user account responsible for this student.
+                    </div>
+                </div>
+
+                <!-- new supervisor fields -->
+                <div class="border rounded p-3 mb-3 bg-light" id="newSupervisorBlock">
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Supervisor name</label>
+                        <input type="text" class="form-control"
+                               name="supervisorName"
+                               th:placeholder="${info.supervisorName}"
+                               th:value="${info.supervisorName}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Supervisor email / username</label>
+                        <input type="email" class="form-control"
+                               name="supervisorUsername"
+                               th:placeholder="${info.supervisorEmail}"
+                               th:value="${info.supervisorEmail}">
+                        <div class="form-text">
+                            This will be used as the login username.
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Temporary password (optional)</label>
+                        <input type="text" class="form-control"
+                               name="supervisorPassword"
+                               placeholder="Leave blank to auto-generate a strong password">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">Supervisor phone (optional)</label>
+                        <input type="text" class="form-control"
+                               name="supervisorPhone"
+                               th:value="${info.supervisorPhone}">
+                    </div>
+                </div>
+
+                <hr class="my-4"/>
+
+                <!-- ======================== -->
+                <!-- 3. OTHER FIELDS          -->
+                <!-- ======================== -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Session (optional)</label>
+                    <input type="text" class="form-control"
+                           name="session"
+                           placeholder="e.g. 2025/2026-1"
+                           th:value="${info.session}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Placement Notes / Job Scope (optional)</label>
                     <textarea class="form-control" name="placementNotes" rows="3"
-                              placeholder="e.g. Student will report on 1 July, please review job scope"
-                              th:text="${placement != null ? placement.jobScope : ''}"></textarea>
+                              placeholder="Short description of job scope or notes for supervisor"
+                              th:text="${info.jobScope}"></textarea>
                 </div>
 
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle"></i> Save &amp; Create Placement</button>
-                    <a th:href="@{/admin/company-info}" class="btn btn-outline-secondary">Cancel</a>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox"
+                           id="publicListingCheck"
+                           name="publicListing"
+                           th:checked="${info.isPublicListing != null} ? ${info.isPublicListing} : false">
+                    <label class="form-check-label" for="publicListingCheck">
+                        Show this company in public listing for future students
+                    </label>
                 </div>
-            </form>
+
+                <!-- ======================== -->
+                <!-- 4. SAVE ACTION           -->
+                <!-- ======================== -->
+                <div class="d-flex justify-content-between">
+                    <a th:href="@{/admin/company-info(status=${info.status})}"
+                       class="btn btn-outline-secondary">
+                        Back to Submissions
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Save &amp; Create / Update Placement
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- ======================== -->
+        <!-- 5. VERIFY / REJECT PANEL -->
+        <!-- ======================== -->
+        <div class="card mt-3">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">Final Decision</h6>
+                    <p class="mb-0 small text-muted">
+                        After reviewing and saving, verify or reject this company submission.
+                    </p>
+                </div>
+                <div>
+                    <!-- Only show buttons when status is PENDING -->
+                    <form th:if="${info.status.name() == 'PENDING'}"
+                          th:action="@{/admin/company-info/{id}/verify(id=${info.id})}"
+                          method="post"
+                          class="d-inline">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            Verify
+                        </button>
+                    </form>
+
+                    <form th:if="${info.status.name() == 'PENDING'}"
+                          th:action="@{/admin/company-info/{id}/reject(id=${info.id})}"
+                          method="post"
+                          class="d-inline ms-1">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            Reject
+                        </button>
+                    </form>
+
+                    <!-- If already decided, just show badge -->
+                    <span th:if="${info.status.name() == 'VERIFIED'}"
+                          class="badge bg-success">
+                        Already VERIFIED
+                    </span>
+                    <span th:if="${info.status.name() == 'REJECTED'}"
+                          class="badge bg-danger">
+                        Already REJECTED
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    const companyRadios = document.querySelectorAll('input[name="companyMode"]');
-    const supervisorRadios = document.querySelectorAll('input[name="supervisorMode"]');
+    <!-- Simple JS to toggle blocks -->
+    <script>
+        (function () {
+            function toggleCompany() {
+                var existing = document.getElementById('companyModeExisting').checked;
+                document.getElementById('existingCompanyBlock').style.display = existing ? 'block' : 'none';
+                document.getElementById('newCompanyBlock').style.display = existing ? 'none' : 'block';
+            }
 
-    function toggleSections() {
-        const useExistingCompany = document.getElementById('companyExisting').checked;
-        document.querySelector('[name="existingCompanyId"]').disabled = !useExistingCompany;
-        document.querySelectorAll('[name="newCompanyName"], [name="newCompanyAddress"], [name="newCompanySector"], [name="publicListing"]').forEach(el => {
-            el.disabled = useExistingCompany;
-        });
+            function toggleSupervisor() {
+                var existing = document.getElementById('supModeExisting').checked;
+                document.getElementById('existingSupervisorBlock').style.display = existing ? 'block' : 'none';
+                document.getElementById('newSupervisorBlock').style.display = existing ? 'none' : 'block';
+            }
 
-        const useExistingSupervisor = document.getElementById('supExisting').checked;
-        document.querySelector('[name="existingSupervisorId"]').disabled = !useExistingSupervisor;
-        document.querySelectorAll('[name="supervisorName"], [name="supervisorUsername"], [name="supervisorPassword"], [name="supervisorPhone"]').forEach(el => {
-            el.disabled = useExistingSupervisor;
-        });
-    }
+            document.getElementById('companyModeExisting').addEventListener('change', toggleCompany);
+            document.getElementById('companyModeNew').addEventListener('change', toggleCompany);
+            document.getElementById('supModeExisting').addEventListener('change', toggleSupervisor);
+            document.getElementById('supModeNew').addEventListener('change', toggleSupervisor);
 
-    companyRadios.forEach(r => r.addEventListener('change', toggleSections));
-    supervisorRadios.forEach(r => r.addEventListener('change', toggleSections));
-    document.addEventListener('DOMContentLoaded', toggleSections);
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+            // initial state
+            toggleCompany();
+            toggleSupervisor();
+        })();
+    </script>
+</section>
 </body>
 </html>

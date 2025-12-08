@@ -1,159 +1,218 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8" />
-    <title>Admin · Placements</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
-    <style>
-        body { font-family: 'Inter', sans-serif; background:#f5f7fa; }
-        .navbar { background:#0d6efd; }
-        .navbar-brand, .nav-link { color:#fff !important; font-weight:500; }
-        .card { border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08); }
-        .badge-soft { background:#eef2ff; color:#0d6efd; }
-        .table thead th { font-weight:600; color:#6c757d; }
-        .btn-ghost { background:#eef2ff; color:#0d6efd; border:none; }
-        .btn-ghost:hover { background:#dfe7ff; }
-    </style>
+    <title>Placements</title>
 </head>
 <body>
+<section layout:fragment="content" class="container mt-4">
 
-<nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-        <a class="navbar-brand" th:href="@{/admin/dashboard}">Admin Panel</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
-                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
-                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
-                <li class="nav-item"><a th:href="@{/admin/companies}" class="nav-link">Companies</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
+    <h3 class="mb-1">Placements</h3>
+    <p class="text-muted mb-3">
+        This page shows all student placements and their current status.
+    </p>
 
-<div class="container py-4">
+    <!-- Top bar: filter + new placement button -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <form class="d-flex align-items-center gap-2"
+              th:action="@{/admin/placements}" method="get">
+            <label class="form-label mb-0 me-2 fw-semibold" for="statusSelect">Status</label>
+            <select id="statusSelect"
+                    name="status"
+                    class="form-select form-select-sm"
+                    style="min-width: 180px;">
+                <option value=""
+                        th:selected="${status == null}">All</option>
 
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h3 class="m-0">Placements</h3>
-        <a th:href="@{/admin/placements/new}" class="btn btn-primary">
+                <option th:each="st : ${T(com.example.itsystem.model.PlacementStatus).values()}"
+                        th:value="${st.name()}"
+                        th:selected="${status != null and status.name() == st.name()}"
+                        th:text="${st.name()}">
+                </option>
+            </select>
+
+            <button type="submit" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+        </form>
+
+        <a class="btn btn-sm btn-primary"
+           th:href="@{/admin/placements/new}">
             <i class="bi bi-plus-lg"></i> New Placement
         </a>
     </div>
 
-    <!-- Filter -->
-    <form class="card p-3 mb-3" method="get" th:action="@{/admin/placements}">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">Status</label>
-                <select class="form-select" name="status">
-                    <option value="" th:selected="${status == null}">All</option>
-                    <option value="AWAITING_SUPERVISOR"
-                            th:selected="${status != null and status.name() == 'AWAITING_SUPERVISOR'}">
-                        Awaiting Supervisor
-                    </option>
-                    <option value="AWAITING_ADMIN"
-                            th:selected="${status != null and status.name() == 'AWAITING_ADMIN'}">
-                        Awaiting Admin
-                    </option>
-                    <option value="APPROVED"
-                            th:selected="${status != null and status.name() == 'APPROVED'}">
-                        Approved
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-ghost mt-4" type="submit">
-                    <i class="bi bi-funnel"></i> Filter
-                </button>
-            </div>
-        </div>
-    </form>
-
-    <!-- Table -->
-    <div class="card p-0">
-        <div class="table-responsive">
-            <table class="table align-middle m-0">
-                <thead>
+    <!-- Main table -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
                 <tr>
-                    <th>ID</th>
-                    <th>Student</th>
-                    <th>Supervisor</th>
-                    <th>Company</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Report Duty</th>
-                    <th>Status</th>
-                    <th class="text-end">Action</th>
+                    <th style="width: 4%;">#</th>
+                    <th style="width: 22%;">Student</th>
+                    <th style="width: 20%;">Supervisor</th>
+                    <th style="width: 20%;">Company</th>
+                    <th style="width: 10%;">Start</th>
+                    <th style="width: 10%;">End</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 14%;">Action</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="p : ${placements.content}">
-                    <td th:text="${p.id}">1</td>
 
+                <!-- Empty state -->
+                <tr th:if="${placements == null or placements.totalElements == 0}">
+                    <td colspan="8" class="text-center text-muted py-4">
+                        No placements found.
+                    </td>
+                </tr>
+
+                <!-- Rows -->
+                <tr th:each="p, stat : ${placements.content}">
+                    <!-- running row number -->
+                    <td th:text="${placements.number * placements.size + stat.index + 1}">1</td>
+
+                    <!-- Student: name + matric -->
                     <td>
-                        <div class="fw-semibold" th:text="${userById[p.studentId] ?: p.studentId}">Student Name</div>
-                        <div class="text-muted small">ID: <span th:text="${p.studentId}">123</span></div>
+                        <span class="fw-bold"
+                              th:text="${userById[p.studentId] != null
+                                        ? userById[p.studentId].name
+                                        : 'Unknown Student'}">
+                            Student Name
+                        </span>
+                        <br/>
+                        <small class="text-muted"
+                               th:text="${userById[p.studentId] != null
+                                         && userById[p.studentId].studentId != null
+                                         ? 'Matric: ' + userById[p.studentId].studentId
+                                         : 'Matric: -'}">
+                            Matric: -
+                        </small>
                     </td>
 
+                    <!-- Supervisor -->
                     <td>
-                        <div class="fw-semibold" th:text="${userById[p.supervisorUserId] ?: (p.supervisorUserId != null ? p.supervisorUserId : '-')}">Supervisor</div>
-                        <div class="text-muted small" th:text="${p.supervisorUserId != null ? ('ID: ' + p.supervisorUserId) : 'Not linked'}">industry</div>
+                        <span th:text="${userById[p.supervisorUserId] != null
+                                        ? userById[p.supervisorUserId].name
+                                        : '-'}">
+                            Supervisor Name
+                        </span>
                     </td>
 
+                    <!-- Company -->
                     <td>
-                        <div class="fw-semibold" th:text="${companyById[p.companyId] ?: p.companyId}">Company</div>
-                        <div class="text-muted small">#<span th:text="${p.companyId}">2</span></div>
+                        <span th:text="${companyById[p.companyId] != null
+                                        ? companyById[p.companyId].name
+                                        : '-'}">
+                            Company Name
+                        </span>
                     </td>
 
-                    <td th:text="${p.startDate != null ? p.startDate : '-'}">-</td>
-                    <td th:text="${p.endDate   != null ? p.endDate   : '-'}">-</td>
-                    <td th:text="${p.reportDutyDate != null ? p.reportDutyDate : '-'}">-</td>
-
-                    <td>
-            <span class="badge rounded-pill badge-soft"
-                  th:text="${p.status != null ? p.status : 'UNKNOWN'}">AWAITING_ADMIN</span>
+                    <!-- Start date -->
+                    <td th:text="${p.startDate != null
+                                  ? #temporals.format(p.startDate, 'dd/MM/yyyy')
+                                  : '-'}">
+                        -
                     </td>
 
-                    <td class="text-end">
-                        <form th:if="${p.status != null and p.status.name() == 'AWAITING_ADMIN'}"
-                              th:action="@{|/admin/placements/${p.id}/approve|}" method="post" class="d-inline">
-                            <button class="btn btn-success btn-sm">
-                                <i class="bi bi-check2-circle"></i> Approve
+                    <!-- End date -->
+                    <td th:text="${p.endDate != null
+                                  ? #temporals.format(p.endDate, 'dd/MM/yyyy')
+                                  : '-'}">
+                        -
+                    </td>
+
+                    <!-- Status badge -->
+                    <td>
+                        <span th:if="${p.status != null and p.status.name() == 'AWAITING_ADMIN'}"
+                              class="badge bg-warning text-dark">
+                            AWAITING_ADMIN
+                        </span>
+                        <span th:if="${p.status != null and p.status.name() == 'AWAITING_SUPERVISOR'}"
+                              class="badge bg-info text-dark">
+                            AWAITING_SUPERVISOR
+                        </span>
+                        <span th:if="${p.status != null and p.status.name() == 'APPROVED'}"
+                              class="badge bg-success">
+                            APPROVED
+                        </span>
+                        <span th:if="${p.status == null
+                                      or (p.status.name() != 'AWAITING_ADMIN'
+                                          and p.status.name() != 'AWAITING_SUPERVISOR'
+                                          and p.status.name() != 'APPROVED')}"
+                              class="badge bg-secondary"
+                              th:text="${p.status}">UNKNOWN</span>
+                    </td>
+
+                    <!-- Actions -->
+                    <td>
+                        <div class="d-flex gap-2">
+                            <!-- Approve button only when waiting for admin -->
+                            <form th:if="${p.status != null and p.status.name() == 'AWAITING_ADMIN'}"
+                                  th:action="@{/admin/placements/{id}/approve(id=${p.id})}"
+                                  method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    Approve
+                                </button>
+                            </form>
+
+                            <!-- Placeholder for future details/edit page -->
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    disabled>
+                                View
                             </button>
-                        </form>
+                        </div>
                     </td>
                 </tr>
 
-                <tr th:if="${#lists.isEmpty(placements.content)}">
-                    <td colspan="9" class="text-center text-muted py-4">No placements.</td>
-                </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Pager -->
-        <div class="d-flex justify-content-between align-items-center p-3">
-            <div class="text-muted">
-                <span th:text="'Page ' + (${placements.number} + 1) + ' / ' + ${placements.totalPages}">Page</span>
+        <!-- Pagination -->
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                <span th:text="'Showing ' + ${placements.number + 1} + ' / ' + ${placements.totalPages} + ' page(s).'">
+                    Showing 1 / 1 page(s).
+                </span>
+                <span th:if="${placements.totalElements > 0}">
+                    &nbsp; Total placements:
+                    <span th:text="${placements.totalElements}">0</span>
+                </span>
             </div>
-            <div class="d-flex gap-2">
-                <a class="btn btn-outline-secondary btn-sm"
-                   th:if="${!placements.first}"
-                   th:href="@{/admin/placements(page=${placements.number-1}, status=${status})}">
-                    &larr; Prev
-                </a>
-                <a class="btn btn-outline-secondary btn-sm"
-                   th:if="${!placements.last}"
-                   th:href="@{/admin/placements(page=${placements.number+1}, status=${status})}">
-                    Next &rarr;
-                </a>
-            </div>
+
+            <nav th:if="${placements.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${placements.first} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/placements(page=${placements.number - 1}, status=${status})}">
+                            &laquo;
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="pIdx : ${#numbers.sequence(0, placements.totalPages - 1)}"
+                        th:classappend="${pIdx == placements.number} ? ' active'">
+                        <a class="page-link"
+                           th:text="${pIdx + 1}"
+                           th:href="@{/admin/placements(page=${pIdx}, status=${status})}">
+                            1
+                        </a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${placements.last} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/placements(page=${placements.number + 1}, status=${status})}">
+                            &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
-</div>
 
+</section>
 </body>
 </html>
