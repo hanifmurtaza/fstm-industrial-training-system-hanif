@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Manage Industry Supervisors</title>
+</head>
+<body>
+<section layout:fragment="content" class="container mt-4">
+
+    <h3 class="mb-3">Industry Supervisors</h3>
+    <p class="text-muted mb-3">
+        View, add, edit and delete industry supervisor accounts.
+    </p>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <form class="d-flex" method="get" th:action="@{/admin/industry-supervisors}">
+            <!-- (optional: add search box later) -->
+        </form>
+
+        <a class="btn btn-sm btn-primary"
+           th:href="@{/admin/industry-supervisors/add}">
+            <i class="bi bi-plus-lg"></i> Add New Supervisor
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th style="width: 6%;">ID</th>
+                    <th style="width: 20%;">Name</th>
+                    <th style="width: 22%;">Username / Email</th>
+                    <th style="width: 22%;">Company</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 20%;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+
+                <tr th:if="${#lists.isEmpty(supervisors)}">
+                    <td colspan="6" class="text-center text-muted py-4">
+                        No industry supervisors found.
+                    </td>
+                </tr>
+
+                <tr th:each="sup : ${supervisors}">
+                    <td th:text="${sup.id}">1</td>
+                    <td th:text="${sup.name}">Name</td>
+                    <td th:text="${sup.username}">user@example.com</td>
+                    <td th:text="${sup.company}">Company</td>
+                    <td>
+                        <span th:if="${sup.enabled}" class="badge bg-success">Enabled</span>
+                        <span th:if="${!sup.enabled}" class="badge bg-secondary">Disabled</span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{'/admin/industry-supervisors/edit/' + ${sup.id}}">
+                                Edit
+                            </a>
+
+                            <form th:action="@{'/admin/industry-supervisors/delete/' + ${sup.id}}"
+                                  method="post"
+                                  onsubmit="return confirm('Delete this supervisor account?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

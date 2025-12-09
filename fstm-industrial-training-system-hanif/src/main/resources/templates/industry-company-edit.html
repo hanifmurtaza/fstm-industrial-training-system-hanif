@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Company Profile - UPM Industrial Training</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link th:href="@{/css/app.css}" rel="stylesheet">
+
+  <style>
+    :root{ --border:#e5e7eb; --muted:#6b7280; }
+    body{ background:#f5f7fa; }
+
+    .appbar{ background:#0d6efd; color:#fff; }
+    .appbar a{ color:#fff; text-decoration:none; }
+    .appbar .nav-link{ color:#fff; opacity:.9; }
+    .appbar .nav-link:hover{ opacity:1; text-decoration:underline; }
+
+    .container-narrow{ max-width:1240px; }
+
+    .card-rounded{ border-radius:16px; border:1px solid var(--border); box-shadow:0 8px 18px rgba(0,0,0,.06); }
+    .section-title{ font-size:.9rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+
+    .page-end{ height:12px; }
+  </style>
+</head>
+<body>
+
+<!-- Top nav – same style as admin, industry version -->
+<nav class="navbar navbar-expand-lg appbar">
+  <div class="container container-narrow">
+    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
+      <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+      <span>Industry Supervisor • UPM Industrial Training</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navIndustry">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div id="navIndustry" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a th:href="@{/industry/dashboard}" class="nav-link">Dashboard</a></li>
+        <li class="nav-item"><a th:href="@{/industry/logbooks}" class="nav-link">Logbooks</a></li>
+        <li class="nav-item"><a th:href="@{/industry/placements}" class="nav-link">Placements</a></li>
+        <li class="nav-item"><a th:href="@{/industry/evaluations}" class="nav-link">Evaluations</a></li>
+        <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link fw-semibold">My Companies</a></li>
+        <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<main class="container container-narrow py-4">
+
+  <!-- Page header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h4 mb-1">
+        Edit Company Profile
+      </h1>
+      <p class="text-muted mb-0">
+        Update the information used for student placements and faculty records.
+      </p>
+    </div>
+  </div>
+
+  <div class="card card-rounded">
+    <div class="card-body">
+      <form th:action="@{|/industry/companies/${company.id}/edit|}"
+            th:object="${company}"
+            method="post">
+
+        <!-- BASIC INFO -->
+        <div class="mb-3">
+          <div class="section-title mb-1">Basic Information</div>
+          <small class="text-muted">These details appear in the faculty's company catalog and on placement records.</small>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Company Name <span class="text-danger">*</span></label>
+            <input type="text" th:field="*{name}" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Sector</label>
+            <input type="text" th:field="*{sector}" class="form-control"
+                   placeholder="e.g. Food Manufacturing, QA Lab, Catering">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Address</label>
+          <textarea th:field="*{address}" class="form-control" rows="2"
+                    placeholder="Company address"></textarea>
+        </div>
+
+        <!-- INTERNSHIP DEFAULTS -->
+        <div class="mb-3 mt-4">
+          <div class="section-title mb-1">Internship Defaults</div>
+          <small class="text-muted">
+            These fields act as default suggestions when students are assigned to this company.
+          </small>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-7">
+            <label class="form-label">Default Job Scope</label>
+            <textarea th:field="*{defaultJobScope}" class="form-control" rows="3"
+                      placeholder="Typical tasks or responsibilities for industrial training students."></textarea>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Typical Allowance (RM)</label>
+            <input type="number" step="0.01" min="0"
+                   th:field="*{typicalAllowance}" class="form-control"
+                   placeholder="e.g. 500.00">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Accommodation?</label>
+            <select class="form-select" th:field="*{accommodation}">
+              <option th:value="${null}">Not set</option>
+              <option th:value="true">Yes</option>
+              <option th:value="false">No</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CONTACT INFO -->
+        <div class="mb-3 mt-4">
+          <div class="section-title mb-1">Contact Person</div>
+          <small class="text-muted">
+            This is the person the faculty and students will refer to for industrial training matters.
+          </small>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Contact Name</label>
+            <input type="text" th:field="*{contactName}" class="form-control"
+                   placeholder="Person in charge / supervisor name">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contact Email</label>
+            <input type="email" th:field="*{contactEmail}" class="form-control"
+                   placeholder="email@example.com">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contact Phone</label>
+            <input type="text" th:field="*{contactPhone}" class="form-control"
+                   placeholder="e.g. 012-3456789">
+          </div>
+        </div>
+
+        <!-- WEB INFO -->
+        <div class="mb-3 mt-4">
+          <div class="section-title mb-1">Online Presence</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Website</label>
+          <input type="text" th:field="*{website}" class="form-control"
+                 placeholder="https://www.company.com">
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="d-flex justify-content-between mt-4">
+          <a th:href="@{/industry/companies}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Companies
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> Save Changes
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div class="page-end"></div>
+</main>
+
+<footer class="text-center text-muted py-4 small">
+  © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>,
+  Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
