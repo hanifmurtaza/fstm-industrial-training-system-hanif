@@ -5,9 +5,12 @@ import com.example.itsystem.model.ReviewStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
+
+
 
 @Repository
 public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long> {
@@ -37,4 +40,17 @@ public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long
 
     // count un-endorsed logs for a specific lecturer
     long countByLecturerIdAndEndorsedFalse(Long lecturerId);
+
+    @Query("""
+   select l from LogbookEntry l
+   where l.studentId in :studentIds
+     and (:status is null or l.status = :status)
+     and (:studentIdFilter is null or l.studentId = :studentIdFilter)
+   order by l.weekStartDate desc, l.createdAt desc
+""")
+    Page<LogbookEntry> findForSupervisor(@Param("studentIds") List<Long> studentIds,
+                                         @Param("status") ReviewStatus status,
+                                         @Param("studentIdFilter") Long studentIdFilter,
+                                         Pageable pageable);
+
 }

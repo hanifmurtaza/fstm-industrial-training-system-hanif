@@ -73,33 +73,66 @@
                     <th>Lec Endorsed</th>
                     <th>Reviewed By</th>
                     <th>Reviewed At</th>
-                    <th>Main Task</th>
+                    <th>Action</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="e : ${logbooks.content}">
                     <td th:text="${e.id}"></td>
-                    <td th:text="${e.studentId}"></td>
-                    <td th:text="${e.weekStartDate} ?: '-'"></td>
-                    <td th:text="${e.createdAt} ?: '-'"></td>
+
+                    <!-- Student name + matric (from studentById map) -->
                     <td>
-            <span class="badge"
-                  th:classappend="${e.status.name() == 'PENDING'} ? 'bg-warning text-dark' :
-                                  (${e.status.name() == 'APPROVED'} ? 'bg-success' : 'bg-danger')"
-                  th:text="${e.status}">PENDING</span>
+                        <!-- If we have the User object in studentById -->
+                        <span th:if="${studentById[e.studentId] != null}">
+                            <span th:text="${studentById[e.studentId].name}">Student Name</span>
+                            (<span th:text="${studentById[e.studentId].studentId}">Matric</span>)
+                        </span>
+                        <!-- Fallback: just show the raw DB id -->
+                        <span th:if="${studentById[e.studentId] == null}"
+                              th:text="${e.studentId}">11</span>
                     </td>
+
+                    <!-- Week start -->
+                    <td th:text="${e.weekStartDate != null ? e.weekStartDate : '-'}"></td>
+
+                    <!-- CreatedAt (no #temporals) -->
+                    <td th:text="${e.createdAt != null ? e.createdAt : '-'}"></td>
+
+                    <!-- Status badge -->
                     <td>
-            <span class="badge" th:classappend="${e.endorsed} ? 'bg-info text-dark' : 'bg-secondary'"
-                  th:text="${e.endorsed} ? 'YES' : 'NO'">NO</span>
+                        <span class="badge"
+                              th:classappend="${e.status.name() == 'PENDING'} ? 'bg-warning text-dark' :
+                                              (${e.status.name() == 'APPROVED'} ? 'bg-success' : 'bg-danger')"
+                              th:text="${e.status}">PENDING</span>
                     </td>
+
+                    <!-- Supervisor endorsed -->
                     <td>
-            <span class="badge" th:classappend="${e.endorsedByLecturer} ? 'bg-success' : 'bg-secondary'"
-                  th:text="${e.endorsedByLecturer} ? 'YES' : 'NO'">NO</span>
+                        <span class="badge"
+                              th:classappend="${e.endorsed} ? 'bg-info text-dark' : 'bg-secondary'"
+                              th:text="${e.endorsed} ? 'YES' : 'NO'">NO</span>
                     </td>
-                    <td th:text="${e.reviewedBy} ?: '-'"></td>
-                    <td th:text="${e.reviewedAt} ?: '-'"></td>
-                    <td th:text="${e.mainTask} ?: '-'"></td>
+
+                    <!-- Lecturer endorsed -->
+                    <td>
+                        <span class="badge"
+                              th:classappend="${e.endorsedByLecturer} ? 'bg-success' : 'bg-secondary'"
+                              th:text="${e.endorsedByLecturer} ? 'YES' : 'NO'">NO</span>
+                    </td>
+
+                    <!-- Reviewed by + at -->
+                    <td th:text="${e.reviewedBy != null ? e.reviewedBy : '-'}"></td>
+                    <td th:text="${e.reviewedAt != null ? e.reviewedAt : '-'}"></td>
+
+                    <!-- Action -->
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{'/admin/logbooks/' + ${e.id}}">
+                            View
+                        </a>
+                    </td>
                 </tr>
+
                 <tr th:if="${logbooks.totalElements == 0}">
                     <td colspan="10" class="text-center text-muted py-4">No logbooks found.</td>
                 </tr>
@@ -114,9 +147,13 @@
             </div>
             <div class="d-flex gap-2">
                 <a class="btn btn-outline-secondary btn-sm" th:if="${!logbooks.first}"
-                   th:href="@{/admin/logbooks(page=${logbooks.number-1}, status=${status}, studentId=${studentId})}">← Prev</a>
+                   th:href="@{/admin/logbooks(page=${logbooks.number-1}, status=${status}, studentId=${studentId})}">
+                    ← Prev
+                </a>
                 <a class="btn btn-outline-secondary btn-sm" th:if="${!logbooks.last}"
-                   th:href="@{/admin/logbooks(page=${logbooks.number+1}, status=${status}, studentId=${studentId})}">Next →</a>
+                   th:href="@{/admin/logbooks(page=${logbooks.number+1}, status=${status}, studentId=${studentId})}">
+                    Next →
+                </a>
             </div>
         </div>
     </div>

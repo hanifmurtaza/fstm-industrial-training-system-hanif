@@ -5,6 +5,8 @@ import com.example.itsystem.model.PlacementStatus;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
+import java.util.List;
 
 import java.util.List;
 
@@ -36,4 +38,19 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
        order by p.reportDutyDate desc
     """)
     List<Placement> findReadyForSupervisorEvaluation(@Param("supervisorId") Long supervisorId);
+
+    // Get all student IDs supervised by this industry user
+    @Query("select p.studentId from Placement p where p.supervisorUserId = :supervisorUserId")
+    List<Long> findStudentIdsBySupervisor(@Param("supervisorUserId") Long supervisorUserId);
+
+    // Check whether a given student is supervised by this industry user
+    @Query("select (count(p) > 0) from Placement p " +
+            "where p.supervisorUserId = :supervisorUserId and p.studentId = :studentId")
+    boolean existsByStudentIdAndSupervisorUserId(@Param("studentId") Long studentId,
+                                                 @Param("supervisorUserId") Long supervisorUserId);
+
+    @Query("select distinct p.companyId from Placement p where p.supervisorUserId = :supervisorUserId")
+    List<Long> findDistinctCompanyIdsBySupervisorUserId(@Param("supervisorUserId") Long supervisorUserId);
+
+
 }

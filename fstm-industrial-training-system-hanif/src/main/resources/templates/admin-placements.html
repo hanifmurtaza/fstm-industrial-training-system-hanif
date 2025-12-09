@@ -62,7 +62,7 @@
                 <tbody>
 
                 <!-- Empty state -->
-                <tr th:if="${placements == null or placements.totalElements == 0}">
+                <tr th:if="${placements == null || placements.totalElements == 0}">
                     <td colspan="8" class="text-center text-muted py-4">
                         No placements found.
                     </td>
@@ -125,22 +125,22 @@
 
                     <!-- Status badge -->
                     <td>
-                        <span th:if="${p.status != null and p.status.name() == 'AWAITING_ADMIN'}"
+                        <span th:if="${p.status != null && p.status.name() == 'AWAITING_ADMIN'}"
                               class="badge bg-warning text-dark">
                             AWAITING_ADMIN
                         </span>
-                        <span th:if="${p.status != null and p.status.name() == 'AWAITING_SUPERVISOR'}"
+                        <span th:if="${p.status != null && p.status.name() == 'AWAITING_SUPERVISOR'}"
                               class="badge bg-info text-dark">
                             AWAITING_SUPERVISOR
                         </span>
-                        <span th:if="${p.status != null and p.status.name() == 'APPROVED'}"
+                        <span th:if="${p.status != null && p.status.name() == 'APPROVED'}"
                               class="badge bg-success">
                             APPROVED
                         </span>
                         <span th:if="${p.status == null
-                                      or (p.status.name() != 'AWAITING_ADMIN'
-                                          and p.status.name() != 'AWAITING_SUPERVISOR'
-                                          and p.status.name() != 'APPROVED')}"
+                                      || (p.status.name() != 'AWAITING_ADMIN'
+                                          && p.status.name() != 'AWAITING_SUPERVISOR'
+                                          && p.status.name() != 'APPROVED')}"
                               class="badge bg-secondary"
                               th:text="${p.status}">UNKNOWN</span>
                     </td>
@@ -149,7 +149,7 @@
                     <td>
                         <div class="d-flex gap-2">
                             <!-- Approve button only when waiting for admin -->
-                            <form th:if="${p.status != null and p.status.name() == 'AWAITING_ADMIN'}"
+                            <form th:if="${p.status != null && p.status.name() == 'AWAITING_ADMIN'}"
                                   th:action="@{/admin/placements/{id}/approve(id=${p.id})}"
                                   method="post" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-outline-success">
@@ -157,13 +157,131 @@
                                 </button>
                             </form>
 
-                            <!-- Placeholder for future details/edit page -->
+                            <!-- View button: opens modal -->
                             <button type="button"
                                     class="btn btn-sm btn-outline-secondary"
-                                    disabled>
+                                    data-bs-toggle="modal"
+                                    th:attr="data-bs-target=${'#placementModal-' + p.id}">
                                 View
                             </button>
+
+                            <!-- Delete button -->
+                            <form th:action="@{/admin/placements/{id}/delete(id=${p.id})}"
+                                  method="post"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Are you sure you want to delete this placement?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    Delete
+                                </button>
+                            </form>
                         </div>
+
+                        <!-- Modal for this placement -->
+                        <div class="modal fade"
+                             th:id="${'placementModal-' + p.id}"
+                             tabindex="-1"
+                             aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            Placement Details
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                    </div>
+
+                                    <div class="modal-body">
+                                        <!-- Student info -->
+                                        <h6 class="mb-1">Student</h6>
+                                        <p class="mb-2">
+                                            <strong th:text="${userById[p.studentId] != null
+                                                              ? userById[p.studentId].name
+                                                              : 'Unknown Student'}">
+                                                Student Name
+                                            </strong><br/>
+                                            <span class="text-muted small">
+                                                Matric:
+                                                <span th:text="${userById[p.studentId] != null
+                                                                && userById[p.studentId].studentId != null
+                                                                ? userById[p.studentId].studentId
+                                                                : '-'}">-</span>
+                                            </span>
+                                        </p>
+
+                                        <!-- Supervisor info -->
+                                        <h6 class="mb-1">Industry Supervisor</h6>
+                                        <p class="mb-2">
+                                            <span th:text="${userById[p.supervisorUserId] != null
+                                                            ? userById[p.supervisorUserId].name
+                                                            : '-'}">
+                                                Supervisor Name
+                                            </span>
+                                        </p>
+
+                                        <!-- Company info -->
+                                        <h6 class="mb-1">Company</h6>
+                                        <p class="mb-2">
+                                            <span th:text="${companyById[p.companyId] != null
+                                                            ? companyById[p.companyId].name
+                                                            : '-'}">
+                                                Company Name
+                                            </span>
+                                        </p>
+
+                                        <!-- Internship details -->
+                                        <h6 class="mb-1">Internship Details</h6>
+                                        <dl class="row mb-0">
+                                            <dt class="col-sm-4">Start Date</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.startDate != null
+                                                          ? #temporals.format(p.startDate, 'dd/MM/yyyy')
+                                                          : '-'}">-</dd>
+
+                                            <dt class="col-sm-4">End Date</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.endDate != null
+                                                          ? #temporals.format(p.endDate, 'dd/MM/yyyy')
+                                                          : '-'}">-</dd>
+
+                                            <dt class="col-sm-4">Report Duty Date</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.reportDutyDate != null
+                                                          ? #temporals.format(p.reportDutyDate, 'dd/MM/yyyy')
+                                                          : '-'}">-</dd>
+
+                                            <dt class="col-sm-4">Department</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.department != null ? p.department : '-'}">-</dd>
+
+                                            <dt class="col-sm-4">Job Scope</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.jobScope != null ? p.jobScope : '-'}">-</dd>
+
+                                            <dt class="col-sm-4">Allowance</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.allowance != null ? p.allowance : '-'}">-</dd>
+
+                                            <dt class="col-sm-4">Accommodation</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.accommodation} ? 'Provided' : 'Not provided'">
+                                                Not provided
+                                            </dd>
+
+                                            <dt class="col-sm-4">Status</dt>
+                                            <dd class="col-sm-8"
+                                                th:text="${p.status != null ? p.status.name() : '-'}">-</dd>
+                                        </dl>
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /Modal -->
                     </td>
                 </tr>
 

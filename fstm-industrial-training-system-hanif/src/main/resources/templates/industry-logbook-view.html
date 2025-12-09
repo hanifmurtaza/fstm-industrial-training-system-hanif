@@ -1,109 +1,173 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Logbook Detail – Industry Supervisor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
   <style>
-    body { font-family: 'Inter', sans-serif; background-color:#f5f7fa; }
-    .navbar { background-color:#0d6efd; }
-    .navbar-brand, .nav-link { color:#fff !important; font-weight:500; }
-    .card { border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08); }
-    .label { width:180px; color:#6c757d; }
+    :root { --border:#e5e7eb; --muted:#6b7280; }
+    body  { background:#f5f7fa; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+    .appbar{ background:#0d6efd; color:#fff; }
+    .appbar a{ color:#fff; text-decoration:none; }
+    .appbar .nav-link{ color:#fff; opacity:.9; font-weight:500; }
+    .appbar .nav-link:hover{ opacity:1; text-decoration:underline; }
+    .container-narrow{ max-width:900px; }
+
+    .card-soft{
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.06);
+    }
+
+    .field-label{
+      font-size:.8rem;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:var(--muted);
+      margin-bottom:.1rem;
+    }
+    .pill-status{
+      border-radius:999px;
+      padding:3px 10px;
+      font-size:.78rem;
+      font-weight:600;
+    }
+    .pill-pending{ background:#fff7e6; color:#b26b00; }
+    .pill-approved{ background:#e6ffed; color:#0b7a34; }
+    .pill-rejected{ background:#ffe6e6; color:#b00020; }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg">
-  <div class="container-fluid">
-    <a class="navbar-brand" th:href="@{/industry/dashboard}">Industry Supervisor</a>
+<nav class="navbar navbar-expand-lg appbar">
+  <div class="container container-narrow">
+    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
+      <img th:src="@{/Picture1.png}" alt="UPM" style="height:26px">
+      <span>Industry Supervisor • Industrial Training</span>
+    </a>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" th:href="@{/industry/logbooks}">Logbooks</a></li>
+        <li class="nav-item"><a class="nav-link active" th:href="@{/industry/logbooks}">Logbooks</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/industry/placements}">Placements</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/industry/evaluations}">Evaluations</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/industry/opportunities}">Opportunities</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/industry/companies}">Company Profile</a></li>
         <li class="nav-item"><a class="nav-link" th:href="@{/logout}">Logout</a></li>
       </ul>
     </div>
   </div>
 </nav>
 
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Logbook Entry</h4>
-    <a class="btn btn-outline-secondary" th:href="@{/industry/logbooks}"><i class="bi bi-arrow-left"></i> Back</a>
-  </div>
+<main class="container container-narrow py-4" th:object="${entry}">
+  <a th:href="@{/industry/logbooks}" class="btn btn-link ps-0 mb-2">
+    <i class="bi bi-arrow-left"></i> Back to logbooks
+  </a>
 
-  <div class="card mb-4">
-    <div class="card-body">
-      <div class="row mb-2">
-        <div class="col-sm-3 label">Entry ID</div>
-        <div class="col-sm-9" th:text="${entry.id}">1</div>
-      </div>
-      <div class="row mb-2">
-        <div class="col-sm-3 label">Student ID</div>
-        <div class="col-sm-9" th:text="${entry.studentId}">1001</div>
-      </div>
-      <div class="row mb-2">
-        <div class="col-sm-3 label">Week (Start)</div>
-        <div class="col-sm-9" th:text="${entry.weekStartDate}">2025-01-01</div>
-      </div>
-      <div class="row mb-2">
-        <div class="col-sm-3 label">Status</div>
-        <div class="col-sm-9">
-          <span th:classappend="${entry.status.name()=='PENDING'} ? 'badge text-bg-warning' :
-                                 (${entry.status.name()=='APPROVED'} ? 'badge text-bg-success' : 'badge text-bg-danger')"
-                th:text="${entry.status}">PENDING</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  <section class="card-soft p-4 mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <h1 class="h5 mb-1"
+            th:text="*{week} != null ? 'Week ' + *{week} + ' Logbook' : 'Weekly Logbook'">
+          Weekly Logbook
+        </h1>
+        <p class="text-muted mb-1">
+    <span th:if="${student != null}">
+        <span th:text="${student.name}">Student Name</span>
+        (<span th:text="${student.studentId}">Matric</span>)
+    </span>
+          <span th:if="${student == null}">
+        Student ID: <span th:text="${entry.studentId}">11</span>
+    </span>
+          • Week starting <span th:text="${entry.weekStartDate}">2026-01-10</span>
+        </p>
 
-  <div class="card mb-4">
-    <div class="card-header fw-semibold">Student Reported</div>
-    <div class="card-body">
-      <div class="mb-3">
-        <div class="fw-semibold text-secondary">Main Task</div>
-        <div th:text="${entry.mainTask}">—</div>
-      </div>
-      <div class="mb-3">
-        <div class="fw-semibold text-secondary">Skills</div>
-        <div th:text="${entry.skills}">—</div>
-      </div>
-      <div class="mb-3">
-        <div class="fw-semibold text-secondary">Challenges</div>
-        <div th:text="${entry.challenges}">—</div>
       </div>
       <div>
-        <div class="fw-semibold text-secondary">Result</div>
-        <div th:text="${entry.result}">—</div>
+        <div class="field-label text-end">Status</div>
+        <span class="pill-status"
+              th:classappend="*{status.name()} == 'PENDING' ? ' pill-pending' :
+                              (*{status.name()} == 'APPROVED' ? ' pill-approved' : ' pill-rejected')">
+          <span th:text="*{status}">PENDING</span>
+        </span>
       </div>
     </div>
-  </div>
 
-  <!-- Review form -->
-  <div class="card">
-    <div class="card-header fw-semibold">Review</div>
-    <div class="card-body">
-      <form th:action="@{|/industry/logbooks/${entry.id}/review|}" method="post" class="row g-3">
-        <div class="col-12">
-          <label class="form-label">Comment (optional)</label>
-          <textarea class="form-control" name="comment" rows="3"
-                    placeholder="Your feedback or reason…"></textarea>
-        </div>
-        <div class="col-12 d-flex gap-2">
-          <button name="action" value="approve" class="btn btn-success">
-            <i class="bi bi-check-circle"></i> Approve
-          </button>
-          <button name="action" value="reject" class="btn btn-danger">
-            <i class="bi bi-x-circle"></i> Reject
-          </button>
-        </div>
-      </form>
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="field-label">Main task</div>
+        <p th:text="*{mainTask} != null ? *{mainTask} : '-'">-</p>
+      </div>
+      <div class="col-md-6">
+        <div class="field-label">Skills required / gained</div>
+        <p th:text="*{skills} != null ? *{skills} : '-'">-</p>
+      </div>
+      <div class="col-md-6">
+        <div class="field-label">Challenges</div>
+        <p th:text="*{challenges} != null ? *{challenges} : '-'">-</p>
+      </div>
+      <div class="col-12">
+        <div class="field-label">Output / Result</div>
+        <p th:text="*{result} != null ? *{result} : '-'">-</p>
+      </div>
+
+      <div class="col-md-6" th:if="*{photoPath} != null">
+        <div class="field-label">Photo</div>
+        <img th:src="@{*{photoPath}}" alt="Logbook photo" class="img-fluid rounded border">
+      </div>
+
+      <div class="col-md-6">
+        <div class="field-label">Full description (optional)</div>
+        <p class="small text-muted"
+           th:text="*{content} != null ? *{content} : '-'">-</p>
+      </div>
+
+      <div class="col-12" th:if="*{reviewComment} != null">
+        <div class="field-label">Previous comment</div>
+        <p class="small" th:text="*{reviewComment}">Good work.</p>
+        <p class="text-muted small mb-0" th:if="*{reviewedBy} != null">
+          Reviewed by <span th:text="*{reviewedBy}">Supervisor</span>
+          <span th:if="*{reviewedAt} != null">
+            on <span th:text="*{reviewedAt}">2025-06-02T11:00</span>
+          </span>
+        </p>
+      </div>
     </div>
-  </div>
-</div>
+  </section>
 
+  <!-- REVIEW FORM -->
+  <section class="card-soft p-4">
+    <h2 class="h6 mb-3">Endorsement</h2>
+    <form th:action="@{|/industry/logbooks/${entry.id}/review|}" method="post">
+      <div class="mb-3">
+        <label class="form-label">Comment to student (optional)</label>
+        <textarea class="form-control" name="comment" rows="3"
+                  placeholder="E.g. Strong week, please attach clearer output next time."></textarea>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="submit" name="action" value="approve" class="btn btn-success">
+          <i class="bi bi-check-circle me-1"></i> Approve &amp; Endorse
+        </button>
+        <button type="submit" name="action" value="reject" class="btn btn-outline-danger">
+          <i class="bi bi-x-circle me-1"></i> Return / Reject
+        </button>
+        <a th:href="@{/industry/logbooks}" class="btn btn-light ms-auto">
+          Close
+        </a>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer class="text-center text-muted py-3 small">
+  © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

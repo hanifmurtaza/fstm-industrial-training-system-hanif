@@ -558,13 +558,28 @@ public class AdminController {
             data = logbookEntryRepository.findAll(pageable);
         }
 
+        // 🔹 build studentById for Admin table
+        java.util.Set<Long> studentIds = new java.util.HashSet<>();
+        for (LogbookEntry e : data.getContent()) {
+            if (e.getStudentId() != null) {
+                studentIds.add(e.getStudentId());
+            }
+        }
+        java.util.Map<Long, User> studentById = new java.util.HashMap<>();
+        if (!studentIds.isEmpty()) {
+            userRepository.findAllById(studentIds)
+                    .forEach(u -> studentById.put(u.getId(), u));
+        }
+
         model.addAttribute("logbooks", data);
+        model.addAttribute("studentById", studentById);
         model.addAttribute("status", status);
         model.addAttribute("studentId", studentId);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
         return "admin-logbooks";
     }
+
 
     @GetMapping("/logbooks/export")
     public void exportLogbooksCsv(@RequestParam(value="status", required=false) ReviewStatus status,
@@ -610,6 +625,24 @@ public class AdminController {
         out.flush();
         logAction("EXPORT_LOGBOOKS", "Export logbooks status="+status+", studentId="+studentId);
     }
+
+    @GetMapping("/logbooks/{id}")
+    public String viewLogbookAdmin(@PathVariable Long id, Model model) {
+        requireBean(logbookEntryRepository, "LogbookEntryRepository");
+
+        LogbookEntry entry = logbookEntryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Logbook not found: " + id));
+
+        User student = null;
+        if (entry.getStudentId() != null) {
+            student = userRepository.findById(entry.getStudentId()).orElse(null);
+        }
+
+        model.addAttribute("entry", entry);
+        model.addAttribute("student", student);  // for name + matric
+        return "admin-logbook-view";
+    }
+
 
     private static String safe(String s) {
         return s == null ? "" : s.replace("\n"," ").replace("\r"," ").replace(",", " ");
@@ -903,6 +936,22 @@ public class AdminController {
         return "redirect:/admin/company-info/" + id + "/process";
     }
 
+    @PostMapping("/admin/placements/{id}/delete")
+    public String deletePlacement(@PathVariable Long id,
+                                  RedirectAttributes redirectAttributes) {
+
+        // if you want to be safe and avoid error when id not found
+        if (placementRepository.existsById(id)) {
+            placementRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("success", "Placement deleted successfully.");
+        } else {
+            redirectAttributes.addFlashAttribute("error", "Placement not found.");
+        }
+
+        // keep current filters/page simple: return to main list
+        return "redirect:/admin/placements";
+    }
+
     // ============================
     // Company MASTER (separate list)
     // ============================
@@ -1136,6 +1185,58 @@ public class AdminController {
         }
         return "redirect:/admin/company-master/" + companyId;
     }
+
+    @GetMapping("/industry-supervisors")
+    public String listIndustrySupervisors(Model model) {
+
+        // All users whose role is "INDUSTRY"
+        // (If your role string is different, e.g. "INDUSTRY_SUPERVISOR",
+        // change it here.)
+        List<User> supervisors = userRepository.findByRole("industry");
+
+        model.addAttribute("supervisors", supervisors);
+        return "admin-industry-supervisors";
+    }
+
+    @GetMapping("/industry-supervisors/add")
+    public String addIndustrySupervisorForm(Model model) {
+        model.addAttribute("supervisor", new User());
+        return "admin-industry-supervisor-form";
+    }
+
+    @PostMapping("/industry-supervisors/save")
+    public String saveIndustrySupervisor(@ModelAttribute User supervisor) {
+
+        supervisor.setRole("industry");
+
+        if (supervisor.getPassword() != null && !supervisor.getPassword().isBlank()) {
+            supervisor.setPassword(encode(supervisor.getPassword()));
+        }
+
+        if (supervisor.getEnabled() == null) supervisor.setEnabled(true);
+        if (supervisor.getAccessStart() == null) supervisor.setAccessStart(LocalDate.now());
+        if (supervisor.getAccessEnd() == null) supervisor.setAccessEnd(LocalDate.now().plusMonths(12));
+
+        userRepository.save(supervisor);
+        return "redirect:/admin/industry-supervisors";
+    }
+
+    @GetMapping("/industry-supervisors/edit/{id}")
+    public String editIndustrySupervisor(@PathVariable Long id, Model model) {
+        model.addAttribute("supervisor", userRepository.findById(id).orElse(null));
+        return "admin-industry-supervisor-form";
+    }
+
+    @PostMapping("/industry-supervisors/delete/{id}")
+    public String deleteIndustrySupervisor(@PathVariable Long id) {
+        userRepository.deleteById(id);
+        return "redirect:/admin/industry-supervisors";
+    }
+
+
+
+
+
 
 
     // ============================

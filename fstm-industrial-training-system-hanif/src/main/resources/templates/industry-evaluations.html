@@ -1,64 +1,184 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Supervisor Evaluations – Industry Supervisor</title>
+  <title>Industry Supervisor Evaluation (40%)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap & fonts -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f5f7fa; }
-    .navbar { background-color: #0d6efd; }
-    .navbar-brand, .nav-link { color: white !important; font-weight: 500; }
-    .card { border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; }
-    .card:hover { transform: translateY(-4px); }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: #f5f7fa;
+    }
+
+    .appbar {
+      background-color: #0d6efd;
+      color: #fff;
+    }
+
+    .appbar .navbar-brand,
+    .appbar .nav-link {
+      color: #fff !important;
+      font-weight: 500;
+    }
+
+    .appbar .nav-link.active {
+      text-decoration: underline;
+    }
+
+    .shell {
+      max-width: 1120px;
+    }
+
+    .card-eval {
+      border-radius: 18px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+    }
+
+    .badge-pill {
+      border-radius: 999px;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/industry/dashboard">Industry Supervisor</a>
-    <div class="collapse navbar-collapse">
+<!-- Top navbar (reuse style from other Industry pages) -->
+<nav class="navbar navbar-expand-lg appbar">
+  <div class="container shell">
+    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
+      <img th:src="@{/Picture1.png}" alt="UPM" style="height: 26px;">
+      <span>Industry Supervisor • Industrial Training</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navMain">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a href="/industry/logbooks" class="nav-link">Logbooks</a></li>
-        <li class="nav-item"><a href="/industry/placements" class="nav-link">Placements</a></li>
-        <li class="nav-item"><a href="/industry/evaluations" class="nav-link">Evaluations</a></li>
-        <li class="nav-item"><a href="/logout" class="nav-link">Logout</a></li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/industry/logbooks}">Logbooks</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/industry/placements}">Placements</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" th:href="@{/industry/evaluations}">Evaluations</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/industry/opportunities}">Opportunities</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/industry/companies}">Company Profile</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/logout}">Logout</a>
+        </li>
       </ul>
     </div>
   </div>
 </nav>
 
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Supervisor Evaluations (40%)</h4>
-    <a href="/industry/dashboard" class="btn btn-link">&larr; Dashboard</a>
-  </div>
+<main class="container shell py-4">
 
-  <div class="list-group">
-    <a class="list-group-item list-group-item-action"
-       th:each="p : ${placements}"
-       th:href="@{|/industry/evaluations/${p.id}|}">
-      <div class="d-flex justify-content-between">
-        <div>
-          <div><strong>Placement</strong> <span th:text="${p.id}">1</span></div>
-          <small class="text-muted">
-            Student: <span th:text="${p.studentId}">1001</span>
-            · Company: <span th:text="${p.companyId}">2001</span>
-            <span th:if="${p.reportDutyDate}"> · Report: <span th:text="${p.reportDutyDate}">2025-07-01</span></span>
-          </small>
-        </div>
-        <span class="badge bg-success align-self-center">APPROVED</span>
-      </div>
-    </a>
+  <h1 class="h4 mb-1">Industry Supervisor Evaluation (40%)</h1>
+  <p class="text-muted mb-4">
+    Complete the end-of-internship evaluation for each approved placement assigned to you.
+  </p>
 
-    <div th:if="${#lists.isEmpty(placements)}" class="text-muted py-4 text-center">
-      No pending evaluations. 🎉
+  <div class="card card-eval">
+    <div class="card-body p-0">
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+        <tr>
+          <th style="width: 30%;">Student</th>
+          <th style="width: 30%;">Company</th>
+          <th style="width: 20%;">Period</th>
+          <th style="width: 10%;">Status</th>
+          <th style="width: 10%;" class="text-end">Action</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        <!-- empty state -->
+        <tr th:if="${placements == null or #lists.isEmpty(placements)}">
+          <td colspan="5" class="text-center text-muted py-4">
+            No placements are currently available for evaluation.
+          </td>
+        </tr>
+
+        <!-- rows -->
+        <tr th:each="p : ${placements}">
+          <!-- Student name + matric -->
+          <td>
+            <div class="fw-semibold"
+                 th:text="${userById[p.studentId] != null
+                                       && userById[p.studentId].name != null
+                                       ? userById[p.studentId].name
+                                       : 'Student ID ' + p.studentId}">
+              Student Name
+            </div>
+            <div class="text-muted small"
+                 th:text="${userById[p.studentId] != null
+                                       && userById[p.studentId].studentId != null
+                                       ? 'Matric: ' + userById[p.studentId].studentId
+                                       : 'Student ID: ' + p.studentId}">
+              Matric: -
+            </div>
+          </td>
+
+          <!-- Company name -->
+          <td>
+            <div class="fw-semibold"
+                 th:text="${companyById[p.companyId] != null
+                                       && companyById[p.companyId].name != null
+                                       ? companyById[p.companyId].name
+                                       : 'Company ID ' + p.companyId}">
+              Company Name
+            </div>
+          </td>
+
+          <!-- Period -->
+          <td>
+            <span th:text="${p.startDate != null ? #temporals.format(p.startDate, 'dd/MM/yyyy') : '-'}">-</span>
+            <span> – </span>
+            <span th:text="${p.endDate != null ? #temporals.format(p.endDate, 'dd/MM/yyyy') : '-'}">-</span>
+          </td>
+
+          <!-- Status (for now everything here is pending until form submitted) -->
+          <td>
+                        <span class="badge badge-pill bg-warning text-dark">
+                            Pending
+                        </span>
+          </td>
+
+          <!-- Open form -->
+          <td class="text-end">
+            <a class="btn btn-sm btn-primary"
+               th:href="@{/industry/evaluations/{id}(id=${p.id})}">
+              Open Form
+            </a>
+          </td>
+        </tr>
+
+        </tbody>
+      </table>
     </div>
   </div>
-</div>
 
+  <div class="text-center text-muted small mt-4">
+    © 2025, Faculty of Food Science and Technology, UPM
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
