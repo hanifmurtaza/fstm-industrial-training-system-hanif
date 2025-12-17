@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin • Evaluation Detail</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { background:#f5f7fa; }
+        .card-soft { border-radius:16px; box-shadow:0 10px 26px rgba(15,23,42,.08); }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+
+
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-0" th:text="${student.name != null ? student.name : student.username}">Student</h3>
+            <div class="text-muted" th:text="${'Matric: ' + (student.studentId != null ? student.studentId : '-') + ' • Session: ' + (student.session != null ? student.session : '-') }">
+                Matric / Session
+            </div>
+        </div>
+        <a class="btn btn-primary" th:href="@{/admin/evaluations}">⬅ Back</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">Evaluation Context</h5>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="fw-semibold">Industry Supervisor</div>
+                    <div th:text="${industrySupervisor != null ? industrySupervisor.name : '-'}">-</div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="fw-semibold">Company</div>
+                    <div th:text="${company != null ? company.name : '-'}">-</div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="fw-semibold">Visiting Lecturer</div>
+                    <div th:text="${visitingLecturer != null ? visitingLecturer.name : '-'}">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card card-soft">
+        <div class="card-body">
+            <div th:if="${sa == null}" class="text-muted">
+                No assessment data found for this student yet.
+            </div>
+
+            <div th:if="${sa != null}">
+                <h5 class="mb-3">Scores</h5>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-white">
+                            <div class="fw-semibold mb-2">Visiting Lecturer (60)</div>
+                            <div>Evaluation: <span th:text="${sa.vlEvaluation10}">0</span> / 10</div>
+                            <div>Attendance: <span th:text="${sa.vlAttendance5}">0</span> / 5</div>
+                            <div>Logbook: <span th:text="${sa.vlLogbook5}">0</span> / 5</div>
+                            <div>Final Report: <span th:text="${sa.vlFinalReport40}">0</span> / 40</div>
+                            <hr>
+                            <div class="fw-semibold">
+                                Total:
+                                <span th:text="${sa.vlEvaluation10 + sa.vlAttendance5 + sa.vlLogbook5 + sa.vlFinalReport40}">0</span> / 60
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-white">
+                            <div class="fw-semibold mb-2">Industry Supervisor (40)</div>
+                            <div>Skills: <span th:text="${sa.isSkills20}">0</span> / 20</div>
+                            <div>Communication: <span th:text="${sa.isCommunication10}">0</span> / 10</div>
+                            <div>Teamwork: <span th:text="${sa.isTeamwork10}">0</span> / 10</div>
+                            <hr>
+                            <div class="fw-semibold">
+                                Total:
+                                <span th:text="${sa.isSkills20 + sa.isCommunication10 + sa.isTeamwork10}">0</span> / 40
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex flex-wrap gap-3">
+                    <div class="p-3 border rounded bg-white">
+                        <div class="text-muted small">Overall Total</div>
+                        <div class="h5 mb-0"
+                             th:text="${sa.total100 != null ? sa.total100 : (sa.vlEvaluation10 + sa.vlAttendance5 + sa.vlLogbook5 + sa.vlFinalReport40 + sa.isSkills20 + sa.isCommunication10 + sa.isTeamwork10)}">
+                            0
+                        </div>
+                    </div>
+
+                    <div class="p-3 border rounded bg-white">
+                        <div class="text-muted small">Grade</div>
+                        <div class="h5 mb-0" th:text="${sa.grade != null ? sa.grade : '-'}">-</div>
+                    </div>
+
+                    <div class="p-3 border rounded bg-white">
+                        <div class="text-muted small">Status</div>
+                        <div class="h5 mb-0" th:text="${sa.status != null ? sa.status : '-'}">-</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
