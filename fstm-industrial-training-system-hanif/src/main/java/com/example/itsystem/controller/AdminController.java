@@ -28,6 +28,17 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.repository.StudentAssessmentRepository;
+import com.example.itsystem.util.UpmGradeUtil;
+import com.example.itsystem.model.VisitSchedule;
+import jakarta.servlet.http.HttpSession;
+import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+
+
 
 
 @Controller
@@ -45,11 +56,15 @@ public class AdminController {
     @Autowired(required = false) private LogbookEntryRepository logbookEntryRepository;
     @Autowired private com.example.itsystem.service.BulkStudentImportService bulkImportService;
     @Autowired private StudentAssessmentRepository studentAssessmentRepository;
+    @Autowired(required = false) private VisitScheduleRepository visitScheduleRepository;
+
 
 
     // ----- Services -----
     @Autowired(required = false) private AdminMetricsService adminMetricsService;
     @Autowired(required = false) private GradingService gradingService;
+
+
 
     // Password encoder
     @Autowired(required = false) private PasswordEncoder passwordEncoder;
@@ -386,7 +401,13 @@ public class AdminController {
         Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
         for (User s : students.getContent()) {
             studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(s.getId())
-                    .ifPresent(sa -> assessmentByStudentId.put(s.getId(), sa));
+                    .ifPresent(sa -> {
+                        if (sa.getGrade() == null || sa.getGrade().isBlank()) {
+                            sa.setGrade(computeGrade(sa));
+                            studentAssessmentRepository.save(sa);
+                        }
+                        assessmentByStudentId.put(s.getId(), sa);
+                    });
         }
 
         model.addAttribute("students", students);
@@ -437,11 +458,31 @@ public class AdminController {
 
         // Visiting Lecturer
         User visitingLecturer = null;
+
+// 1) Try from StudentAssessment first
         if (sa != null && sa.getVisitingLecturerId() != null) {
-            visitingLecturer = userRepository
-                    .findById(sa.getVisitingLecturerId())
-                    .orElse(null);
+            visitingLecturer = userRepository.findById(sa.getVisitingLecturerId()).orElse(null);
         }
+
+// 2) Fallback: try from VisitSchedule (if repo available)
+        if (visitingLecturer == null && visitScheduleRepository != null) {
+            VisitSchedule vs = visitScheduleRepository
+                    .findTopByStudentIdOrderByIdDesc(studentId)
+                    .orElse(null);
+
+            if (vs != null && vs.getLecturerId() != null) {
+                visitingLecturer = userRepository.findById(vs.getLecturerId()).orElse(null);
+
+                // Optional backfill: store lecturerId into assessment for future pages
+                if (sa != null && sa.getVisitingLecturerId() == null) {
+                    sa.setVisitingLecturerId(vs.getLecturerId());
+                    studentAssessmentRepository.save(sa);
+                }
+            }
+        }
+
+
+
 
         model.addAttribute("student", student);
         model.addAttribute("sa", sa);
@@ -1370,11 +1411,17 @@ public class AdminController {
     @GetMapping("/industry-supervisors/add")
     public String addIndustrySupervisorForm(Model model) {
         model.addAttribute("supervisor", new User());
+
+        model.addAttribute("companies", companyRepository.findAll());
+
         return "admin-industry-supervisor-form";
     }
 
     @PostMapping("/industry-supervisors/save")
-    public String saveIndustrySupervisor(@ModelAttribute User supervisor) {
+    public String saveIndustrySupervisor(
+            @ModelAttribute User supervisor,
+            @RequestParam(value = "companyId", required = false) Long companyId
+    ) {
 
         supervisor.setRole("industry");
 
@@ -1386,9 +1433,18 @@ public class AdminController {
         if (supervisor.getAccessStart() == null) supervisor.setAccessStart(LocalDate.now());
         if (supervisor.getAccessEnd() == null) supervisor.setAccessEnd(LocalDate.now().plusMonths(12));
 
+        // ✅ Link selected company (from masterlist) into User.company (string)
+        if (companyId != null && companyRepository != null) {
+            Company c = companyRepository.findById(companyId).orElse(null);
+            if (c != null) {
+                supervisor.setCompany(c.getName());   // <-- use your existing String field
+            }
+        }
+
         userRepository.save(supervisor);
         return "redirect:/admin/industry-supervisors";
     }
+
 
     @GetMapping("/industry-supervisors/edit/{id}")
     public String editIndustrySupervisor(@PathVariable Long id, Model model) {
@@ -1411,11 +1467,151 @@ public class AdminController {
     // ============================
     // Grades export
     // ============================
-    @GetMapping("/grades/export")
-    public void exportGrades(@RequestParam String semester, HttpServletResponse resp) throws IOException {
-        requireBean(gradingService, "GradingService");
-        gradingService.exportXlsx(semester, resp);
-        logAction("EXPORT_GRADES", "Exported final grades for semester=" + semester);
+    @GetMapping("/evaluations/export")
+    public void exportEvaluations(
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "session", required = false) String session,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size,
+            HttpSession httpSession,
+            HttpServletResponse response
+    ) throws Exception {
+
+        // ✅ admin guard (same style as you wrote)
+        Object auth = httpSession.getAttribute("auth");
+        if (!(auth instanceof Map<?, ?> m) || m.get("role") == null
+                || !"admin".equalsIgnoreCase(String.valueOf(m.get("role")))) {
+            response.sendRedirect("/login");
+            return;
+        }
+
+        // ✅ Use same default as overview (but for export we usually want ALL filtered)
+        // If you want "export current page only", set exportAll=false and use provided page/size.
+        boolean exportAll = true;
+
+        int exportPage = (page == null ? 0 : page);
+        int exportSize = (size == null ? 25 : size);
+
+        Pageable pageable;
+        if (exportAll) {
+            // big size to fetch all filtered students (safe enough for typical class size)
+            pageable = PageRequest.of(0, 10000, Sort.by(Sort.Direction.ASC, "name"));
+        } else {
+            pageable = PageRequest.of(exportPage, exportSize, Sort.by(Sort.Direction.ASC, "name"));
+        }
+
+        Page<User> students;
+
+        if ((search != null && !search.isBlank()) || (session != null && !session.isBlank())) {
+            students = userRepository.searchStudentsWithSession(
+                    "student",
+                    (search != null && !search.isBlank()) ? search.trim() : null,
+                    session,
+                    pageable
+            );
+        } else {
+            students = userRepository.findAllByRole("student", pageable);
+        }
+
+        // Build latest assessment map (same logic as manageEvaluations)
+        Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
+        for (User s : students.getContent()) {
+            studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(s.getId())
+                    .ifPresent(sa -> {
+                        if (sa.getGrade() == null || sa.getGrade().isBlank()) {
+                            sa.setGrade(computeGrade(sa));
+                            studentAssessmentRepository.save(sa);
+                        }
+                        assessmentByStudentId.put(s.getId(), sa);
+                    });
+        }
+
+        // ---- Write Excel (inline POI, no extra service needed) ----
+        String fileName = "evaluations.xlsx";
+        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encoded);
+
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Evaluations");
+
+            // Header style
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            String[] headers = {"No", "Student", "Matric", "Session", "VL (60)", "Industry (40)", "Total", "Grade"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
+            }
+
+            int rowIdx = 1;
+            int no = 1;
+
+            for (User stu : students.getContent()) {
+                StudentAssessment sa = assessmentByStudentId.get(stu.getId());
+
+                String sessionText = (sa != null && sa.getSession() != null) ? sa.getSession() : (stu.getSession() != null ? stu.getSession() : "");
+                String studentName = (stu.getName() != null && !stu.getName().isBlank()) ? stu.getName() : stu.getUsername();
+                String matric = (stu.getStudentId() != null) ? stu.getStudentId() : "";
+
+                // VL 60
+                BigDecimal vl = BigDecimal.ZERO;
+                BigDecimal ind = BigDecimal.ZERO;
+
+                if (sa != null) {
+                    vl = nz(sa.getVlEvaluation10())
+                            .add(nz(sa.getVlAttendance5()))
+                            .add(nz(sa.getVlLogbook5()))
+                            .add(nz(sa.getVlFinalReport40()));
+
+                    ind = nz(sa.getIsSkills20())
+                            .add(nz(sa.getIsCommunication10()))
+                            .add(nz(sa.getIsTeamwork10()));
+                }
+
+                boolean vlNoData = (sa == null) || vl.compareTo(BigDecimal.ZERO) == 0;
+                boolean indNoData = (sa == null) || ind.compareTo(BigDecimal.ZERO) == 0;
+
+                BigDecimal total = vl.add(ind);
+
+                String vlText = vlNoData ? "No data" : fmt2(vl) + " / 60";
+                String indText = indNoData ? "No data" : fmt2(ind) + " / 40";
+                String totalText = (vlNoData && indNoData) ? "-" : fmt2(total);
+                String grade = (sa != null && sa.getGrade() != null && !sa.getGrade().isBlank()) ? sa.getGrade() : "-";
+
+                Row r = sheet.createRow(rowIdx++);
+                r.createCell(0).setCellValue(no++);
+                r.createCell(1).setCellValue(studentName);
+                r.createCell(2).setCellValue(matric);
+                r.createCell(3).setCellValue(sessionText);
+                r.createCell(4).setCellValue(vlText);
+                r.createCell(5).setCellValue(indText);
+                r.createCell(6).setCellValue(totalText);
+                r.createCell(7).setCellValue(grade);
+            }
+
+            for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
+
+            wb.write(response.getOutputStream());
+            response.getOutputStream().flush();
+        }
+
+        logAction("EXPORT_EVALUATIONS",
+                "Export evaluations search=" + (search == null ? "" : search)
+                        + ", session=" + (session == null ? "" : session)
+                        + ", exportAll=" + exportAll);
+    }
+
+    // helper for formatting (put near your other helpers)
+    private String fmt2(BigDecimal v) {
+        if (v == null) return "0.00";
+        return v.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     // ============================
@@ -1471,4 +1667,23 @@ public class AdminController {
     private void requireBean(Object bean, String name) {
         if (bean == null) throw new IllegalStateException(name + " is not wired yet.");
     }
+
+    private BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private String computeGrade(StudentAssessment sa) {
+        BigDecimal vl = nz(sa.getVlEvaluation10())
+                .add(nz(sa.getVlAttendance5()))
+                .add(nz(sa.getVlLogbook5()))
+                .add(nz(sa.getVlFinalReport40())); // max 60
+
+        BigDecimal ind = nz(sa.getIsSkills20())
+                .add(nz(sa.getIsCommunication10()))
+                .add(nz(sa.getIsTeamwork10())); // max 40
+
+        double total = vl.add(ind).doubleValue(); // max 100
+        return UpmGradeUtil.gradeFromTotal(total);
+    }
+
 }

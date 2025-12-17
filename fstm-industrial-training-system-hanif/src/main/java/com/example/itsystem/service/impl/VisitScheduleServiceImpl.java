@@ -25,8 +25,9 @@ public class VisitScheduleServiceImpl implements VisitScheduleService {
 
     @Override
     public VisitSchedule findUpcomingForStudent(Long studentId) {
-        // 始终拿该学生最新创建的一条预约记录
-        return visitScheduleRepository.findTopByStudentIdOrderByIdDesc(studentId);
+        return visitScheduleRepository
+                .findTopByStudentIdOrderByIdDesc(studentId)
+                .orElse(null);
     }
 
 

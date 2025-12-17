@@ -12,6 +12,9 @@ import java.util.Optional;
 
 public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
+    boolean existsBySupervisorUserIdAndCompanyId(Long supervisorUserId, Long companyId);
+
+
     // existing
     Page<Placement> findByStatus(PlacementStatus status, Pageable pageable);
     long countByStatus(PlacementStatus status);
@@ -49,8 +52,9 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     boolean existsByStudentIdAndSupervisorUserId(@Param("studentId") Long studentId,
                                                  @Param("supervisorUserId") Long supervisorUserId);
 
-    @Query("select distinct p.companyId from Placement p where p.supervisorUserId = :supervisorUserId")
+    @Query("select distinct p.companyId from Placement p where p.supervisorUserId = :supervisorUserId and p.companyId is not null")
     List<Long> findDistinctCompanyIdsBySupervisorUserId(@Param("supervisorUserId") Long supervisorUserId);
+
 
     List<Placement> findBySupervisorUserIdAndStatus(Long supervisorUserId, PlacementStatus status);
 

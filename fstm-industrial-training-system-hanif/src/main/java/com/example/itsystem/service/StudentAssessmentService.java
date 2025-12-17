@@ -4,8 +4,10 @@ import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.repository.StudentAssessmentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
+import com.example.itsystem.util.UpmGradeUtil;
+import java.math.RoundingMode;
+
 
 @Service
 public class StudentAssessmentService {
@@ -55,6 +57,7 @@ public class StudentAssessmentService {
 
         sa.setStatus(submit ? StudentAssessment.Status.SUBMITTED : StudentAssessment.Status.DRAFT);
 
+        recomputeGrade(sa);
         return repo.save(sa);
     }
 
@@ -93,6 +96,33 @@ public class StudentAssessmentService {
 
         sa.setStatus(submit ? StudentAssessment.Status.SUBMITTED : StudentAssessment.Status.DRAFT);
 
+        recomputeGrade(sa);
         return repo.save(sa);
     }
+
+    private void recomputeGrade(StudentAssessment sa) {
+        BigDecimal vl =
+                nz(sa.getVlEvaluation10())
+                        .add(nz(sa.getVlAttendance5()))
+                        .add(nz(sa.getVlLogbook5()))
+                        .add(nz(sa.getVlFinalReport40())); // max 60
+
+        BigDecimal ind =
+                nz(sa.getIsSkills20())
+                        .add(nz(sa.getIsCommunication10()))
+                        .add(nz(sa.getIsTeamwork10())); // max 40
+
+        BigDecimal total = vl.add(ind); // max 100
+
+        // Convert to double for grade mapping
+        double totalDouble = total.setScale(2, RoundingMode.HALF_UP).doubleValue();
+
+        sa.setGrade(UpmGradeUtil.gradeFromTotal(totalDouble));
+    }
+
+    // Null-safe BigDecimal
+    private BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
 }

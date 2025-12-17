@@ -327,9 +327,21 @@ public class IndustrySupervisorController {
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        model.addAttribute("companies", companyRepository.findAll());
+        List<Long> companyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
+
+        List<Company> companies = (companyIds == null || companyIds.isEmpty())
+                ? List.of()
+                : companyRepository.findAllById(companyIds);
+
+        // Optional: keep stable order (same as IDs order)
+        Map<Long, Integer> order = new HashMap<>();
+        for (int i = 0; i < companyIds.size(); i++) order.put(companyIds.get(i), i);
+        companies.sort(Comparator.comparingInt(c -> order.getOrDefault(c.getId(), 999999)));
+
+        model.addAttribute("companies", companies);
         return "industry-companies";
     }
+
 
     @GetMapping("/companies/{companyId}")
     public String editCompany(@PathVariable Long companyId, HttpSession session, Model model) {
@@ -337,12 +349,18 @@ public class IndustrySupervisorController {
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
+        // ✅ access control
+        if (!placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId)) {
+            return "redirect:/industry/companies";
+        }
+
         Company company = companyRepository.findById(companyId).orElse(null);
         if (company == null) return "redirect:/industry/companies";
 
         model.addAttribute("company", company);
         return "industry-company-edit";
     }
+
 
     @PostMapping("/companies/{companyId}")
     public String updateCompany(@PathVariable Long companyId,
@@ -353,8 +371,16 @@ public class IndustrySupervisorController {
                                 @RequestParam(required = false) String contactPhone,
                                 @RequestParam(required = false) String website,
                                 HttpSession session) {
+
         if (notIndustry(session)) return "redirect:/login";
+        Long me = currentUserId(session);
+        if (me == null) return "redirect:/login";
         String who = currentDisplayName(session);
+
+        // ✅ access control
+        if (!placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId)) {
+            return "redirect:/industry/companies";
+        }
 
         companyRepository.findById(companyId).ifPresent(company -> {
             company.setName(name);
@@ -375,6 +401,7 @@ public class IndustrySupervisorController {
 
         return "redirect:/industry/companies";
     }
+
 
     // =========================
     // End-of-internship evaluation (40%)
@@ -532,4 +559,23 @@ public class IndustrySupervisorController {
 
         return "redirect:/industry/evaluations";
     }
+
+    // Backward-compatible edit URL: /industry/companies/{id}/edit
+    @GetMapping("/companies/{companyId}/edit")
+    public String editCompanyEditPath(@PathVariable Long companyId, HttpSession session, Model model) {
+        return editCompany(companyId, session, model); // reuse your existing method
+    }
+
+    @PostMapping("/companies/{companyId}/edit")
+    public String updateCompanyEditPath(@PathVariable Long companyId,
+                                        @RequestParam String name,
+                                        @RequestParam(required = false) String address,
+                                        @RequestParam(required = false) String contactName,
+                                        @RequestParam(required = false) String contactEmail,
+                                        @RequestParam(required = false) String contactPhone,
+                                        @RequestParam(required = false) String website,
+                                        HttpSession session) {
+        return updateCompany(companyId, name, address, contactName, contactEmail, contactPhone, website, session);
+    }
+
 }

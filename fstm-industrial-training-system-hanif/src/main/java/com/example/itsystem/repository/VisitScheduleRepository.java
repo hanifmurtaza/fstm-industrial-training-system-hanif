@@ -2,7 +2,7 @@ package com.example.itsystem.repository;
 
 import com.example.itsystem.model.VisitSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.util.Optional;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -13,7 +13,8 @@ public interface VisitScheduleRepository extends JpaRepository<VisitSchedule, Lo
 
     VisitSchedule findFirstByStudentIdOrderByVisitDateAscVisitTimeAsc(Long studentId);
 
-    VisitSchedule findTopByStudentIdOrderByIdDesc(Long studentId);
+    Optional<VisitSchedule> findTopByStudentIdOrderByIdDesc(Long studentId);
+
 
     // 统计：未拜访的日程（状态 in，且日期>=today）
     long countByLecturerIdAndStatusInAndVisitDateGreaterThanEqual(

@@ -21,6 +21,11 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Evaluations Overview</h2>
         <a class="btn btn-primary" th:href="@{/admin/dashboard}">⬅ Back to Dashboard</a>
+        <a class="btn btn-success"
+           th:href="@{/admin/evaluations/export(search=${search}, session=${selectedSession})}">
+            Export Excel
+        </a>
+
     </div>
 
     <form method="get" th:action="@{/admin/evaluations}" class="row g-2 mb-3">
