@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Logbooks • Students</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root{ --border:#e5e7eb; --muted:#6b7280; }
+        body{ background:#f5f7fa; }
+        .container-narrow{ max-width:1240px; }
+        .appbar{ background:#0d6efd; color:#fff; }
+        .appbar a{ color:#fff; text-decoration:none; }
+        .table-card{ border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.06); }
+        .table thead th{ background:#fff; position:sticky; top:0; z-index:2; border-bottom:1px solid var(--border); }
+        .table tbody td{ vertical-align:middle; }
+        .table-responsive{ max-height:64vh; overflow:auto; }
+        .muted{ color:var(--muted); }
+        .pill{ font-weight:700; padding:.25rem .5rem; border-radius:999px; font-size:.85rem; display:inline-block; }
+        .pill-ok{ background:#E6F4EA; color:#1F7A39; }
+        .pill-warn{ background:#FFF4E5; color:#9A6700; }
+        .pill-bad{ background:#FDECEC; color:#B42318; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg appbar">
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:26px">
+            <span>Admin • Logbooks (Students)</span>
+        </a>
+        <div class="ms-auto d-flex gap-2">
+            <a th:href="@{/admin/logbooks}" class="btn btn-outline-light btn-sm">
+                Audit View
+            </a>
+            <a th:href="@{/admin/dashboard}" class="btn btn-outline-light btn-sm">
+                Dashboard
+            </a>
+        </div>
+    </div>
+</nav>
+
+<main class="container container-narrow py-4">
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+        <h1 class="h4 m-0">Students</h1>
+        <div class="text-muted">Click a student to view their weekly logbook timeline.</div>
+    </div>
+
+    <!-- filters -->
+    <div class="row g-2 align-items-end mb-3">
+        <div class="col-12 col-md-10">
+            <form class="row g-2 align-items-end" method="get" th:action="@{/admin/logbooks/students}">
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1">Session</label>
+                    <select class="form-select" name="session">
+                        <option value=""
+                                th:selected="${selectedSession == null or selectedSession == ''}">
+                            All sessions
+                        </option>
+                        <option th:each="s : ${sessionOptions}"
+                                th:value="${s}"
+                                th:text="${s}"
+                                th:selected="${s == selectedSession}"></option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control"
+                               placeholder="Search by name or matric..." th:value="${search}">
+                    </div>
+                </div>
+
+                <input type="hidden" name="size" th:value="${size}"/>
+
+                <div class="col-6 col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                <tr>
+                    <th style="width:60px;">#</th>
+                    <th>Student</th>
+                    <th style="width:160px;">Session</th>
+                    <th style="width:220px;">Visiting Lecturer</th>
+                    <th style="width:120px;">Submitted</th>
+                    <th style="width:140px;">Sup Pending</th>
+                    <th style="width:140px;">Lec Pending</th>
+                    <th style="width:160px;">Latest Week</th>
+                    <th style="width:120px;">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(students.content)}">
+                    <td colspan="9" class="text-center text-muted py-4">
+                        No students found for this filter.
+                    </td>
+                </tr>
+
+                <tr th:each="s, stat : ${students.content}">
+                    <td th:text="${stat.index + 1 + (currentPage * size)}">1</td>
+
+                    <td>
+                        <div class="fw-semibold" th:text="${s.name}">Student Name</div>
+                        <div class="muted" th:text="${s.studentId}">Matric</div>
+                    </td>
+
+                    <td th:text="${s.session}">2025/2026</td>
+
+                    <td>
+                        <span th:if="${s.lecturer != null}" th:text="${s.lecturer.name}">Lecturer</span>
+                        <span th:if="${s.lecturer == null}" class="muted">Not assigned</span>
+                    </td>
+
+                    <!-- summary -->
+                    <td>
+            <span th:if="${summaryByStudentId[s.id] != null}"
+                  class="pill pill-ok"
+                  th:text="${summaryByStudentId[s.id].total}">0</span>
+                        <span th:if="${summaryByStudentId[s.id] == null}" class="pill pill-warn">0</span>
+                    </td>
+
+                    <td>
+            <span th:if="${summaryByStudentId[s.id] != null}"
+                  th:class="${summaryByStudentId[s.id].supPending > 0} ? 'pill pill-bad' : 'pill pill-ok'"
+                  th:text="${summaryByStudentId[s.id].supPending}">0</span>
+                        <span th:if="${summaryByStudentId[s.id] == null}" class="pill pill-ok">0</span>
+                    </td>
+
+                    <td>
+            <span th:if="${summaryByStudentId[s.id] != null}"
+                  th:class="${summaryByStudentId[s.id].lecPending > 0} ? 'pill pill-warn' : 'pill pill-ok'"
+                  th:text="${summaryByStudentId[s.id].lecPending}">0</span>
+                        <span th:if="${summaryByStudentId[s.id] == null}" class="pill pill-ok">0</span>
+                    </td>
+
+                    <td>
+            <span th:if="${summaryByStudentId[s.id] != null and summaryByStudentId[s.id].latestWeek != null}"
+                  th:text="${summaryByStudentId[s.id].latestWeek}">-</span>
+                        <span th:if="${summaryByStudentId[s.id] == null or summaryByStudentId[s.id].latestWeek == null}" class="muted">-</span>
+                    </td>
+
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{'/admin/logbooks/student/' + ${s.id}}">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-3 d-flex justify-content-between align-items-center border-top">
+            <div class="text-muted">
+                Page <span th:text="${currentPage + 1}">1</span> / <span th:text="${totalPages}">1</span>
+            </div>
+            <div class="btn-group">
+                <a class="btn btn-outline-secondary btn-sm"
+                   th:if="${currentPage > 0}"
+                   th:href="@{/admin/logbooks/students(session=${selectedSession},search=${search},page=${currentPage-1},size=${size})}">
+                    Prev
+                </a>
+                <a class="btn btn-outline-secondary btn-sm"
+                   th:if="${currentPage + 1 < totalPages}"
+                   th:href="@{/admin/logbooks/students(session=${selectedSession},search=${search},page=${currentPage+1},size=${size})}">
+                    Next
+                </a>
+            </div>
+        </div>
+    </div>
+
+</main>
+</body>
+</html>
