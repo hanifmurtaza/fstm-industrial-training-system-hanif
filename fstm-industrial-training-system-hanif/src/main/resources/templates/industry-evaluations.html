@@ -46,6 +46,10 @@
       padding: 0.3rem 0.8rem;
       font-size: 0.75rem;
     }
+
+    .subtle {
+      color: #64748b;
+    }
   </style>
 </head>
 <body>
@@ -121,16 +125,16 @@
           <td>
             <div class="fw-semibold"
                  th:text="${userById[p.studentId] != null
-                                       && userById[p.studentId].name != null
-                                       ? userById[p.studentId].name
-                                       : 'Student ID ' + p.studentId}">
+                           && userById[p.studentId].name != null
+                           ? userById[p.studentId].name
+                           : 'Student ID ' + p.studentId}">
               Student Name
             </div>
             <div class="text-muted small"
                  th:text="${userById[p.studentId] != null
-                                       && userById[p.studentId].studentId != null
-                                       ? 'Matric: ' + userById[p.studentId].studentId
-                                       : 'Student ID: ' + p.studentId}">
+                           && userById[p.studentId].studentId != null
+                           ? 'Matric: ' + userById[p.studentId].studentId
+                           : 'Student ID: ' + p.studentId}">
               Matric: -
             </div>
           </td>
@@ -139,32 +143,47 @@
           <td>
             <div class="fw-semibold"
                  th:text="${companyById[p.companyId] != null
-                                       && companyById[p.companyId].name != null
-                                       ? companyById[p.companyId].name
-                                       : 'Company ID ' + p.companyId}">
+                           && companyById[p.companyId].name != null
+                           ? companyById[p.companyId].name
+                           : 'Company ID ' + p.companyId}">
               Company Name
             </div>
           </td>
 
           <!-- Period -->
-          <td>
+          <td class="subtle">
             <span th:text="${p.startDate != null ? #temporals.format(p.startDate, 'dd/MM/yyyy') : '-'}">-</span>
             <span> – </span>
             <span th:text="${p.endDate != null ? #temporals.format(p.endDate, 'dd/MM/yyyy') : '-'}">-</span>
           </td>
 
-          <!-- Status (for now everything here is pending until form submitted) -->
+          <!-- Status -->
           <td>
-                        <span class="badge badge-pill bg-warning text-dark">
-                            Pending
-                        </span>
+            <span th:if="${evalByPlacementId != null and evalByPlacementId[p.id] != null}"
+                  class="badge badge-pill bg-success">
+              Evaluated
+            </span>
+
+            <span th:if="${evalByPlacementId == null or evalByPlacementId[p.id] == null}"
+                  class="badge badge-pill bg-warning text-dark">
+              Pending
+            </span>
           </td>
 
-          <!-- Open form -->
+          <!-- Action -->
           <td class="text-end">
-            <a class="btn btn-sm btn-primary"
+            <!-- Pending -> Open Form -->
+            <a th:if="${evalByPlacementId == null or evalByPlacementId[p.id] == null}"
+               class="btn btn-sm btn-primary"
                th:href="@{/industry/evaluations/{id}(id=${p.id})}">
               Open Form
+            </a>
+
+            <!-- Evaluated -> View/Edit -->
+            <a th:if="${evalByPlacementId != null and evalByPlacementId[p.id] != null}"
+               class="btn btn-sm btn-outline-primary"
+               th:href="@{/industry/evaluations/{id}(id=${p.id})}">
+              View / Edit
             </a>
           </td>
         </tr>

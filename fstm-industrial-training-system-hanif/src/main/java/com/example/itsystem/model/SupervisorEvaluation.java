@@ -5,14 +5,13 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-    name = "supervisor_evaluations",
-    uniqueConstraints = {
-        // one evaluation per placement (supervisor side)
-        @UniqueConstraint(name = "uq_supervisor_eval_placement", columnNames = "placementId")
-    },
-    indexes = {
-        @Index(name = "idx_sup_eval_placement", columnList = "placementId")
-    }
+        name = "supervisor_evaluations",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_supervisor_eval_placement", columnNames = "placementId")
+        },
+        indexes = {
+                @Index(name = "idx_sup_eval_placement", columnList = "placementId")
+        }
 )
 public class SupervisorEvaluation {
 
@@ -20,18 +19,21 @@ public class SupervisorEvaluation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Simple FK by id (keeps your current pattern)
     @Column(nullable = false)
     private Long placementId;
 
-    // --- Rubric fields (example 1–5) ---
+    // --- Rubric fields (1–5) ---
     @Column(nullable = false) private Integer discipline;
     @Column(nullable = false) private Integer knowledge;
     @Column(nullable = false) private Integer communication;
     @Column(nullable = false) private Integer initiative;
     @Column(nullable = false) private Integer grooming;
 
-    // Overall numeric (e.g., 0–100)
+    // ✅ NEW: Teamwork (1–5) for Teamwork(10) bucket shown on Student Dashboard
+    // Keep nullable=true to avoid DB issues for old rows; form requires it anyway.
+    @Column private Integer teamwork;
+
+    // Overall numeric (0–100)
     @Column(nullable = false) private Integer overallScore;
 
     // Hire recommendation
@@ -65,6 +67,9 @@ public class SupervisorEvaluation {
 
     public Integer getGrooming() { return grooming; }
     public void setGrooming(Integer grooming) { this.grooming = grooming; }
+
+    public Integer getTeamwork() { return teamwork; }
+    public void setTeamwork(Integer teamwork) { this.teamwork = teamwork; }
 
     public Integer getOverallScore() { return overallScore; }
     public void setOverallScore(Integer overallScore) { this.overallScore = overallScore; }

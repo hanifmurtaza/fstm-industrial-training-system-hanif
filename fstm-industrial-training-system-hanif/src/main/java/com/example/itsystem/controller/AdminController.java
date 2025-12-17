@@ -21,9 +21,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import com.example.itsystem.model.StudentAssessment;
+import com.example.itsystem.repository.StudentAssessmentRepository;
+
 
 @Controller
 @RequestMapping("/admin")
@@ -39,6 +44,8 @@ public class AdminController {
     @Autowired(required = false) private CompanyRepository companyRepository;
     @Autowired(required = false) private LogbookEntryRepository logbookEntryRepository;
     @Autowired private com.example.itsystem.service.BulkStudentImportService bulkImportService;
+    @Autowired private StudentAssessmentRepository studentAssessmentRepository;
+
 
     // ----- Services -----
     @Autowired(required = false) private AdminMetricsService adminMetricsService;
@@ -351,46 +358,101 @@ public class AdminController {
     }
 
     // ============================
-    // Evaluations
-    // ============================
+// Evaluations (Admin overview: VL + Industry scores)
+// ============================
     @GetMapping("/evaluations")
     public String manageEvaluations(@RequestParam(value = "search", required = false) String search,
+                                    @RequestParam(value = "session", required = false) String session,
                                     @RequestParam(value = "page", defaultValue = "0") int page,
-                                    @RequestParam(value = "size", defaultValue = "5") int size,
+                                    @RequestParam(value = "size", defaultValue = "25") int size,
                                     Model model) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Evaluation> evaluations = (search != null && !search.isBlank())
-                ? evaluationRepository.findByStudent_NameContainingOrStudent_StudentIdContaining(
-                search.trim(), search.trim(), pageable)
-                : evaluationRepository.findAll(pageable);
 
-        model.addAttribute("evaluations", evaluations);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+
+        Page<User> students;
+
+        if ((search != null && !search.isBlank()) || (session != null && !session.isBlank())) {
+            students = userRepository.searchStudentsWithSession(
+                    "student",
+                    search != null ? search.trim() : null,
+                    session,
+                    pageable
+            );
+        } else {
+            students = userRepository.findAllByRole("student", pageable);
+        }
+
+        // Latest assessment per student (simple & reliable, same data student dashboard uses)
+        Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
+        for (User s : students.getContent()) {
+            studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(s.getId())
+                    .ifPresent(sa -> assessmentByStudentId.put(s.getId(), sa));
+        }
+
+        model.addAttribute("students", students);
+        model.addAttribute("assessmentByStudentId", assessmentByStudentId);
+
         model.addAttribute("search", search);
         model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", evaluations.getTotalPages());
+        model.addAttribute("size", size);
+
+        List<String> sessions = userRepository.findDistinctStudentSessions();
+        model.addAttribute("sessions", sessions);
+        model.addAttribute("selectedSession", session);
+
+
         return "admin-evaluations";
     }
 
-    @GetMapping("/evaluations/evaluate/{id}")
-    public String evaluateStudent(@PathVariable Long id, Model model) {
-        User student = userRepository.findById(id).orElse(null);
-        if (student != null) {
-            model.addAttribute("student", student);
-            model.addAttribute("evaluation", new Evaluation());
+    @GetMapping("/evaluations/{studentId}")
+    public String viewStudentEvaluation(@PathVariable Long studentId, Model model) {
+
+        User student = userRepository.findById(studentId).orElse(null);
+        if (student == null) return "redirect:/admin/evaluations";
+
+        StudentAssessment sa = studentAssessmentRepository
+                .findTopByStudentUserIdOrderByIdDesc(studentId)
+                .orElse(null);
+
+        // Industry supervisor + company
+        Placement placement = placementRepository
+                .findTopByStudentIdOrderByIdDesc(studentId)
+                .orElse(null);
+
+        User industrySupervisor = null;
+        Company company = null;
+
+        if (placement != null) {
+            if (placement.getSupervisorUserId() != null) {
+                industrySupervisor = userRepository
+                        .findById(placement.getSupervisorUserId())
+                        .orElse(null);
+            }
+            if (placement.getCompanyId() != null) {
+                company = companyRepository
+                        .findById(placement.getCompanyId())
+                        .orElse(null);
+            }
         }
-        return "admin-student-evaluation";
+
+        // Visiting Lecturer
+        User visitingLecturer = null;
+        if (sa != null && sa.getVisitingLecturerId() != null) {
+            visitingLecturer = userRepository
+                    .findById(sa.getVisitingLecturerId())
+                    .orElse(null);
+        }
+
+        model.addAttribute("student", student);
+        model.addAttribute("sa", sa);
+        model.addAttribute("industrySupervisor", industrySupervisor);
+        model.addAttribute("company", company);
+        model.addAttribute("visitingLecturer", visitingLecturer);
+
+        return "admin-evaluation-detail";
     }
 
-    @PostMapping("/evaluations/evaluate/{id}")
-    public String saveEvaluation(@PathVariable Long id, @ModelAttribute Evaluation evaluation) {
-        User student = userRepository.findById(id).orElse(null);
-        if (student != null) {
-            evaluation.setStudent(student);
-            evaluationRepository.save(evaluation);
-            logAction("EVAL_ADMIN_REPORT", "Saved admin evaluation for studentId=" + id);
-        }
-        return "redirect:/admin/evaluations";
-    }
+
 
     // ====================== LECTURER MANAGEMENT ======================
 

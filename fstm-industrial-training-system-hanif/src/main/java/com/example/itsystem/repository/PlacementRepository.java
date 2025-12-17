@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
+import java.util.Optional;
 
-import java.util.List;
 
 public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
@@ -51,6 +51,12 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
     @Query("select distinct p.companyId from Placement p where p.supervisorUserId = :supervisorUserId")
     List<Long> findDistinctCompanyIdsBySupervisorUserId(@Param("supervisorUserId") Long supervisorUserId);
+
+    List<Placement> findBySupervisorUserIdAndStatus(Long supervisorUserId, PlacementStatus status);
+
+    Optional<Placement> findTopByStudentIdOrderByIdDesc(Long studentId);
+
+
 
 
 }

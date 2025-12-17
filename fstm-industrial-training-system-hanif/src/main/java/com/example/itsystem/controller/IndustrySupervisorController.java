@@ -1,36 +1,16 @@
 package com.example.itsystem.controller;
 
-import com.example.itsystem.model.AuditLog;
-import com.example.itsystem.model.Company;
-import com.example.itsystem.model.LogbookEntry;
-import com.example.itsystem.model.ReviewStatus;
-import com.example.itsystem.model.Placement;
-import com.example.itsystem.model.PlacementStatus;
-import com.example.itsystem.model.SupervisorEvaluation;
-import com.example.itsystem.repository.AuditLogRepository;
-import com.example.itsystem.repository.CompanyRepository;
-import com.example.itsystem.repository.LogbookEntryRepository;
-import com.example.itsystem.repository.PlacementRepository;
-import com.example.itsystem.repository.SupervisorEvaluationRepository;
-import com.example.itsystem.repository.UserRepository;
-import com.example.itsystem.model.User;
-
-
+import com.example.itsystem.model.*;
+import com.example.itsystem.repository.*;
+import com.example.itsystem.service.StudentAssessmentService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.format.annotation.DateTimeFormat;
-
-import static org.springframework.format.annotation.DateTimeFormat.ISO;
-
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -44,24 +24,30 @@ public class IndustrySupervisorController {
     private final SupervisorEvaluationRepository evalRepo;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final StudentAssessmentService studentAssessmentService;
 
     public IndustrySupervisorController(LogbookEntryRepository logbookRepo,
                                         AuditLogRepository auditLogRepo,
                                         PlacementRepository placementRepo,
                                         SupervisorEvaluationRepository evalRepo,
                                         UserRepository userRepository,
-                                        CompanyRepository companyRepository) {
+                                        CompanyRepository companyRepository,
+                                        StudentAssessmentService studentAssessmentService) {
         this.logbookRepo = logbookRepo;
         this.auditLogRepo = auditLogRepo;
         this.placementRepo = placementRepo;
         this.evalRepo = evalRepo;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
+        this.studentAssessmentService = studentAssessmentService;
     }
 
+    // =========================
+    // Helpers
+    // =========================
     private boolean notIndustry(HttpSession session) {
         Object auth = session.getAttribute("auth");
-        if (auth instanceof java.util.Map<?, ?> m) {
+        if (auth instanceof Map<?, ?> m) {
             Object role = m.get("role");
             return role == null || !"industry".equalsIgnoreCase(String.valueOf(role));
         }
@@ -86,9 +72,24 @@ public class IndustrySupervisorController {
         return "industry_supervisor";
     }
 
-    // =========================================================
-    //                       DASHBOARD
-    // =========================================================
+    private String fallbackSession() {
+        return "2024/2025-2";
+    }
+
+    private static int clamp(int v, int min, int max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    /** 1..5 -> 0..maxOut */
+    private static int scaleFrom5To(int score1to5, int maxOut) {
+        int s = clamp(score1to5, 1, 5);
+        double out = ((double) (s - 1) / 4.0) * (double) maxOut;
+        return (int) Math.round(out);
+    }
+
+    // =========================
+    // Dashboard
+    // =========================
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
@@ -109,9 +110,9 @@ public class IndustrySupervisorController {
         return "redirect:/industry/dashboard";
     }
 
-    // =========================================================
-    //                   LOGBOOKS (UPDATED)
-    // =========================================================
+    // =========================
+    // Logbooks
+    // =========================
     @GetMapping("/logbooks")
     public String listLogbooks(@RequestParam(value = "status", required = false) ReviewStatus status,
                                @RequestParam(value = "studentId", required = false) Long studentIdFilter,
@@ -125,12 +126,9 @@ public class IndustrySupervisorController {
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        // 1) Find all students supervised by this user
         List<Long> myStudentIds = placementRepo.findStudentIdsBySupervisor(me);
         if (myStudentIds == null || myStudentIds.isEmpty()) {
-            // no placements → no logbooks
-            Page<LogbookEntry> emptyPage = Page.empty();
-            model.addAttribute("entries", emptyPage);
+            model.addAttribute("entries", Page.empty());
             model.addAttribute("status", status);
             model.addAttribute("studentId", studentIdFilter);
             model.addAttribute("currentPage", page);
@@ -141,7 +139,6 @@ public class IndustrySupervisorController {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        // 2) Page logbooks only for those students
         Page<LogbookEntry> entries = logbookRepo.findForSupervisor(
                 myStudentIds,
                 status,
@@ -149,21 +146,15 @@ public class IndustrySupervisorController {
                 pageable
         );
 
-        // 🔹 NEW: resolve User (name + matric) for each studentId on this page
-        // --- NEW: resolve students for name + matric ---
-        java.util.Set<Long> studentIds = new java.util.HashSet<>();
+        Set<Long> studentIds = new HashSet<>();
         for (LogbookEntry e : entries.getContent()) {
-            if (e.getStudentId() != null) {
-                studentIds.add(e.getStudentId());
-            }
+            if (e.getStudentId() != null) studentIds.add(e.getStudentId());
         }
 
-        java.util.Map<Long, com.example.itsystem.model.User> studentById = new java.util.HashMap<>();
+        Map<Long, User> studentById = new HashMap<>();
         if (!studentIds.isEmpty()) {
-            userRepository.findAllById(studentIds)
-                    .forEach(u -> studentById.put(u.getId(), u));
+            userRepository.findAllById(studentIds).forEach(u -> studentById.put(u.getId(), u));
         }
-
 
         model.addAttribute("entries", entries);
         model.addAttribute("studentById", studentById);
@@ -173,11 +164,8 @@ public class IndustrySupervisorController {
         model.addAttribute("totalPages", entries.getTotalPages());
         model.addAttribute("statuses", ReviewStatus.values());
 
-
-
         return "industry-logbooks";
     }
-
 
     @GetMapping("/logbooks/{id}")
     public String viewLogbook(@PathVariable Long id, HttpSession session, Model model) {
@@ -191,28 +179,21 @@ public class IndustrySupervisorController {
 
         LogbookEntry entry = opt.get();
 
-        // Security: ensure this student is actually supervised by this user
         boolean owned = placementRepo.existsByStudentIdAndSupervisorUserId(entry.getStudentId(), me);
-        if (!owned) {
-            return "redirect:/industry/logbooks";
-        }
+        if (!owned) return "redirect:/industry/logbooks";
 
-        // 🔹 NEW: load student (name + matric)
-        User student = null;
-        if (entry.getStudentId() != null) {
-            student = userRepository.findById(entry.getStudentId()).orElse(null);
-        }
+        User student = (entry.getStudentId() == null) ? null
+                : userRepository.findById(entry.getStudentId()).orElse(null);
 
         model.addAttribute("entry", entry);
-        model.addAttribute("student", student);   // <– NEW
+        model.addAttribute("student", student);
         model.addAttribute("statuses", ReviewStatus.values());
         return "industry-logbook-view";
     }
 
-
     @PostMapping("/logbooks/{id}/review")
     public String reviewLogbook(@PathVariable Long id,
-                                @RequestParam("action") String action, // "approve" or "reject"
+                                @RequestParam("action") String action,
                                 @RequestParam(value = "comment", required = false) String comment,
                                 HttpSession session) {
         if (notIndustry(session)) return "redirect:/login";
@@ -222,12 +203,12 @@ public class IndustrySupervisorController {
         if (me == null) return "redirect:/login";
 
         logbookRepo.findById(id).ifPresent(e -> {
-            // Security: ensure ownership
             boolean owned = placementRepo.existsByStudentIdAndSupervisorUserId(e.getStudentId(), me);
             if (!owned) return;
 
-            ReviewStatus newStatus =
-                    "approve".equalsIgnoreCase(action) ? ReviewStatus.APPROVED : ReviewStatus.REJECTED;
+            ReviewStatus newStatus = "approve".equalsIgnoreCase(action)
+                    ? ReviewStatus.APPROVED
+                    : ReviewStatus.REJECTED;
 
             e.setStatus(newStatus);
             e.setReviewComment(comment);
@@ -247,9 +228,9 @@ public class IndustrySupervisorController {
         return "redirect:/industry/logbooks";
     }
 
-    // =========================================================
-    //         PLACEMENTS (verify by supervisor – existing)
-    // =========================================================
+    // =========================
+    // Placements
+    // =========================
     @GetMapping("/placements")
     public String listPlacements(@RequestParam(value = "status", required = false) PlacementStatus status,
                                  @RequestParam(value = "page", defaultValue = "0") int page,
@@ -258,60 +239,38 @@ public class IndustrySupervisorController {
                                  Model model) {
 
         if (notIndustry(session)) return "redirect:/login";
+
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
         Pageable pageable = PageRequest.of(page, size);
+        Page<Placement> placements = placementRepo.findBySupervisorUserIdAndStatus(me, status, pageable);
 
-        Page<Placement> items;
-        // ✅ If a status is selected -> filter by that status
-        // ✅ If no status (or "All") -> show ALL placements for this supervisor
-        if (status != null) {
-            items = placementRepo.findBySupervisorUserIdAndStatus(me, status, pageable);
-        } else {
-            items = placementRepo.findBySupervisorUserId(me, pageable);
-        }
-
-        Map<Long, String> studentNames = new HashMap<>();
-        Map<Long, String> companyNames = new HashMap<>();
-
-        Set<Long> studentIds = new HashSet<>();
-        Set<Long> companyIds = new HashSet<>();
-
-        for (Placement p : items.getContent()) {
-            if (p.getStudentId() != null) studentIds.add(p.getStudentId());
-            if (p.getCompanyId() != null) companyIds.add(p.getCompanyId());
-        }
-
-        if (!studentIds.isEmpty()) {
-            userRepository.findAllById(studentIds).forEach(u ->
-                    studentNames.put(u.getId(),
-                            (u.getName() != null && !u.getName().isBlank())
-                                    ? u.getName()
-                                    : u.getUsername()));
-        }
-        if (!companyIds.isEmpty()) {
-            companyRepository.findAllById(companyIds).forEach(c ->
-                    companyNames.put(c.getId(), c.getName()));
-        }
-
-        model.addAttribute("items", items);
-        model.addAttribute("status", status);                 // <– for dropdown selection
+        model.addAttribute("placements", placements);
+        model.addAttribute("status", status);
         model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", items.getTotalPages());
-        model.addAttribute("studentNames", studentNames);
-        model.addAttribute("companyNames", companyNames);
+        model.addAttribute("totalPages", placements.getTotalPages());
+        model.addAttribute("statuses", PlacementStatus.values());
+
         return "industry-placements";
     }
 
-
     @GetMapping("/placements/{id}")
-    public String viewPlacement(@PathVariable Long id, HttpSession session, Model model) {
+    public String placementView(@PathVariable Long id, HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
-        Optional<Placement> opt = placementRepo.findById(id);
-        if (opt.isEmpty()) return "redirect:/industry/placements";
-        Placement placement = opt.get();
+
+        Long me = currentUserId(session);
+        if (me == null) return "redirect:/login";
+
+        Placement placement = placementRepo.findById(id).orElse(null);
+        if (placement == null) return "redirect:/industry/placements";
+
+        if (placement.getSupervisorUserId() == null || !placement.getSupervisorUserId().equals(me)) {
+            return "redirect:/industry/placements";
+        }
+
         model.addAttribute("placement", placement);
+
         if (placement.getStudentId() != null) {
             userRepository.findById(placement.getStudentId()).ifPresent(u ->
                     model.addAttribute("studentName",
@@ -321,118 +280,89 @@ public class IndustrySupervisorController {
             companyRepository.findById(placement.getCompanyId()).ifPresent(c ->
                     model.addAttribute("companyName", c.getName()));
         }
-        model.addAttribute("sectorOptions", List.of("Bakery","Food Manufacturing","Frozen Food","Catering","Others"));
-        return "industry-placement-edit";
+
+        return "industry-placement-view";
     }
 
     @PostMapping("/placements/{id}/verify")
-    @Transactional
     public String verifyPlacement(@PathVariable Long id,
-                                  @RequestParam String department,
-                                  @RequestParam String jobScope,
-                                  @RequestParam(required = false) String allowance,
-                                  @RequestParam(defaultValue = "false") boolean accommodation,
-                                  @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate reportDutyDate,
-                                  @RequestParam(required = false) List<String> sectors,
+                                  @RequestParam("action") String action,
+                                  @RequestParam(value = "comment", required = false) String comment,
                                   HttpSession session) {
+
         if (notIndustry(session)) return "redirect:/login";
+
+        Long me = currentUserId(session);
+        if (me == null) return "redirect:/login";
+
         String who = currentDisplayName(session);
 
-        placementRepo.findById(id).ifPresent(p -> {
-            p.setDepartment(department);
-            p.setJobScope(jobScope);
-            p.setAllowance(allowance);
-            p.setAccommodation(accommodation);
-            p.setReportDutyDate(reportDutyDate);
-            // if you later add sectorTags: p.setSectorTags(sectors != null ? String.join(",", sectors) : null);
-            p.setStatus(PlacementStatus.AWAITING_ADMIN);
-            placementRepo.save(p);
+        Placement placement = placementRepo.findById(id).orElse(null);
+        if (placement == null) return "redirect:/industry/placements";
 
-            AuditLog log = new AuditLog();
-            log.setAction("PLACEMENT_VERIFY");
-            log.setUsername(who);
-            log.setDescription("Verified placement " + id + " and set status to AWAITING_ADMIN");
-            log.setTimestamp(LocalDateTime.now());
-            auditLogRepo.save(log);
-        });
+        if (placement.getSupervisorUserId() == null || !placement.getSupervisorUserId().equals(me)) {
+            return "redirect:/industry/placements";
+        }
+
+        placement.setStatus("approve".equalsIgnoreCase(action) ? PlacementStatus.APPROVED : PlacementStatus.REJECTED);
+        placementRepo.save(placement);
+
+        AuditLog log = new AuditLog();
+        log.setAction("PLACEMENT_VERIFY");
+        log.setUsername(who);
+        log.setDescription("Placement " + id + " -> " + placement.getStatus()
+                + (comment != null && !comment.isBlank() ? " | " + comment : ""));
+        log.setTimestamp(LocalDateTime.now());
+        auditLogRepo.save(log);
 
         return "redirect:/industry/placements";
     }
 
-    // =========================================================
-    //            COMPANY PROFILE (for this supervisor)
-    // =========================================================
-
+    // =========================
+    // Companies
+    // =========================
     @GetMapping("/companies")
-    public String listMyCompanies(HttpSession session, Model model) {
+    public String listCompanies(HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        // Find all distinct company IDs linked to placements under this supervisor
-        List<Long> companyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
-        if (companyIds == null || companyIds.isEmpty()) {
-            model.addAttribute("companies", List.of());
-            return "industry-companies"; // HTML to be created later
-        }
-
-        Iterable<Company> companies = companyRepository.findAllById(companyIds);
-        model.addAttribute("companies", companies);
+        model.addAttribute("companies", companyRepository.findAll());
         return "industry-companies";
     }
 
-    @GetMapping("/companies/{companyId}/edit")
-    public String editCompany(@PathVariable Long companyId,
-                              HttpSession session,
-                              Model model) {
+    @GetMapping("/companies/{companyId}")
+    public String editCompany(@PathVariable Long companyId, HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        // Ensure this company is really associated with this supervisor
-        List<Long> myCompanyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
-        if (myCompanyIds == null || !myCompanyIds.contains(companyId)) {
-            return "redirect:/industry/companies";
-        }
+        Company company = companyRepository.findById(companyId).orElse(null);
+        if (company == null) return "redirect:/industry/companies";
 
-        Optional<Company> opt = companyRepository.findById(companyId);
-        if (opt.isEmpty()) {
-            return "redirect:/industry/companies";
-        }
-
-        model.addAttribute("company", opt.get());
-        return "industry-company-edit"; // HTML to be created later
+        model.addAttribute("company", company);
+        return "industry-company-edit";
     }
 
-    @PostMapping("/companies/{companyId}/edit")
+    @PostMapping("/companies/{companyId}")
     public String updateCompany(@PathVariable Long companyId,
-                                @ModelAttribute("company") @Valid Company form,
+                                @RequestParam String name,
+                                @RequestParam(required = false) String address,
+                                @RequestParam(required = false) String contactName,
+                                @RequestParam(required = false) String contactEmail,
+                                @RequestParam(required = false) String contactPhone,
+                                @RequestParam(required = false) String website,
                                 HttpSession session) {
         if (notIndustry(session)) return "redirect:/login";
         String who = currentDisplayName(session);
-        Long me = currentUserId(session);
-        if (me == null) return "redirect:/login";
-
-        // Ensure this company belongs to this supervisor via placements
-        List<Long> myCompanyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
-        if (myCompanyIds == null || !myCompanyIds.contains(companyId)) {
-            return "redirect:/industry/companies";
-        }
 
         companyRepository.findById(companyId).ifPresent(company -> {
-            // Update only fields supervisor is allowed to maintain
-            company.setName(form.getName());
-            company.setAddress(form.getAddress());
-            company.setSector(form.getSector());
-            company.setDefaultJobScope(form.getDefaultJobScope());
-            company.setTypicalAllowance(form.getTypicalAllowance());
-            company.setAccommodation(form.getAccommodation());
-            company.setContactName(form.getContactName());
-            company.setContactEmail(form.getContactEmail());
-            company.setContactPhone(form.getContactPhone());
-            company.setWebsite(form.getWebsite());
-            // We intentionally do NOT touch ratingAvg, ratingCount, notes here.
-
+            company.setName(name);
+            company.setAddress(address);
+            company.setContactName(contactName);
+            company.setContactEmail(contactEmail);
+            company.setContactPhone(contactPhone);
+            company.setWebsite(website);
             companyRepository.save(company);
 
             AuditLog log = new AuditLog();
@@ -446,66 +376,68 @@ public class IndustrySupervisorController {
         return "redirect:/industry/companies";
     }
 
-    // =========================================================
-    //             End-of-internship evaluation (40%)
-    // =========================================================
-    // --- End-of-internship evaluation (40%) ---
+    // =========================
+    // End-of-internship evaluation (40%)
+    // =========================
     @GetMapping("/evaluations")
     public String listEvaluations(HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        // placements that need this supervisor's evaluation
-        List<Placement> toEval = placementRepo.findReadyForSupervisorEvaluation(me);
-        model.addAttribute("placements", toEval);
+        // ✅ Show ALL placements assigned to this supervisor (approved placements)
+        List<Placement> placements = placementRepo.findBySupervisorUserIdAndStatus(me, PlacementStatus.APPROVED);
+        model.addAttribute("placements", placements);
 
-        // ---- NEW: resolve student + company details ----
-        java.util.Set<Long> studentIds = new java.util.HashSet<>();
-        java.util.Set<Long> companyIds = new java.util.HashSet<>();
+        // Build lookup maps for Student + Company names
+        Set<Long> studentIds = new HashSet<>();
+        Set<Long> companyIds = new HashSet<>();
+        List<Long> placementIds = new ArrayList<>();
 
-        for (Placement p : toEval) {
+        for (Placement p : placements) {
+            placementIds.add(p.getId());
             if (p.getStudentId() != null) studentIds.add(p.getStudentId());
             if (p.getCompanyId() != null) companyIds.add(p.getCompanyId());
         }
 
-        java.util.Map<Long, com.example.itsystem.model.User> userById = new java.util.HashMap<>();
-        java.util.Map<Long, com.example.itsystem.model.Company> companyById = new java.util.HashMap<>();
+        Map<Long, User> userById = new HashMap<>();
+        Map<Long, Company> companyById = new HashMap<>();
 
         if (!studentIds.isEmpty()) {
-            userRepository.findAllById(studentIds)
-                    .forEach(u -> userById.put(u.getId(), u));
+            userRepository.findAllById(studentIds).forEach(u -> userById.put(u.getId(), u));
         }
         if (!companyIds.isEmpty()) {
-            companyRepository.findAllById(companyIds)
-                    .forEach(c -> companyById.put(c.getId(), c));
+            companyRepository.findAllById(companyIds).forEach(c -> companyById.put(c.getId(), c));
+        }
+
+        // ✅ Find which placements already have evaluation
+        Map<Long, SupervisorEvaluation> evalByPlacementId = new HashMap<>();
+        if (!placementIds.isEmpty()) {
+            List<SupervisorEvaluation> evals = evalRepo.findByPlacementIdIn(placementIds);
+            for (SupervisorEvaluation e : evals) {
+                evalByPlacementId.put(e.getPlacementId(), e);
+            }
         }
 
         model.addAttribute("userById", userById);
         model.addAttribute("companyById", companyById);
+        model.addAttribute("evalByPlacementId", evalByPlacementId);
 
         return "industry-evaluations";
     }
 
 
     @GetMapping("/evaluations/{placementId}")
-    public String evaluationForm(@PathVariable Long placementId,
-                                 HttpSession session,
-                                 Model model) {
+    public String evaluationForm(@PathVariable Long placementId, HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
 
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        Placement placement = placementRepo.findById(placementId)
-                .orElse(null);
-        if (placement == null) {
-            return "redirect:/industry/evaluations";
-        }
+        Placement placement = placementRepo.findById(placementId).orElse(null);
+        if (placement == null) return "redirect:/industry/evaluations";
 
-        // Security: ensure this placement belongs to this supervisor
-        if (placement.getSupervisorUserId() == null ||
-                !placement.getSupervisorUserId().equals(me)) {
+        if (placement.getSupervisorUserId() == null || !placement.getSupervisorUserId().equals(me)) {
             return "redirect:/industry/evaluations";
         }
 
@@ -518,7 +450,6 @@ public class IndustrySupervisorController {
 
         model.addAttribute("placement", placement);
 
-        // Optional: add student and company info for the view
         if (placement.getStudentId() != null) {
             userRepository.findById(placement.getStudentId()).ifPresent(u ->
                     model.addAttribute("studentName",
@@ -530,35 +461,67 @@ public class IndustrySupervisorController {
         }
 
         model.addAttribute("form", se);
-        return "eval_form"; // existing template; we’ll style later
+        return "eval_form";
     }
 
     @PostMapping("/evaluations/{placementId}")
     public String submitEvaluation(@PathVariable Long placementId,
                                    @ModelAttribute("form") @Valid SupervisorEvaluation form,
                                    HttpSession session) {
+
         if (notIndustry(session)) return "redirect:/login";
         String who = currentDisplayName(session);
 
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        Placement placement = placementRepo.findById(placementId)
-                .orElse(null);
-        if (placement == null) {
+        Placement placement = placementRepo.findById(placementId).orElse(null);
+        if (placement == null) return "redirect:/industry/evaluations";
+
+        if (placement.getSupervisorUserId() == null || !placement.getSupervisorUserId().equals(me)) {
             return "redirect:/industry/evaluations";
         }
 
-        // Security: ensure this placement belongs to this supervisor
-        if (placement.getSupervisorUserId() == null ||
-                !placement.getSupervisorUserId().equals(me)) {
-            return "redirect:/industry/evaluations";
-        }
-
+        // Save supervisor evaluation record
         form.setPlacementId(placementId);
         form.setSubmittedAt(LocalDateTime.now());
         form.setSubmittedBy(who);
         evalRepo.save(form);
+
+        // Sync to StudentAssessment (for Student Dashboard)
+        try {
+            Long studentId = placement.getStudentId();
+            if (studentId != null) {
+                User student = userRepository.findById(studentId).orElse(null);
+                String sessionStr = (student != null && student.getSession() != null && !student.getSession().isBlank())
+                        ? student.getSession().trim()
+                        : fallbackSession();
+
+                int skills20 = 0;
+                if (form.getDiscipline() != null && form.getKnowledge() != null
+                        && form.getInitiative() != null && form.getGrooming() != null) {
+                    int avg = (int) Math.round(
+                            (form.getDiscipline() + form.getKnowledge() + form.getInitiative() + form.getGrooming()) / 4.0
+                    );
+                    skills20 = scaleFrom5To(avg, 20);
+                }
+
+                int comm10 = (form.getCommunication() != null) ? scaleFrom5To(form.getCommunication(), 10) : 0;
+                int team10 = (form.getTeamwork() != null) ? scaleFrom5To(form.getTeamwork(), 10) : 0;
+
+                studentAssessmentService.saveIndustrySupervisorScores(
+                        studentId,
+                        sessionStr,
+                        me,
+                        BigDecimal.valueOf(skills20),
+                        BigDecimal.valueOf(comm10),
+                        BigDecimal.valueOf(team10),
+                        true
+                );
+            }
+        } catch (Exception ignore) {
+            // don't block submission
+        }
 
         AuditLog log = new AuditLog();
         log.setAction("EVALUATION_SUPERVISOR_SUBMIT");

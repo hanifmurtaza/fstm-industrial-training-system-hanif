@@ -69,6 +69,28 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByRoleIgnoreCase(String role);
     long countByRole(String role);
 
+    @Query("""
+SELECT u FROM User u
+WHERE u.role = :role
+AND (:search IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+     OR LOWER(u.studentId) LIKE LOWER(CONCAT('%', :search, '%')))
+AND (:session IS NULL OR u.session = :session)
+""")
+    Page<User> searchStudentsWithSession(
+            @Param("role") String role,
+            @Param("search") String search,
+            @Param("session") String session,
+            Pageable pageable
+    );
+
+    @Query("""
+SELECT DISTINCT u.session FROM User u
+WHERE u.role = 'student' AND u.session IS NOT NULL
+ORDER BY u.session DESC
+""")
+    List<String> findDistinctStudentSessions();
+
+
 
 
 }
