@@ -12,19 +12,26 @@ public class StudentAssessmentService {
 
     private final StudentAssessmentRepository repo;
 
-    // 手写构造器（不使用 Lombok）
     public StudentAssessmentService(StudentAssessmentRepository repo) {
         this.repo = repo;
     }
 
+    /**
+     * ✅ getOrCreate 必须按 (studentId, session, lecturerId) 找
+     * 否则同一个 student+session 会读到别的 lecturer 的记录，导致“看起来没保存”
+     */
     @Transactional
     public StudentAssessment getOrCreate(Long studentId, String session, Long lecturerId) {
-        return repo.findByStudentUserIdAndSession(studentId, session)
+        return repo.findByStudentUserIdAndSessionAndVisitingLecturerId(studentId, session, lecturerId)
                 .orElseGet(() -> {
                     StudentAssessment sa = new StudentAssessment();
                     sa.setStudentUserId(studentId);
                     sa.setSession(session);
                     sa.setVisitingLecturerId(lecturerId);
+                    // 建议默认状态
+                    if (sa.getStatus() == null) {
+                        sa.setStatus(StudentAssessment.Status.DRAFT);
+                    }
                     return repo.save(sa);
                 });
     }
@@ -36,6 +43,8 @@ public class StudentAssessmentService {
             boolean submit) {
 
         StudentAssessment sa = getOrCreate(studentId, session, lecturerId);
+
+        // 保底：确保 lecturerId 写进去
         if (sa.getVisitingLecturerId() == null) {
             sa.setVisitingLecturerId(lecturerId);
         }
@@ -45,9 +54,8 @@ public class StudentAssessmentService {
         sa.setVlLogbook5(logbook5);
         sa.setVlFinalReport40(report40);
 
-        if (submit) {
-            sa.setStatus(StudentAssessment.Status.SUBMITTED);
-        }
+        sa.setStatus(submit ? StudentAssessment.Status.SUBMITTED : StudentAssessment.Status.DRAFT);
+
         return repo.save(sa);
     }
 }

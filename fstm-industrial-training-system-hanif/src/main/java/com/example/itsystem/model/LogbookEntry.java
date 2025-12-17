@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.sql.Timestamp;
 
+
 @Entity
 @Table(
         name = "logbook_entries",
@@ -40,6 +41,10 @@ public class LogbookEntry {
 
     private boolean endorsed;
     private boolean endorsedByLecturer;
+
+    private String lecturerReviewedBy;
+    private LocalDateTime lecturerReviewedAt;
+
 
     @Lob
     @Column(columnDefinition = "TEXT")
@@ -222,6 +227,13 @@ public class LogbookEntry {
     public void setReviewedAt(LocalDateTime reviewedAt) {
         this.reviewedAt = reviewedAt;
     }
+
+    public String getLecturerReviewedBy() { return lecturerReviewedBy; }
+    public void setLecturerReviewedBy(String lecturerReviewedBy) { this.lecturerReviewedBy = lecturerReviewedBy; }
+
+    public java.time.LocalDateTime getLecturerReviewedAt() { return lecturerReviewedAt; }
+    public void setLecturerReviewedAt(java.time.LocalDateTime lecturerReviewedAt) { this.lecturerReviewedAt = lecturerReviewedAt; }
+
 
     public Boolean getEndorsed (){
         return endorsed;

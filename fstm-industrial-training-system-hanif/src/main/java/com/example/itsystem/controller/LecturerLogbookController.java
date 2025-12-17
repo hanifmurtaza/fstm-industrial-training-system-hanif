@@ -100,25 +100,35 @@ public class LecturerLogbookController {
         }
 
         logbookEntryRepository.findById(entryId).ifPresent(e -> {
-            e.setEndorsed(!Boolean.TRUE.equals(e.getEndorsed()));
+            boolean newValue = !e.isEndorsedByLecturer();
+            e.setEndorsedByLecturer(newValue);
+
+            if (newValue) {
+                e.setLecturerReviewedBy("teacher"); // or lecturer.getUsername()
+                e.setLecturerReviewedAt(java.time.LocalDateTime.now());
+            } else {
+                e.setLecturerReviewedBy(null);
+                e.setLecturerReviewedAt(null);
+            }
+
             logbookEntryRepository.save(e);
         });
 
-        // ① 优先回到来源页（包含原查询串 ?session=...）
+        // ① go back to where we came from (keep ?session=... etc.)
         String referer = request.getHeader("Referer");
         if (referer != null && !referer.isBlank()) {
-            // 防止跳到站外
-            if (referer.contains("/lecturer/logbook/list")) {
+            if (referer.startsWith(request.getScheme() + "://" + request.getServerName())) {
                 return "redirect:" + referer;
             }
         }
 
-        // ② 兜底：如果带了 session 参数，则带回；否则回到全部
+        // ② fallback: redirect to list with same filter
         if (sessionFilter != null && !sessionFilter.isBlank()) {
-            ra.addAttribute("session", sessionFilter);
+            return "redirect:/lecturer/logbook/list?session=" + sessionFilter;
         }
         return "redirect:/lecturer/logbook/list";
     }
+
 
     @GetMapping("/export/{id}")
     public void exportLogbookAsPdf(@PathVariable Long id, HttpServletResponse response) throws IOException {

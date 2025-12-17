@@ -108,12 +108,11 @@
           <!-- Endorse -->
           <td>
             <form th:action="@{/lecturer/logbook/endorse}" method="post">
-              <input type="hidden" name="entryId" th:value="${entry.key.id}">
-              <input type="hidden" name="session" th:value="${selectedSession}">
+              <input type="hidden" name="entryId" th:value="${entry.key.id}"/>
+
               <button type="submit"
-                      th:class="'btn btn-sm ' + (${entry.key.endorsed} ? 'btn-success' : 'btn-outline-success')">
-                <i class="bi bi-check2-circle"></i>
-                <span th:text="${entry.key.endorsed} ? 'Endorsed' : 'Endorse'">Endorse</span>
+                      th:class="'btn btn-sm ' + (${entry.key.endorsedByLecturer} ? 'btn-success' : 'btn-outline-success')">
+                <span th:text="${entry.key.endorsedByLecturer} ? 'Endorsed' : 'Endorse'">Endorse</span>
               </button>
             </form>
           </td>

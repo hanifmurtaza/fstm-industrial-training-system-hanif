@@ -35,20 +35,10 @@
 
       <tr>
         <th>My Lecturer</th>
-        <td>
-          <form th:action="@{/student/profile}" method="post" class="d-flex">
-            <select name="lecturerId" class="form-select me-2" required>
-              <option th:each="lec : ${lecturers}"
-                      th:value="${lec.id}"
-                      th:text="${lec.name}"
-                      th:selected="${lec.id} == ${user.lecturer?.id}">
-              </option>
-            </select>
-            <button type="submit" class="btn btn-primary">Save</button>
-          </form>
+        <td th:text="${user.lecturer != null} ? ${user.lecturer.name} : 'Not assigned yet'">
+          Not assigned yet
         </td>
       </tr>
-
 
     </table>
 

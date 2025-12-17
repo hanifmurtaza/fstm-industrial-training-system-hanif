@@ -140,6 +140,8 @@ public class AdminController {
     public String addStudentForm(Model model) {
         model.addAttribute("student", new User());
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("lecturers", userRepository.findByRole("teacher"));
+
         return "admin-student-form";
     }
 
@@ -177,6 +179,7 @@ public class AdminController {
     public String showEditStudentForm(@PathVariable Long id, Model model) {
         model.addAttribute("student", userRepository.findById(id).orElse(null));
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("lecturers", userRepository.findByRole("teacher"));
         return "admin-student-form";
     }
 
@@ -389,49 +392,67 @@ public class AdminController {
         return "redirect:/admin/evaluations";
     }
 
-    // ============================
-    // Lecturers
-    // ============================
+    // ====================== LECTURER MANAGEMENT ======================
+
     @GetMapping("/lecturers")
-    public String manageLecturers(Model model) {
+    public String listLecturers(Model model) {
         List<User> lecturers = userRepository.findByRole("teacher");
         model.addAttribute("lecturers", lecturers);
         return "admin-lecturers";
     }
 
     @GetMapping("/lecturers/add")
-    public String addLecturerForm(Model model) {
-        model.addAttribute("lecturer", new User());
+    public String showAddLecturerForm(Model model) {
+        User lecturer = new User();
+        lecturer.setRole("teacher"); // pre-set role
+        model.addAttribute("lecturer", lecturer);
+        model.addAttribute("formTitle", "Add Lecturer");
+        return "admin-lecturer-form";
+    }
+
+    @GetMapping("/lecturers/edit/{id}")
+    public String showEditLecturerForm(@PathVariable Long id, Model model) {
+        User lecturer = userRepository.findById(id).orElseThrow(() ->
+                new IllegalArgumentException("Invalid lecturer Id:" + id));
+        model.addAttribute("lecturer", lecturer);
+        model.addAttribute("formTitle", "Edit Lecturer");
         return "admin-lecturer-form";
     }
 
     @PostMapping("/lecturers/save")
-    public String saveLecturer(@ModelAttribute User lecturer) {
+    public String saveLecturer(@ModelAttribute("lecturer") User lecturer,
+                               @RequestParam(required = false) String rawPassword) {
+
+        // make sure role is always teacher
         lecturer.setRole("teacher");
-        if (lecturer.getPassword() != null && !lecturer.getPassword().isBlank()) {
-            lecturer.setPassword(encode(lecturer.getPassword()));
+        lecturer.setEnabled(true);
+
+        if (lecturer.getId() == null) {
+            // NEW lecturer – password is required
+            if (rawPassword == null || rawPassword.isBlank()) {
+                throw new IllegalArgumentException("Password is required for new lecturer");
+            }
+            lecturer.setPassword(passwordEncoder.encode(rawPassword));
+        } else {
+            // EXISTING lecturer – only update password if something was entered
+            User existing = userRepository.findById(lecturer.getId()).orElseThrow();
+            if (rawPassword == null || rawPassword.isBlank()) {
+                lecturer.setPassword(existing.getPassword());
+            } else {
+                lecturer.setPassword(passwordEncoder.encode(rawPassword));
+            }
         }
-        if (lecturer.getEnabled() == null) lecturer.setEnabled(true);
-        if (lecturer.getAccessStart() == null) lecturer.setAccessStart(LocalDate.now());
-        if (lecturer.getAccessEnd() == null) lecturer.setAccessEnd(LocalDate.now().plusMonths(6));
 
         userRepository.save(lecturer);
-        logAction("ADD_LECTURER", "Added/Updated lecturer: " + lecturer.getUsername());
         return "redirect:/admin/lecturers";
     }
 
-    @GetMapping("/lecturers/edit/{id}")
-    public String editLecturer(@PathVariable Long id, Model model) {
-        model.addAttribute("lecturer", userRepository.findById(id).orElse(null));
-        return "admin-lecturer-form";
-    }
-
-    @PostMapping("/lecturers/delete/{id}")
+    @GetMapping("/lecturers/delete/{id}")
     public String deleteLecturer(@PathVariable Long id) {
         userRepository.deleteById(id);
-        logAction("DELETE_LECTURER", "Deleted lecturer id=" + id);
         return "redirect:/admin/lecturers";
     }
+
 
     // ============================
     // Placements
@@ -577,7 +598,7 @@ public class AdminController {
         model.addAttribute("studentId", studentId);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
-        return "admin-logbooks";
+        return "redirect:/admin/logbooks/students";
     }
 
 
@@ -647,6 +668,92 @@ public class AdminController {
     private static String safe(String s) {
         return s == null ? "" : s.replace("\n"," ").replace("\r"," ").replace(",", " ");
     }
+
+    @GetMapping("/logbooks/students")
+    public String logbookStudents(@RequestParam(value="session", required=false) String session,
+                                  @RequestParam(value="search", required=false) String search,
+                                  @RequestParam(value="page", defaultValue="0") int page,
+                                  @RequestParam(value="size", defaultValue="10") int size,
+                                  Model model) {
+        requireBean(userRepository, "UserRepository");
+        requireBean(logbookEntryRepository, "LogbookEntryRepository");
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+
+        Page<User> studentsPage;
+
+        String q = (search == null) ? "" : search.trim();
+
+        if (session != null && !session.isBlank()) {
+            if (!q.isBlank()) {
+                studentsPage = userRepository.searchStudentsBySession("student", session, q, pageable);
+            } else {
+                studentsPage = userRepository.findAllByRoleAndSession("student", session, pageable);
+            }
+        } else {
+            if (!q.isBlank()) {
+                studentsPage = userRepository.searchStudents("student", q, pageable);
+            } else {
+                studentsPage = userRepository.findAllByRole("student", pageable);
+            }
+        }
+
+        // build summary map for just the current page
+        List<Long> studentIds = studentsPage.getContent().stream()
+                .map(User::getId)
+                .toList();
+
+        java.util.Map<Long, StudentLogbookSummary> summaryByStudentId = new java.util.HashMap<>();
+        if (!studentIds.isEmpty()) {
+            logbookEntryRepository.summarizeByStudentIds(studentIds)
+                    .forEach(s -> summaryByStudentId.put(s.getStudentId(), s));
+        }
+
+        model.addAttribute("students", studentsPage);
+        model.addAttribute("summaryByStudentId", summaryByStudentId);
+
+        // reuse your session dropdown helper (already exists in your AdminController)
+        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("selectedSession", session);
+        model.addAttribute("search", q);
+
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", studentsPage.getTotalPages());
+        model.addAttribute("size", size);
+
+        return "admin-logbooks-students";
+    }
+
+    @GetMapping("/logbooks/student/{studentId}")
+    public String logbooksByStudent(@PathVariable Long studentId,
+                                    @RequestParam(value="status", required=false) ReviewStatus status,
+                                    @RequestParam(value="page", defaultValue="0") int page,
+                                    @RequestParam(value="size", defaultValue="10") int size,
+                                    Model model) {
+        requireBean(logbookEntryRepository, "LogbookEntryRepository");
+        requireBean(userRepository, "UserRepository");
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found: " + studentId));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "weekStartDate"));
+
+        Page<LogbookEntry> data = (status == null)
+                ? logbookEntryRepository.findByStudentId(studentId, pageable)
+                : logbookEntryRepository.findByStudentIdAndStatus(studentId, status, pageable);
+
+        model.addAttribute("student", student);
+        model.addAttribute("logbooks", data);
+        model.addAttribute("status", status);
+
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", data.getTotalPages());
+        model.addAttribute("size", size);
+
+        return "admin-logbooks-student";
+    }
+
+
 
     // ============================
     // Company Info (student submissions)

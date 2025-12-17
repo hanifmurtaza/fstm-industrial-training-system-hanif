@@ -16,6 +16,7 @@
     </div>
 
     <form th:action="@{/lecturer/evaluation/submit}" method="post" th:object="${evaluation}">
+      <input type="hidden" th:field="*{id}">
       <input type="hidden" th:field="*{visitId}">
       <input type="hidden" th:field="*{lecturerId}">
       <input type="hidden" th:field="*{studentId}">

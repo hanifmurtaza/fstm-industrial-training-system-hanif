@@ -64,6 +64,7 @@ public class EvaluationController {
     public String showEvaluationForm(@PathVariable Long visitId,
                                      @RequestParam(name="session", required=false) String sessionFilter,
                                      HttpSession session, Model model) {
+
         User lecturer = (User) session.getAttribute("user");
         if (lecturer == null || !"teacher".equals(lecturer.getRole())) return "redirect:/login";
 
@@ -71,21 +72,24 @@ public class EvaluationController {
         if (visit == null || !Objects.equals(visit.getLecturerId(), lecturer.getId()))
             return "redirect:/lecturer/evaluation/list";
 
-        // 取本次要展示的学期（优先 URL 里带的）
         String finalSession = (sessionFilter != null && !sessionFilter.isBlank())
                 ? sessionFilter : currentSession();
 
         // 取/建 evaluation（A/B部分）
         List<VisitEvaluation> list = evaluationRepository.findByVisitId(visitId);
         VisitEvaluation evaluation = list.isEmpty() ? new VisitEvaluation() : list.get(0);
+
         evaluation.setVisitId(visit.getId());
         evaluation.setStudentId(visit.getStudentId());
         evaluation.setLecturerId(lecturer.getId());
+
+        // ✅ session 必须写进去并且回传表单（你前端已加 hidden th:field="*{session}"）
         evaluation.setSession(finalSession);
 
-        // ★ 回填 C 部分的分数（从 student_assessment 读）
+        // ✅ 回填 C 部分：按 student+session+lecturerId 精准读
         StudentAssessment sa = studentAssessmentService.getOrCreate(
                 visit.getStudentId(), finalSession, lecturer.getId());
+
         evaluation.setVlEvaluation10(toInt(sa.getVlEvaluation10()));
         evaluation.setVlAttendance5(toInt(sa.getVlAttendance5()));
         evaluation.setVlLogbook5(toInt(sa.getVlLogbook5()));
@@ -97,40 +101,51 @@ public class EvaluationController {
     }
 
 
+
     @PostMapping("/submit")
     public String submitEvaluation(@ModelAttribute VisitEvaluation evaluation,
                                    @RequestParam(name="session", required=false) String sessionFilter,
                                    HttpSession session,
                                    RedirectAttributes ra) {
 
-        // 1) 先保存 Part A / Part B 文本
+        User lecturer = (User) session.getAttribute("user");
+        if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
+            return "redirect:/login";
+        }
+
+        // ✅ 先保存 Part A / Part B 文本（visit_evaluation 表）
         evaluationRepository.save(evaluation);
 
-        // 2) 保存 Part C 评分到 student_assessment
-        User lecturer = (User) session.getAttribute("user");
+        // ✅ session：空字符串也要 fallback，否则会写进 session=""
+        String sessionStr = (evaluation.getSession() == null || evaluation.getSession().isBlank())
+                ? currentSession()
+                : evaluation.getSession();
+
         Long studentId = evaluation.getStudentId();
-        String sessionStr = Optional.ofNullable(evaluation.getSession()).orElse(currentSession());
 
-        int e10 = Optional.ofNullable(evaluation.getVlEvaluation10()).orElse(0);
-        int a5  = Optional.ofNullable(evaluation.getVlAttendance5()).orElse(0);
-        int l5  = Optional.ofNullable(evaluation.getVlLogbook5()).orElse(0);
-        int r40 = Optional.ofNullable(evaluation.getVlFinalReport40()).orElse(0);
+        int e10 = (evaluation.getVlEvaluation10() == null) ? 0 : evaluation.getVlEvaluation10();
+        int a5  = (evaluation.getVlAttendance5() == null) ? 0 : evaluation.getVlAttendance5();
+        int l5  = (evaluation.getVlLogbook5() == null) ? 0 : evaluation.getVlLogbook5();
+        int r40 = (evaluation.getVlFinalReport40() == null) ? 0 : evaluation.getVlFinalReport40();
 
+        // ✅ 保存 Part C 到 student_assessment（按 student+session+lecturerId）
         studentAssessmentService.saveVisitingLecturerScores(
                 studentId, sessionStr, lecturer.getId(),
                 BigDecimal.valueOf(e10),
                 BigDecimal.valueOf(a5),
                 BigDecimal.valueOf(l5),
                 BigDecimal.valueOf(r40),
-                true  // 标记访导提交；如需“保存草稿”可根据按钮传 false
+                true
         );
 
         ra.addFlashAttribute("successMessage", "Evaluation submitted successfully.");
+
         if (sessionFilter != null && !sessionFilter.isBlank()) {
-            ra.addAttribute("session", sessionFilter); // 重定向带回筛选
+            ra.addAttribute("session", sessionFilter);
         }
         return "redirect:/lecturer/evaluation/list";
     }
+
 
     @GetMapping("/list")
     public String showEvaluationList(
@@ -138,7 +153,7 @@ public class EvaluationController {
             Model model,
             HttpSession session) {
 
-        // 1) 登录/角色
+        // 1) 登录/角色检查
         User lecturer = (User) session.getAttribute("user");
         if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
             return "redirect:/login";
@@ -149,38 +164,49 @@ public class EvaluationController {
         model.addAttribute("sessions", sessions);
         model.addAttribute("selectedSession", sessionFilter == null ? "" : sessionFilter);
 
-        // 3) 所有已确认的 visit
+        // 3) 取该讲师的所有 visit（不再限制 Confirmed）
         List<VisitSchedule> allVisits = visitScheduleService.findByLecturerId(lecturer.getId());
-        List<VisitSchedule> confirmed = allVisits.stream()
-                .filter(v -> "Confirmed".equalsIgnoreCase(v.getStatus()))
-                .collect(Collectors.toList());
 
-        // 4) 如果选择了 session，则只保留该 session 下的学生
-        List<VisitSchedule> filtered;
+        // 4) 如果选择了 session，则只保留该 session 下的学生的 visit
+        List<VisitSchedule> filtered = allVisits;
         if (sessionFilter != null && !sessionFilter.isBlank()) {
-            // 这个查询你之前已经有：按讲师+session 找学生
             List<User> studentsInSession = userRepository.findByLecturerAndSession(lecturer, sessionFilter);
-            var allowedIds = studentsInSession.stream().map(User::getId).collect(Collectors.toSet());
-            filtered = confirmed.stream()
+            var allowedIds = studentsInSession.stream()
+                    .map(User::getId)
+                    .collect(Collectors.toSet());
+
+            filtered = allVisits.stream()
                     .filter(v -> allowedIds.contains(v.getStudentId()))
                     .collect(Collectors.toList());
-        } else {
-            filtered = confirmed;
         }
 
-        // 5) 学生姓名映射（只为当前 filtered 构建即可）
-        Map<Long, String> studentNameMap = new HashMap<>();
+        // 5) 同一个学生只保留“最新一条 visit”
+        //    这里假设 id 自增，id 越大越新
+        Map<Long, VisitSchedule> latestByStudent = new HashMap<>();
         for (VisitSchedule v : filtered) {
+            Long sid = v.getStudentId();
+            VisitSchedule existing = latestByStudent.get(sid);
+            if (existing == null || v.getId() > existing.getId()) {
+                latestByStudent.put(sid, v);
+            }
+        }
+
+        // 6) 构建学生姓名映射 & 转成列表
+        Map<Long, String> studentNameMap = new HashMap<>();
+        for (VisitSchedule v : latestByStudent.values()) {
             Long sid = v.getStudentId();
             if (!studentNameMap.containsKey(sid)) {
                 userRepository.findById(sid).ifPresent(u -> studentNameMap.put(sid, u.getName()));
             }
         }
 
-        model.addAttribute("visitList", filtered);
+        List<VisitSchedule> visitList = latestByStudent.values().stream().toList();
+
+        model.addAttribute("visitList", visitList);
         model.addAttribute("studentNameMap", studentNameMap);
         return "evaluation"; // 对应 templates/evaluation.html
     }
+
 
 
     @GetMapping("/pdf/{visitId}")

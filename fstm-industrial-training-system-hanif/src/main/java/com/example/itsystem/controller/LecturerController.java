@@ -225,8 +225,11 @@ public class LecturerController {
         List<LogbookEntry> entries = logbookEntryRepository.findByLecturerId(lecturer.getId());
         int endorsed = 0, pending = 0;
         for (LogbookEntry entry : entries) {
-            if (Boolean.TRUE.equals(entry.getEndorsed())) endorsed++;
-            else pending++;
+            if (entry.isEndorsedByLecturer()) {
+                endorsed++;
+            } else {
+                pending++;
+            }
         }
         Map<String, Integer> stats = new HashMap<>();
         stats.put("Endorsed", endorsed);

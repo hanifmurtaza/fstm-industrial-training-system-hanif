@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Map;
 
 
 
@@ -52,5 +53,20 @@ public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long
                                          @Param("status") ReviewStatus status,
                                          @Param("studentIdFilter") Long studentIdFilter,
                                          Pageable pageable);
+
+
+    @Query("""
+   select
+     l.studentId as studentId,
+     count(l.id) as total,
+     sum(case when l.endorsed = false then 1 else 0 end) as supPending,
+     sum(case when l.endorsed = true and l.endorsedByLecturer = false then 1 else 0 end) as lecPending,
+     max(l.weekStartDate) as latestWeek
+   from LogbookEntry l
+   where l.studentId in :studentIds
+   group by l.studentId
+""")
+    List<StudentLogbookSummary> summarizeByStudentIds(@Param("studentIds") List<Long> studentIds);
+
 
 }

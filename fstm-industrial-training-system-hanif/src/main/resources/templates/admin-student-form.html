@@ -54,6 +54,21 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label">Visiting Lecturer</label>
+                    <select class="form-select" th:field="*{lecturer.id}">
+                        <option value="">-- Not assigned yet --</option>
+                        <option th:each="lec : ${lecturers}"
+                                th:value="${lec.id}"
+                                th:text="${lec.name}">
+                        </option>
+                    </select>
+                    <div class="form-text">
+                        This links the student to a Visiting Lecturer for visit scheduling and evaluation.
+                    </div>
+                </div>
+
+
+                <div class="mb-3">
                     <label class="form-label">Session</label>
                     <select class="form-select" th:field="*{session}" required>
                         <option value="">-- Select session --</option>
