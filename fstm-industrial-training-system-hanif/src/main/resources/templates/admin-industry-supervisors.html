@@ -1,82 +1,221 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout}">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Manage Industry Supervisors</title>
+    <meta charset="UTF-8">
+    <title>Manage Industry Supervisors • UPM Industrial Training</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap + Icons + Font -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- your global css -->
+    <link th:href="@{/app.css}" rel="stylesheet">
+
+    <style>
+        :root{
+            --border: rgba(148,163,184,.25);
+            --muted: #64748b;
+            --ink: #0f172a;
+            --bg: #f5f7fa;
+        }
+        body{ font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+        .container-narrow{ max-width:1240px; }
+
+        .pill{
+            display:inline-flex; gap:8px; align-items:center;
+            padding:6px 12px; border-radius:999px;
+            background:#eef2ff; color:#1e40af;
+            font-size:.85rem; font-weight:800;
+        }
+        .page-title{ letter-spacing:-0.2px; }
+        .muted{ color:var(--muted); }
+
+        .card-soft{
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:18px;
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+        }
+
+        .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+        .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+
+        .table thead th{
+            background:#fff;
+            border-bottom:1px solid var(--border);
+            font-weight:800;
+            color:#334155;
+            font-size:.9rem;
+            letter-spacing:-0.1px;
+            white-space:nowrap;
+        }
+        .table tbody td{ vertical-align:middle; }
+
+        .badge-pill{
+            border-radius:999px;
+            padding:.45rem .7rem;
+            font-weight:900;
+            font-size:.72rem;
+            letter-spacing:.04em;
+            border:1px solid transparent;
+            display:inline-block;
+            white-space:nowrap;
+        }
+        .badge-on{ background:#E6F4EA; color:#1F7A39; border-color:rgba(31,122,57,.15); }
+        .badge-off{ background:#EEF2F7; color:#475569; border-color:rgba(71,85,105,.18); }
+
+        .action-group .btn{
+            width:40px; height:40px; padding:0;
+            display:inline-flex; align-items:center; justify-content:center;
+            border-radius:12px;
+        }
+        .action-group .btn i{ font-size:1.05rem; }
+
+        .col-narrow{ width:1%; white-space:nowrap; }
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    </style>
 </head>
+
 <body>
-<section layout:fragment="content" class="container mt-4">
 
-    <h3 class="mb-3">Industry Supervisors</h3>
-    <p class="text-muted mb-3">
-        View, add, edit and delete industry supervisor accounts.
-    </p>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <form class="d-flex" method="get" th:action="@{/admin/industry-supervisors}">
-            <!-- (optional: add search box later) -->
-        </form>
-
-        <a class="btn btn-sm btn-primary"
-           th:href="@{/admin/industry-supervisors/add}">
-            <i class="bi bi-plus-lg"></i> Add New Supervisor
+<!-- Navbar (match dashboard) -->
+<nav class="navbar navbar-expand-lg appbar">
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Admin Panel • UPM Industrial Training</span>
         </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminIndustry">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navAdminIndustry" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
+                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+                <li class="nav-item"><a th:href="@{/admin/companies}" class="nav-link">Companies</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+                <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container container-narrow py-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <span class="pill"><i class="bi bi-person-workspace"></i> Industry Supervisors</span>
+            <h1 class="h4 page-title mb-0 mt-2">Manage Industry Supervisors</h1>
+            <div class="muted mt-1">View, add, edit and delete industry supervisor accounts.</div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a class="btn btn-primary btn-rounded" th:href="@{/admin/industry-supervisors/add}">
+                <i class="bi bi-plus-lg me-1"></i> Add New Supervisor
+            </a>
+            <a class="btn btn-outline-primary btn-rounded" th:href="@{/admin/dashboard}">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+        </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+    <!-- List Card -->
+    <div class="card-soft p-3 p-md-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <div class="fw-black" style="font-weight:900; font-size:1.05rem;">Supervisor List</div>
+                <div class="muted small">
+                    Total: <span class="fw-semibold" th:text="${#lists.size(supervisors)}">0</span>
+                </div>
+            </div>
+
+            <span class="badge bg-primary"
+                  style="border-radius:999px; padding:.55rem .85rem; font-weight:900;"
+                  th:text="${#lists.size(supervisors)} + ' Supervisor(s)'">0 Supervisor(s)</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
                 <tr>
-                    <th style="width: 6%;">ID</th>
-                    <th style="width: 20%;">Name</th>
-                    <th style="width: 22%;">Username / Email</th>
-                    <th style="width: 22%;">Company</th>
-                    <th style="width: 10%;">Status</th>
-                    <th style="width: 20%;">Actions</th>
+                    <th class="col-narrow">ID</th>
+                    <th>Name</th>
+                    <th>Username / Email</th>
+                    <th>Company</th>
+                    <th class="col-narrow">Status</th>
+                    <th class="col-narrow text-center">Actions</th>
                 </tr>
                 </thead>
-                <tbody>
 
+                <tbody>
                 <tr th:if="${#lists.isEmpty(supervisors)}">
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-5">
+                        <i class="bi bi-person-workspace fs-3 d-block mb-2"></i>
                         No industry supervisors found.
                     </td>
                 </tr>
 
                 <tr th:each="sup : ${supervisors}">
-                    <td th:text="${sup.id}">1</td>
-                    <td th:text="${sup.name}">Name</td>
-                    <td th:text="${sup.username}">user@example.com</td>
-                    <td th:text="${sup.company}">Company</td>
+                    <td class="fw-semibold" th:text="${sup.id}">1</td>
+
                     <td>
-                        <span th:if="${sup.enabled}" class="badge bg-success">Enabled</span>
-                        <span th:if="${!sup.enabled}" class="badge bg-secondary">Disabled</span>
+                        <div class="fw-semibold" th:text="${sup.name}">Name</div>
+                        <div class="muted small">Industry Supervisor</div>
                     </td>
+
+                    <td class="mono" th:text="${sup.username}">user@example.com</td>
+
+                    <td th:text="${sup.company} ?: '-'">Company</td>
+
                     <td>
-                        <div class="d-flex gap-2">
-                            <a class="btn btn-sm btn-outline-primary"
-                               th:href="@{'/admin/industry-supervisors/edit/' + ${sup.id}}">
-                                Edit
+                        <span th:if="${sup.enabled}" class="badge-pill badge-on">ENABLED</span>
+                        <span th:if="${!sup.enabled}" class="badge-pill badge-off">DISABLED</span>
+                    </td>
+
+                    <td class="text-center">
+                        <div class="action-group d-inline-flex gap-1">
+                            <a class="btn btn-outline-primary"
+                               th:href="@{'/admin/industry-supervisors/edit/' + ${sup.id}}"
+                               data-bs-toggle="tooltip" data-bs-title="Edit supervisor">
+                                <i class="bi bi-pencil-square"></i>
                             </a>
 
                             <form th:action="@{'/admin/industry-supervisors/delete/' + ${sup.id}}"
-                                  method="post"
+                                  method="post" class="d-inline"
                                   onsubmit="return confirm('Delete this supervisor account?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    Delete
+                                <button type="submit" class="btn btn-outline-danger"
+                                        data-bs-toggle="tooltip" data-bs-title="Delete supervisor">
+                                    <i class="bi bi-trash3"></i>
                                 </button>
                             </form>
                         </div>
                     </td>
                 </tr>
-
                 </tbody>
             </table>
         </div>
-    </div>
 
-</section>
+    </div>
+</main>
+
+<footer class="text-center text-muted py-4 small">
+    © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+</script>
 </body>
 </html>

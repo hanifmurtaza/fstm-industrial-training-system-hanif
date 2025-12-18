@@ -84,6 +84,9 @@ public class AdminController {
         model.addAttribute("evalCount", evalCount);
         model.addAttribute("documentCount", documentCount);
 
+        long pendingCompanyInfo = companyInfoRepository.countByStatus(CompanyInfoStatus.PENDING);
+        model.addAttribute("pendingCompanyInfo", pendingCompanyInfo);
+
         if (placementRepository != null) {
             long awaitingApproval = placementRepository.countByStatus(PlacementStatus.AWAITING_ADMIN);
             model.addAttribute("awaitingApproval", awaitingApproval);

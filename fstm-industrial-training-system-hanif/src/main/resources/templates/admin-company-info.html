@@ -1,126 +1,233 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout}">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Company Submissions</title>
-</head>
-<body>
-<section layout:fragment="content" class="container mt-4">
+    <meta charset="UTF-8">
+    <title>Company Submissions • UPM Industrial Training</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <h3 class="mb-1">Company Submissions</h3>
-    <p class="text-muted mb-3">
-        This page shows student company submissions from <code>infos.content</code>.
-        Click <strong>Process</strong> to review full details, link to a master company,
-        create supervisors and placements, and verify or reject the submission.
-    </p>
+    <!-- Bootstrap + Icons + Font -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- your global css -->
+    <link th:href="@{/app.css}" rel="stylesheet">
+
+    <style>
+        :root{
+            --border: rgba(148,163,184,.25);
+            --muted:#64748b;
+            --ink:#0f172a;
+            --bg:#f5f7fa;
+        }
+        body{ font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+        .container-narrow{ max-width:1240px; }
+
+        .pill{
+            display:inline-flex; gap:8px; align-items:center;
+            padding:6px 12px; border-radius:999px;
+            background:#eef2ff; color:#1e40af;
+            font-size:.85rem; font-weight:800;
+        }
+        .page-title{ letter-spacing:-0.2px; }
+        .muted{ color:var(--muted); }
+
+        .card-soft{
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:18px;
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+        }
+
+        .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+        .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+
+        /* Filter pills */
+        .filter-wrap{ gap:.5rem; }
+        .filter-pill{
+            border-radius:999px;
+            font-weight:800;
+            padding:.42rem .8rem;
+            border:1px solid var(--border);
+            background:#fff;
+        }
+        .filter-pill.active{ border-color:transparent; }
+        .filter-all.active{ background:#2563eb; color:#fff; }
+        .filter-pending.active{ background:#f59e0b; color:#111827; }
+        .filter-verified.active{ background:#16a34a; color:#fff; }
+        .filter-rejected.active{ background:#dc2626; color:#fff; }
+
+        .badge-pill{
+            border-radius:999px;
+            padding:.45rem .7rem;
+            font-weight:900;
+            font-size:.72rem;
+            letter-spacing:.04em;
+            border:1px solid transparent;
+            white-space:nowrap;
+            display:inline-block;
+        }
+        .b-pending{ background:rgba(245,158,11,.15); color:#92400e; border-color:rgba(245,158,11,.25); }
+        .b-verified{ background:rgba(34,197,94,.15); color:#166534; border-color:rgba(34,197,94,.22); }
+        .b-rejected{ background:rgba(239,68,68,.15); color:#7f1d1d; border-color:rgba(239,68,68,.22); }
+        .b-unknown{ background:#eef2f7; color:#475569; border-color:rgba(71,85,105,.18); }
+
+        .table thead th{
+            background:#fff;
+            border-bottom:1px solid var(--border);
+            font-weight:800;
+            color:#334155;
+            font-size:.9rem;
+            white-space:nowrap;
+        }
+        .table tbody td{ vertical-align:middle; }
+
+        .col-narrow{ width:1%; white-space:nowrap; }
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    </style>
+</head>
+
+<body>
+
+<!-- Navbar (match dashboard) -->
+<nav class="navbar navbar-expand-lg appbar">
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Admin Panel • UPM Industrial Training</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminCompanyInfo">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navAdminCompanyInfo" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
+                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+                <li class="nav-item"><a th:href="@{/admin/companies}" class="nav-link">Companies</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link active">Submissions</a></li>
+                <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container container-narrow py-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <span class="pill"><i class="bi bi-file-earmark-text"></i> Submissions</span>
+            <h1 class="h4 page-title mb-0 mt-2">Company Submissions</h1>
+            <div class="muted mt-1">
+                Review student-submitted company info. Click <strong>Process</strong> to verify/reject and link to master company.
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary btn-rounded" th:href="@{/admin/dashboard}">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
 
     <!-- Filter pills -->
-    <div class="d-flex flex-wrap align-items-center mb-3">
-        <span class="me-2 fw-semibold">Filter:</span>
+    <div class="card-soft p-3 mb-3">
+        <div class="d-flex flex-wrap align-items-center filter-wrap">
+            <span class="fw-semibold me-1">Filter:</span>
 
-        <a class="btn btn-sm me-2"
-           th:classappend="${statusValue == null or statusValue == ''} ? 'btn-primary' : 'btn-outline-primary'"
-           th:href="@{/admin/company-info}">
-            All
-        </a>
+            <a class="filter-pill filter-all"
+               th:classappend="${statusValue == null or statusValue == ''} ? ' active' : ''"
+               th:href="@{/admin/company-info}">
+                All
+            </a>
 
-        <a class="btn btn-sm me-2"
-           th:classappend="${statusValue == 'PENDING'} ? 'btn-warning text-dark' : 'btn-outline-warning'"
-           th:href="@{/admin/company-info(status='PENDING')}">
-            Pending
-        </a>
+            <a class="filter-pill filter-pending"
+               th:classappend="${statusValue == 'PENDING'} ? ' active' : ''"
+               th:href="@{/admin/company-info(status='PENDING')}">
+                Pending
+            </a>
 
-        <a class="btn btn-sm me-2"
-           th:classappend="${statusValue == 'VERIFIED'} ? 'btn-success' : 'btn-outline-success'"
-           th:href="@{/admin/company-info(status='VERIFIED')}">
-            Verified
-        </a>
+            <a class="filter-pill filter-verified"
+               th:classappend="${statusValue == 'VERIFIED'} ? ' active' : ''"
+               th:href="@{/admin/company-info(status='VERIFIED')}">
+                Verified
+            </a>
 
-        <a class="btn btn-sm"
-           th:classappend="${statusValue == 'REJECTED'} ? 'btn-danger' : 'btn-outline-danger'"
-           th:href="@{/admin/company-info(status='REJECTED')}">
-            Rejected
-        </a>
+            <a class="filter-pill filter-rejected"
+               th:classappend="${statusValue == 'REJECTED'} ? ' active' : ''"
+               th:href="@{/admin/company-info(status='REJECTED')}">
+                Rejected
+            </a>
+
+            <div class="ms-auto muted small">
+                Total:
+                <span class="fw-semibold" th:text="${infos != null ? infos.totalElements : 0}">0</span>
+            </div>
+        </div>
     </div>
 
     <!-- Table -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+    <div class="card-soft overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle bg-white">
+                <thead>
                 <tr>
-                    <th style="width: 4%">#</th>
-                    <th style="width: 18%">Student</th>
-                    <th>Company Name</th>
-                    <th style="width: 12%">Status</th>
-                    <th style="width: 12%">Actions</th>
+                    <th class="col-narrow">#</th>
+                    <th style="min-width:260px;">Student</th>
+                    <th style="min-width:280px;">Company Name</th>
+                    <th class="col-narrow">Status</th>
+                    <th class="col-narrow">Actions</th>
                 </tr>
                 </thead>
                 <tbody>
 
                 <!-- Empty state -->
                 <tr th:if="${infos == null or infos.totalElements == 0}">
-                    <td colspan="5" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                         No company submissions found.
                     </td>
                 </tr>
 
                 <!-- Rows -->
                 <tr th:each="info, stat : ${infos.content}">
-                    <!-- index -->
-                    <td th:text="${stat.index + 1}">1</td>
+                    <td class="col-narrow" th:text="${stat.index + 1}">1</td>
 
-                    <!-- Student info -->
                     <td>
-                        <!-- Student name -->
-                        <span class="fw-bold"
-                              th:text="${userById[info.studentId] != null
-                                        ? userById[info.studentId].name
-                                        : 'Unknown Student'}">
-                        </span>
-                        <br/>
-
-                        <!-- Matric number (User.studentId) -->
-                        <small class="text-muted"
-                               th:text="${userById[info.studentId] != null
-                                         && userById[info.studentId].studentId != null
-                                         ? 'Student ID: ' + userById[info.studentId].studentId
-                                         : 'Student ID: -'}">
-                        </small>
+                        <div class="fw-semibold"
+                             th:text="${userById[info.studentId] != null ? userById[info.studentId].name : 'Unknown Student'}">
+                            Student Name
+                        </div>
+                        <div class="muted small mono"
+                             th:text="${userById[info.studentId] != null && userById[info.studentId].studentId != null
+                           ? 'Student ID: ' + userById[info.studentId].studentId
+                           : 'Student ID: -'}">
+                            Student ID: -
+                        </div>
                     </td>
 
-                    <!-- Company name -->
                     <td th:text="${info.companyName}">Company Name</td>
 
-                    <!-- Status -->
-                    <td>
-                        <span class="badge bg-warning text-dark"
-                              th:if="${info.status.name() == 'PENDING'}"
-                              th:text="${info.status}">PENDING</span>
-
-                        <span class="badge bg-success"
-                              th:if="${info.status.name() == 'VERIFIED'}"
-                              th:text="${info.status}">VERIFIED</span>
-
-                        <span class="badge bg-danger"
-                              th:if="${info.status.name() == 'REJECTED'}"
-                              th:text="${info.status}">REJECTED</span>
-
-                        <span class="badge bg-secondary"
-                              th:if="${info.status.name() != 'PENDING'
-                                     and info.status.name() != 'VERIFIED'
-                                     and info.status.name() != 'REJECTED'}"
-                              th:text="${info.status}">
-                            UNKNOWN
-                        </span>
+                    <td class="col-narrow">
+                        <span th:if="${info.status != null and info.status.name() == 'PENDING'}" class="badge-pill b-pending">PENDING</span>
+                        <span th:if="${info.status != null and info.status.name() == 'VERIFIED'}" class="badge-pill b-verified">VERIFIED</span>
+                        <span th:if="${info.status != null and info.status.name() == 'REJECTED'}" class="badge-pill b-rejected">REJECTED</span>
+                        <span th:if="${info.status == null
+                         or (info.status.name() != 'PENDING' and info.status.name() != 'VERIFIED' and info.status.name() != 'REJECTED')}"
+                              class="badge-pill b-unknown">
+              UNKNOWN
+            </span>
                     </td>
 
-                    <!-- Actions: only Process -->
-                    <td class="text-nowrap">
-                        <a class="btn btn-sm btn-outline-primary"
+                    <td class="col-narrow">
+                        <a class="btn btn-sm btn-outline-primary btn-rounded"
                            th:href="@{/admin/company-info/process(id=${info.id})}">
-                            Process
+                            <i class="bi bi-arrow-right-circle me-1"></i> Process
                         </a>
                     </td>
                 </tr>
@@ -129,30 +236,29 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        <div class="card-footer d-flex justify-content-between align-items-center">
-            <div class="text-muted small">
-                <span th:text="'Showing ' + ${infos.number + 1} + ' / ' + ${infos.totalPages} + ' page(s).'">
-                    Showing 1 / 1 page(s).
-                </span>
-                <span th:if="${infos.totalElements > 0}">&nbsp;
-                    Total submissions:
-                    <span th:text="${infos.totalElements}">0</span>
-                </span>
+        <!-- Pagination footer -->
+        <div class="d-flex justify-content-between align-items-center p-3 border-top" style="border-color: var(--border) !important;">
+            <div class="muted small">
+        <span th:text="${infos != null ? ('Page ' + (infos.number + 1) + ' of ' + infos.totalPages) : 'Page 1 of 1'}">
+          Page 1 of 1
+        </span>
+                <span th:if="${infos != null && infos.totalElements > 0}">
+          • Total submissions: <span class="fw-semibold" th:text="${infos.totalElements}">0</span>
+        </span>
             </div>
 
-            <nav th:if="${infos.totalPages > 1}">
+            <nav th:if="${infos != null && infos.totalPages > 1}">
                 <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item" th:classappend="${infos.first} ? ' disabled'">
+                    <li class="page-item" th:classappend="${infos.first} ? 'disabled' : ''">
                         <a class="page-link"
                            th:href="@{/admin/company-info(page=${infos.number - 1}, status=${statusValue})}">
-                            &laquo;
+                            Previous
                         </a>
                     </li>
 
                     <li class="page-item"
                         th:each="p : ${#numbers.sequence(0, infos.totalPages - 1)}"
-                        th:classappend="${p == infos.number} ? ' active'">
+                        th:classappend="${p == infos.number} ? 'active' : ''">
                         <a class="page-link"
                            th:text="${p + 1}"
                            th:href="@{/admin/company-info(page=${p}, status=${statusValue})}">
@@ -160,10 +266,10 @@
                         </a>
                     </li>
 
-                    <li class="page-item" th:classappend="${infos.last} ? ' disabled'">
+                    <li class="page-item" th:classappend="${infos.last} ? 'disabled' : ''">
                         <a class="page-link"
                            th:href="@{/admin/company-info(page=${infos.number + 1}, status=${statusValue})}">
-                            &raquo;
+                            Next
                         </a>
                     </li>
                 </ul>
@@ -171,6 +277,12 @@
         </div>
     </div>
 
-</section>
+</main>
+
+<footer class="text-center text-muted py-4 small">
+    © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

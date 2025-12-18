@@ -1,148 +1,230 @@
 /* ===========================
-   UPM Industrial Training – app.css
+   UPM Industrial Training – app.css (CLEAN)
+   One global theme, no desktop-only overrides
    =========================== */
 
-/* Theme tokens */
 :root{
-    --brand:#ec4e0a;           /* header bar */
-    --primary:#0d6efd;         /* Bootstrap primary */
-    --bg:#f5f7fa;              /* page background */
-    --text:#1f2937;            /* gray-800 */
-    --muted:#6b7280;           /* gray-500 */
-    --border:#e5e7eb;          /* gray-200 */
-    --radius:16px;
-    --shadow:0 8px 18px rgba(0,0,0,.06);
+    /* Brand tokens */
+    --brand:#ec4e0a;           /* login/header-bar theme (optional) */
+    --primary:#0d6efd;         /* blue appbar theme */
+    --bg:#f5f7fa;
+    --text:#0f172a;
+    --muted:#64748b;
+
+    /* Surfaces */
+    --border:rgba(148,163,184,.25);
+    --border2:#e5e7eb;         /* for legacy cards/tables */
+    --radius-lg:18px;
+    --radius-md:12px;
+    --shadow:0 12px 30px rgba(15,23,42,.10);
+    --shadow2:0 8px 18px rgba(0,0,0,.06);
 }
 
 /* Base */
-html,body{ background:var(--bg); color:var(--text); }
+html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:15px;
+}
+
+.shell{ max-width:1120px; }
 .container-narrow{ max-width:1240px; }
 
-/* Header bar */
+/* ===== Blue Appbar (admin/industry/lecturer) ===== */
+.appbar{ background:var(--primary); color:#fff; }
+.appbar .navbar-brand,
+.appbar .nav-link{ color:#fff !important; font-weight:500; opacity:.95; }
+.appbar .nav-link:hover{ opacity:1; text-decoration:underline; }
+.appbar .nav-link.active{ text-decoration:underline; opacity:1; }
+
+/* ===== Orange Header bar (login pages etc.) ===== */
 .header-bar{ background:var(--brand); color:#fff; padding:10px 0; }
 .header-brand img{ height:44px; width:auto; }
 .header-title{ font-weight:600; font-size:1.05rem; margin:0 0 0 .75rem; }
 
+/* Typography helpers */
+.page-title{ letter-spacing:-0.2px; }
+.muted{ color:var(--muted); }
+.subtle{ color:var(--muted); }
+.small-note{ font-size:.85rem; color:var(--muted); }
+.section-h{ font-size:1rem; font-weight:700; margin-bottom:.5rem; }
+
 /* Cards */
-.card{ border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
-.card-title{ margin:0; font-weight:700; }
-
-/* Auth (login) */
-.auth-card{ max-width:420px; margin-inline:auto; }
-.brand-mark{ height:48px; width:auto; object-fit:contain; }
-
-/* Inputs & button rhythm */
-.auth-card .form-label{ margin-bottom:.35rem; }
-.auth-card .form-control{ padding:.65rem .85rem; height:44px; }
-.auth-card .btn-primary{ height:44px; }
-
-/* Role segmented control */
-.role-switch-wrap{ margin-top:.5rem; margin-bottom:.75rem; }
-.role-switch{
-    background:#fff; border:1.5px solid #cfd6e4; border-radius:999px;
-    padding:6px; display:inline-flex; gap:6px; flex-wrap:wrap;
-}
-.role-switch .btn{
-    border:none; border-radius:999px; padding:.5rem 1rem;
-    font-weight:600; color:#374151;
-}
-.role-switch .btn.active, .btn-check:checked + .btn{
-    background:var(--primary); color:#fff;
-}
-.btn-check:focus + .btn, .btn:focus{ box-shadow:0 0 0 .2rem rgba(13,110,253,.2); }
-
-/* Partners grid */
-.partners .logo{
-    width:100%; height:56px; object-fit:contain; filter:grayscale(15%);
+.card-soft{
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+    background:#fff;
 }
 
-/* Chart sizing */
-.chart-wrap{ height:360px; }
-.chart-wrap canvas{ width:100%!important; height:100%!important; }
+/* Keep Bootstrap .card looking decent too (legacy pages) */
+.card{
+    border:1px solid var(--border2);
+    border-radius:14px;
+    box-shadow:var(--shadow2);
+}
+.card-title{ margin:0; font-weight:700; font-size:1.05rem; }
 
-/* Table wrapper (keeps page compact) */
+/* Pills */
+.pill{
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+    padding:6px 12px;
+    border-radius:999px;
+    background:#eef2ff;
+    color:#1e40af;
+    font-size:.85rem;
+    font-weight:600;
+}
+
+/* Buttons */
+.btn-rounded{ border-radius:var(--radius-md); padding:.6rem .95rem; }
+.btn-soft{
+    background:#eff6ff;
+    color:#1d4ed8;
+    border:1px solid rgba(29,78,216,.15);
+}
+.btn-soft:hover{ background:#dbeafe; }
+
+/* Inputs */
+.form-control, .form-select{
+    border-radius:var(--radius-md);
+}
+.form-control:focus, .form-select:focus{
+    box-shadow:0 0 0 .2rem rgba(13,110,253,.15);
+    border-color:rgba(13,110,253,.55);
+}
+
+/* Alerts */
+.alert{ border-radius:12px; }
+
+/* Tables */
+.table thead th{
+    font-weight:600;
+    color:#374151;
+    border-bottom:1px solid var(--border2);
+}
+.table td{ vertical-align:middle; }
+
+/* Table wrapper */
 .table-wrap{
-    max-height:420px; overflow:auto;
-    border:1px solid var(--border); border-radius:12px;
+    max-height:360px;
+    overflow:auto;
+    border:1px solid var(--border2);
+    border-radius:12px;
 }
 .table-wrap thead th{ position:sticky; top:0; background:#fff; z-index:1; }
 
-/* Small typographic helpers */
-.section-h{ font-size:1rem; font-weight:700; margin-bottom:.5rem; }
-.subtle{ color:var(--muted); }
-
-/* Optional: soften default alerts */
-.alert{ border-radius:12px; }
-
-/* Optional: tidy tables */
-.table thead th{ font-weight:600; color:#374151; border-bottom:1px solid var(--border); }
-.table td{ vertical-align:middle; }
-
-/* enforce vertical rhythm inside the auth card */
-.auth-card form{ display:flex; flex-direction:column; row-gap:12px; }  /* NEW */
-.auth-card .form-control{ height:44px; padding:.65rem .85rem; }       /* already there, ok */
-.role-switch-wrap{ margin-top:.25rem; margin-bottom:1rem; }            /* more bottom space */
-.role-switch{ padding:8px; gap:8px; flex-wrap:wrap; }                  /* a bit more padding */
-.auth-card .btn-primary{ height:44px; margin-top:.25rem; }             /* tiny nudge */
-
-/* ===== Compact sizing overrides ===== */
-.auth-card{ max-width:360px; }                 /* narrower card */
-.brand-mark{ height:40px; }                    /* smaller logo */
-.auth-card h2{ font-size:1.5rem; margin-bottom:.75rem; }
-
-.auth-card form{ row-gap:10px; }               /* a bit tighter */
-.auth-card .form-control{ height:40px; padding:.5rem .75rem; font-size:.95rem; }
-.role-switch-wrap{ margin-top:.2rem; margin-bottom:.75rem; }
-.role-switch{ padding:6px; gap:6px; }
-.role-switch .btn{ padding:.4rem .8rem; font-size:.9rem; }
-.auth-card .btn-primary{ height:40px; font-size:.95rem; }
-
-/* cards slightly tighter too */
-.card{ border-radius:14px; }
-.card .card-title{ font-size:1.05rem; }
-
-/* chart/table a bit shorter */
+/* Chart sizing */
 .chart-wrap{ height:320px; }
-.table-wrap{ max-height:360px; }
+.chart-wrap canvas{ width:100%!important; height:100%!important; }
 
-/* make base text a touch smaller without hurting readability */
-body{ font-size:15px; }
+/* Auth card (login) */
+.auth-card{ max-width:340px; margin-inline:auto; overflow:hidden; }
+.brand-mark{ height:40px; width:auto; object-fit:contain; }
+.auth-card h2{ font-size:1.5rem; margin-bottom:.75rem; }
+.auth-card form{ display:flex; flex-direction:column; gap:10px; }
+.auth-card .form-label{ margin-bottom:.35rem; }
+.auth-card .form-control{ height:40px; padding:.5rem .75rem; font-size:.95rem; }
+.auth-card .btn-primary{ height:40px; font-size:.95rem; border-radius:12px; }
 
-/* guaranteed spacing between segmented control and button */
-.stack-12{ display:flex; flex-direction:column; gap:12px; }
-
-/* make sure no old margins fight this */
-.role-switch-wrap{ margin:0; }          /* neutralize margins */
-.auth-card .btn-primary{ margin:0; }    /* let the gap do the work */
-
-/* Keep everything inside the rounded card; clip big focus rings */
-.auth-card{ overflow:hidden; }
-
-/* Guarantee breathing room from the card’s edges */
-.auth-card .role-switch-wrap{ padding: 0 6px; margin: 6px 0 12px; }
-.auth-card .role-switch{
+/* Role segmented control */
+.role-switch-wrap{ padding:0 6px; margin:6px 0 12px; }
+.role-switch{
     width:100%;
     box-sizing:border-box;
-    justify-content:space-between;
+    background:#fff;
+    border:1.5px solid #cfd6e4;
+    border-radius:999px;
     padding:6px;
+    display:inline-flex;
+    justify-content:space-between;
     gap:6px;
+    flex-wrap:wrap;
+}
+.role-switch .btn{
+    border:none;
+    border-radius:999px;
+    padding:.4rem .8rem;
+    font-weight:600;
+    color:#374151;
+    font-size:.9rem;
+}
+.role-switch .btn.active,
+.btn-check:checked + .btn{
+    background:var(--primary);
+    color:#fff;
+}
+.btn-check:focus + .btn,
+.btn:focus{ box-shadow:0 0 0 .15rem rgba(13,110,253,.20); }
+
+/* Partners grid */
+.partners .logo{
+    width:100%;
+    height:56px;
+    object-fit:contain;
+    filter:grayscale(15%);
 }
 
-/* Enforce a hard gap between the pill and the button */
-.stack-12{ display:flex; flex-direction:column; gap:14px; }
+/* ===== Dashboard grids ===== */
+.stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+@media (max-width:1199.98px){ .stat-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:575.98px){ .stat-grid{ grid-template-columns:1fr; } }
 
-/* Make sure 100%-width controls don’t overshoot due to box-sizing quirks */
-.auth-card .form-control,
-.auth-card .btn{ box-sizing:border-box; }
+.feature-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media (max-width:1199.98px){ .feature-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:767.98px){ .feature-grid{ grid-template-columns:1fr; } }
 
-/* Buttons sit visually inside the card radius */
-.auth-card .btn-primary{ height:40px; border-radius:12px; margin:0; }
-.auth-card .role-switch .btn{ padding:.4rem .8rem; border-radius:999px; }
+.stat-card{ padding:14px 16px; }
+.stat-card .label{ color:var(--muted); font-weight:600; font-size:.85rem; }
+.stat-card .value{ font-size:1.4rem; font-weight:800; line-height:1.2; }
 
-/* Softer focus ring so it doesn't bleed past the card edge before being clipped */
-.auth-card .btn:focus{ box-shadow:0 0 0 .15rem rgba(13,110,253,.20); }
+.feature-card h5{ font-weight:700; }
+.feature-card .lead{ color:var(--muted); font-size:.95rem; }
 
-/* Optional: slightly narrower card so contents don't hug the edges */
-@media (min-width: 992px){
-    .auth-card{ max-width:340px; }
+.feature-center{
+    grid-column: 1 / -1;           /* span full row */
+    display: flex;
+    justify-content: center;
 }
+
+.feature-center > .feature-card{
+    width: min(520px, 100%);
+}
+
+/* ===== Admin-style dashboard cards (needed by Industry page too) ===== */
+
+/* KPI cards */
+.kpi-card{
+    border-radius:16px;
+    background:#fff;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    padding:16px 18px;
+}
+.kpi-label{
+    color:var(--muted);
+    font-weight:600;
+    font-size:.85rem;
+}
+.kpi-value{
+    font-size:1.55rem;
+    font-weight:800;
+    line-height:1.15;
+    color:var(--text);
+}
+
+/* Feature cards (make the container actually look like a card) */
+.feature-card{
+    border-radius:18px;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    background:#fff;
+}
+
+/* Optional: when feature-card used with p-3/p-4, it already looks good,
+   so no extra padding here to avoid double-padding. */
+
+

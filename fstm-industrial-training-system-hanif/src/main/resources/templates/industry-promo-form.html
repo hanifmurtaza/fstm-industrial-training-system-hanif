@@ -1,32 +1,181 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Opportunity</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <title th:text="${promo != null && promo.id != null ? 'Edit Opportunity' : 'New Opportunity'}">Opportunity</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap + Icons + Font -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Global theme -->
+    <link th:href="@{/app.css}" rel="stylesheet">
+
     <style>
-        body { background:#f6f8fb; }
-        .wrap { max-width: 980px; }
-        .card { border:0; box-shadow:0 6px 20px rgba(0,0,0,.06); }
-        .field-error { color:#dc3545; font-size:.875rem; margin-top:.25rem; }
-        .required::after { content:" *"; color:#dc3545; }
+        body{
+            font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            background:#f5f7fa;
+        }
+
+        /* Match your base form sizing */
+        .shell-wide{ max-width:1240px; }
+
+        /* Base-form card */
+        .card-form{
+            border-radius:18px;
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+            border:1px solid rgba(148,163,184,.25);
+            background:#fff;
+        }
+        .card-head{
+            padding:18px 22px;
+            border-bottom:1px solid rgba(148,163,184,.25);
+            background:linear-gradient(180deg, rgba(13,110,253,.08), rgba(13,110,253,0));
+            border-top-left-radius:18px;
+            border-top-right-radius:18px;
+        }
+        .card-body-pad{ padding:22px; }
+
+        .required::after{ content:" *"; color:#dc3545; }
+
+        .field-error{
+            color:#dc3545;
+            font-size:.875rem;
+            margin-top:.25rem;
+        }
+
+        .hint{
+            border-radius:14px;
+            border:1px dashed rgba(148,163,184,.65);
+            background:#fff;
+            padding:12px 14px;
+            color:#334155;
+            font-size:.9rem;
+        }
+
+        .actions{
+            display:flex;
+            gap:10px;
+            align-items:center;
+            justify-content:space-between;
+            padding-top:10px;
+            border-top:1px solid rgba(148,163,184,.25);
+            margin-top:6px;
+        }
+
+        .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+        .btn-soft{
+            background:#eff6ff;
+            color:#1d4ed8;
+            border:1px solid rgba(29,78,216,.15);
+        }
+        .btn-soft:hover{ background:#dbeafe; }
+
+        .small-note{ font-size:.85rem; color:var(--muted); }
+
+        @media (max-width: 767.98px){
+            .card-head{ padding:14px 16px; }
+            .card-body-pad{ padding:16px; }
+        }
     </style>
 </head>
+
 <body>
-<div class="container py-4 wrap">
-    <div class="d-flex align-items-center mb-3">
-        <a class="btn btn-outline-secondary btn-sm me-2" th:href="@{/industry/opportunities}">← Back</a>
-        <h1 class="h4 mb-0" th:text="${promo.id} != null ? 'Edit Opportunity' : 'New Opportunity'">Opportunity</h1>
+
+<!-- Navbar (standard Industry Supervisor) -->
+<nav class="navbar navbar-expand-lg appbar">
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Industry Supervisor • UPM Industrial Training</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navIndustry">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navIndustry" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/industry/dashboard}">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/industry/logbooks}">Logbooks</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/industry/placements}">Placements</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/industry/evaluations}">Evaluations</a></li>
+                <li class="nav-item"><a class="nav-link fw-semibold" th:href="@{/industry/opportunities}">Opportunities</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/industry/companies}">My Companies</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/logout}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container shell-wide py-4">
+
+    <!-- Header row (same base as evaluation form) -->
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+        <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <a th:href="@{/industry/opportunities}" class="btn btn-soft btn-rounded btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+
+                <span class="pill">
+          <i class="bi bi-megaphone"></i>
+          Opportunity Post
+        </span>
+            </div>
+
+            <h1 class="h4 page-title mb-0"
+                th:text="${promo != null && promo.id != null ? 'Edit Opportunity' : 'New Opportunity'}">
+                Opportunity
+            </h1>
+
+            <div class="muted mt-1">
+                Fill in the details below. You can save as Draft first, then Publish later.
+            </div>
+        </div>
+
+        <div class="text-end">
+            <div class="small-note" th:if="${promo != null && promo.id != null}">
+                Post ID: <span class="fw-semibold" th:text="${promo.id}">0</span>
+            </div>
+            <div class="small-note">
+                Status:
+                <span class="fw-semibold"
+                      th:text="${promo != null && promo.status != null ? promo.status : 'DRAFT'}">DRAFT</span>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            <form th:action="@{/industry/opportunities}" th:object="${promo}" method="post" enctype="multipart/form-data" novalidate>
+    <!-- Form card -->
+    <div class="card-form">
+
+        <div class="card-head">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="fw-semibold">Opportunity Form</div>
+                    <div class="muted small">
+                        Fields marked with <span class="text-danger fw-semibold">*</span> are required.
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge rounded-pill bg-primary">Industry</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body card-body-pad">
+            <form th:action="@{/industry/opportunities}"
+                  th:object="${promo}"
+                  method="post"
+                  enctype="multipart/form-data"
+                  novalidate>
+
                 <!-- keep id when editing -->
                 <input type="hidden" th:if="*{id}" th:field="*{id}"/>
 
-                <!-- TOP ERROR SUMMARY (must be inside the th:object form) -->
+                <!-- TOP ERROR SUMMARY -->
                 <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger">
                     <div class="fw-semibold mb-1">Please fix the following:</div>
                     <ul class="mb-0">
@@ -37,21 +186,27 @@
                 <!-- Company Name -->
                 <div class="mb-3">
                     <label for="companyName" class="form-label required">Company Name</label>
-                    <input id="companyName" type="text" class="form-control" th:field="*{companyName}" placeholder="e.g., GK AQUA SDN BHD">
+                    <input id="companyName" type="text" class="form-control"
+                           th:field="*{companyName}"
+                           placeholder="e.g., GK AQUA SDN BHD">
                     <div class="field-error" th:errors="*{companyName}"></div>
                 </div>
 
                 <!-- Title -->
                 <div class="mb-3">
                     <label for="title" class="form-label required">Title</label>
-                    <input id="title" type="text" class="form-control" th:field="*{title}" placeholder="e.g., Food Science Intern">
+                    <input id="title" type="text" class="form-control"
+                           th:field="*{title}"
+                           placeholder="e.g., Food Science Intern">
                     <div class="field-error" th:errors="*{title}"></div>
                 </div>
 
                 <!-- Location -->
                 <div class="mb-3">
                     <label for="location" class="form-label required">Location</label>
-                    <input id="location" type="text" class="form-control" th:field="*{location}" placeholder="e.g., Kuala Lumpur / Remote">
+                    <input id="location" type="text" class="form-control"
+                           th:field="*{location}"
+                           placeholder="e.g., Kuala Lumpur / Remote">
                     <div class="field-error" th:errors="*{location}"></div>
                 </div>
 
@@ -67,6 +222,7 @@
                         </select>
                         <div class="field-error" th:errors="*{workMode}"></div>
                     </div>
+
                     <div class="col-md-6">
                         <label for="roleType" class="form-label">Role Type</label>
                         <select id="roleType" class="form-select" th:field="*{roleType}">
@@ -82,14 +238,17 @@
                 <!-- Sector tags -->
                 <div class="mb-3 mt-3">
                     <label for="sectorTags" class="form-label">Sector Tags (comma-separated)</label>
-                    <input id="sectorTags" type="text" class="form-control" th:field="*{sectorTags}" placeholder="e.g., Bakery,Catering">
+                    <input id="sectorTags" type="text" class="form-control"
+                           th:field="*{sectorTags}"
+                           placeholder="e.g., Bakery, Catering">
                     <div class="field-error" th:errors="*{sectorTags}"></div>
                 </div>
 
                 <!-- Description -->
                 <div class="mb-3">
                     <label for="description" class="form-label required">Description</label>
-                    <textarea id="description" class="form-control" th:field="*{description}" rows="7"
+                    <textarea id="description" class="form-control"
+                              th:field="*{description}" rows="7"
                               placeholder="Describe the opportunity, responsibilities, and requirements..."></textarea>
                     <div class="field-error" th:errors="*{description}"></div>
                 </div>
@@ -97,7 +256,9 @@
                 <!-- External link -->
                 <div class="mb-3">
                     <label for="externalLink" class="form-label">External Link</label>
-                    <input id="externalLink" type="url" class="form-control" th:field="*{externalLink}" placeholder="https://...">
+                    <input id="externalLink" type="url" class="form-control"
+                           th:field="*{externalLink}"
+                           placeholder="https://...">
                     <div class="field-error" th:errors="*{externalLink}"></div>
                 </div>
 
@@ -105,7 +266,14 @@
                 <div class="mb-3">
                     <label for="image" class="form-label">Image</label>
                     <input id="image" type="file" class="form-control" name="image" accept="image/*">
-                    <div class="form-text">Optional. JPG/PNG, a landscape banner looks best.</div>
+                    <div class="form-text">Optional. JPG/PNG; a landscape banner looks best.</div>
+                </div>
+
+                <div class="hint mb-3">
+                    <div class="fw-semibold mb-1"><i class="bi bi-info-circle"></i> Tip</div>
+                    <div class="small">
+                        Use clear titles and include key requirements in the description (skills, duration, allowance if any).
+                    </div>
                 </div>
 
                 <!-- Contact -->
@@ -145,23 +313,49 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="d-flex gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <span th:text="${promo.id} != null ? 'Save Changes' : 'Create'">Create</span>
+                <!-- Actions bar (base-form style) -->
+                <div class="actions mt-4">
+                    <div class="small-note">
+                        <i class="bi bi-shield-check"></i>
+                        You can save now and publish later.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/industry/opportunities}" class="btn btn-soft btn-rounded">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-rounded">
+                            <span th:text="${promo != null && promo.id != null ? 'Save Changes' : 'Create'}">Create</span>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+            <!-- Separate publish form (not nested) -->
+            <form th:if="${promo != null && promo.id != null}"
+                  th:action="@{'/industry/opportunities/' + ${promo.id} + '/publish'}"
+                  method="post" class="mt-3">
+
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <div class="small-note me-auto">
+                        Ready to make this post visible to students?
+                    </div>
+                    <button type="submit" class="btn btn-success btn-rounded">
+                        <i class="bi bi-upload me-1"></i> Publish
                     </button>
-                    <a th:href="@{/industry/opportunities}" class="btn btn-light">Cancel</a>
                 </div>
             </form>
 
-            <!-- Separate publish form (only when editing). Not nested inside the main form. -->
-            <form th:if="${promo.id} != null" th:action="@{'/industry/opportunities/' + ${promo.id} + '/publish'}"
-                  method="post" class="mt-2">
-                <button type="submit" class="btn btn-success">Publish</button>
-            </form>
         </div>
     </div>
-</div>
+
+    <div class="text-center text-muted small mt-4">
+        © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>,
+        Faculty of Food Science and Technology, UPM
+    </div>
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

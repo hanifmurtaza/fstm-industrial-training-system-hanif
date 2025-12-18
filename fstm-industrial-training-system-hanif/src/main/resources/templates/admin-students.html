@@ -2,88 +2,166 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Manage Students</title>
+  <title>Manage Students • UPM Industrial Training</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap + Icons + Font -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- your global css -->
+  <link th:href="@{/app.css}" rel="stylesheet">
+
   <style>
-    :root{ --border:#e5e7eb; --muted:#6b7280; }
-    body{ background:#f5f7fa; }
+    :root{
+      --border: rgba(148,163,184,.25);
+      --muted: #64748b;
+      --ink: #0f172a;
+      --bg: #f5f7fa;
+    }
+
+    body{ font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+
+    /* Match dashboard width */
     .container-narrow{ max-width:1240px; }
 
-    /* Blue app bar */
-    .appbar{ background:#0d6efd; color:#fff; }
-    .appbar a{ color:#fff; text-decoration:none; }
-    .appbar .nav-link{ color:#fff; opacity:.9; }
-    .appbar .nav-link:hover{ opacity:1; text-decoration:underline; }
+    /* Dashboard-like pill */
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:6px 12px; border-radius:999px;
+      background:#eef2ff; color:#1e40af;
+      font-size:.85rem; font-weight:800;
+    }
+    .page-title{ letter-spacing:-0.2px; }
+    .muted{ color:var(--muted); }
 
-    /* Carded table */
-    .table-card{ border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.06); }
-    .table thead th{ background:#fff; position:sticky; top:0; z-index:2; border-bottom:1px solid var(--border); }
+    /* Cards like dashboard */
+    .card-soft{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:0 12px 30px rgba(15,23,42,.10);
+    }
+
+    /* Table wrapper like dashboard cards */
+    .table-card{
+      border-radius:18px;
+      overflow:hidden;
+    }
+
+    .table thead th{
+      background:#fff;
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:2;
+      font-weight:800;
+      color:#334155;
+      font-size:.9rem;
+      letter-spacing:-0.1px;
+    }
     .table tbody td{ vertical-align:middle; }
     .table-responsive{ max-height:64vh; overflow:auto; }
+
     .col-narrow{ width:1%; white-space:nowrap; }
 
-    /* Status + access */
-    .status-pill{ font-weight:700; letter-spacing:.02em; }
-    .status-on{ background:#E6F4EA; color:#1F7A39; }
-    .status-off{ background:#ECEEF3; color:#495057; }
-    .access-meta{ color:var(--muted); font-size:.85rem; line-height:1.1; }
+    /* Status pills */
+    .status-pill{ font-weight:900; letter-spacing:.04em; font-size:.72rem; padding:.45rem .7rem; border-radius:999px; }
+    .status-on{ background:#E6F4EA; color:#1F7A39; border:1px solid rgba(31,122,57,.15); }
+    .status-off{ background:#EEF2F7; color:#475569; border:1px solid rgba(71,85,105,.18); }
+
+    /* Access window */
+    .access-meta{ color:var(--muted); font-size:.85rem; line-height:1.2; }
     .access-form .form-control{ height:34px; }
     .access-form .btn{ height:34px; }
 
-    /* Actions */
-    .action-group .btn{ width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+    /* Buttons like dashboard */
+    .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+    .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+
+    /* Action icon buttons */
+    .action-group .btn{
+      width:36px; height:36px; padding:0;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius:12px;
+    }
     .action-group .btn i{ font-size:1rem; }
 
     /* Footer of table */
-    .page-footer{ border-top:1px solid var(--border); }
+    .page-footer{ border-top:1px solid var(--border); background:#fff; }
+
+    /* Inputs */
+    .input-group-text{ font-weight:700; color:#334155; background:#fff; }
+    .form-label{ font-weight:800; color:#334155; font-size:.9rem; }
+
+    /* Small polish */
+    .toolbar{
+      display:flex; flex-wrap:wrap; gap:10px;
+      align-items:center; justify-content:space-between;
+    }
   </style>
 </head>
+
 <body>
 
-<!-- Header -->
+<!-- Navbar (match dashboard) -->
 <nav class="navbar navbar-expand-lg appbar">
   <div class="container container-narrow">
     <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
-      <img th:src="@{/Picture1.png}" alt="UPM" style="height:26px">
-      <span>Admin • Manage Students</span>
+      <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+      <span>Admin Panel • UPM Industrial Training</span>
     </a>
-    <div class="ms-auto">
-      <a th:href="@{/admin/dashboard}" class="btn btn-outline-light btn-sm">
-        <i class="bi bi-arrow-left"></i> Dashboard
-      </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminStudents">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="navAdminStudents" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link active">Students</a></li>
+        <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+        <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+        <li class="nav-item"><a th:href="@{/admin/companies}" class="nav-link">Companies</a></li>
+        <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+        <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+        <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+        <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+      </ul>
     </div>
   </div>
 </nav>
 
 <main class="container container-narrow py-4">
 
-  <!-- Title / Actions -->
-  <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
-    <h1 class="h4 m-0">Students</h1>
-    <div class="btn-group">
-      <a th:href="@{/admin/students/add}" class="btn btn-success">
-        <i class="bi bi-person-plus"></i> <span class="d-none d-sm-inline">Add New</span>
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <span class="pill"><i class="bi bi-people"></i> Students</span>
+      <h1 class="h4 page-title mb-0 mt-2">Manage Students</h1>
+      <div class="muted mt-1">Search, filter by session, manage access windows and status.</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a th:href="@{/admin/students/add}" class="btn btn-success btn-rounded">
+        <i class="bi bi-person-plus me-1"></i> Add New
       </a>
-      <a th:href="@{/admin/students/import}" class="btn btn-outline-success">
-        <i class="bi bi-upload"></i> <span class="d-none d-sm-inline">Bulk Import</span>
+      <a th:href="@{/admin/students/import}" class="btn btn-outline-success btn-rounded">
+        <i class="bi bi-upload me-1"></i> Bulk Import
+      </a>
+      <a th:href="@{/admin/dashboard}" class="btn btn-outline-primary btn-rounded">
+        <i class="bi bi-arrow-left me-1"></i> Dashboard
       </a>
     </div>
   </div>
 
-  <!-- Session filter + search + total -->
-  <div class="row g-2 align-items-end mb-3">
-    <div class="col-12 col-md-9">
-      <form class="row g-2 align-items-end" method="get" th:action="@{/admin/students}">
-        <!-- Session dropdown -->
-        <div class="col-12 col-md-4">
+  <!-- Filters -->
+  <div class="card-soft p-3 mb-3">
+    <div class="toolbar">
+      <form class="row g-2 align-items-end flex-grow-1" method="get" th:action="@{/admin/students}">
+        <!-- Session -->
+        <div class="col-12 col-md-3">
           <label class="form-label mb-1">Session</label>
           <select class="form-select" name="session">
-            <option value=""
-                    th:selected="${selectedSession == null or selectedSession == ''}">
-              All sessions
-            </option>
+            <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
             <option th:each="s : ${sessionOptions}"
                     th:value="${s}"
                     th:text="${s}"
@@ -91,11 +169,11 @@
           </select>
         </div>
 
-        <!-- Search box -->
+        <!-- Search -->
         <div class="col-12 col-md-6">
           <label class="form-label mb-1">Search</label>
           <div class="input-group">
-            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text"
                    name="search"
                    class="form-control"
@@ -104,43 +182,39 @@
           </div>
         </div>
 
-        <!-- Keep current page size -->
+        <!-- Keep size -->
         <input type="hidden" name="size" th:value="${size}"/>
 
-        <!-- Filter button -->
-        <div class="col-6 col-md-2">
-          <button class="btn btn-primary w-100" type="submit">
-            Filter
+        <!-- Filter -->
+        <div class="col-12 col-md-3 d-grid">
+          <button class="btn btn-primary btn-rounded" type="submit">
+            <i class="bi bi-funnel me-1"></i> Filter
           </button>
         </div>
       </form>
-    </div>
 
-    <!-- Total count -->
-    <div class="col-12 col-md-3 text-md-end text-muted mt-2 mt-md-0">
-      <small>
-        Total Students:
-        <span class="fw-semibold" th:text="${students.totalElements}">0</span>
-      </small>
+      <div class="text-end ms-auto">
+        <div class="muted small">Total Students</div>
+        <div class="fw-black fs-5" style="font-weight:900;" th:text="${students.totalElements}">0</div>
+      </div>
     </div>
   </div>
 
-  <!-- Table + bulk actions -->
-  <div class="table-card bg-white">
+  <!-- Table Card -->
+  <div class="card-soft table-card">
 
-    <!-- Bulk action toolbar -->
-    <form th:action="@{/admin/students/bulk}" method="post" id="bulkForm" class="px-3 pt-3 pb-2">
+    <!-- Bulk actions -->
+    <form th:action="@{/admin/students/bulk}" method="post" id="bulkForm" class="p-3 border-bottom" style="border-bottom:1px solid var(--border)!important;">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
 
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="selectAll">
-          <label class="form-check-label" for="selectAll">
+          <label class="form-check-label fw-semibold" for="selectAll">
             Select all students on this page
           </label>
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
-          <!-- Access window inputs for bulk window update -->
           <div class="input-group input-group-sm w-auto">
             <span class="input-group-text">Start</span>
             <input type="date" class="form-control" name="start">
@@ -148,28 +222,21 @@
             <input type="date" class="form-control" name="end">
           </div>
 
-          <!-- Bulk action buttons -->
           <div class="btn-group btn-group-sm" role="group">
-            <button type="button"
-                    class="btn btn-outline-success"
-                    onclick="submitBulk('status', true)">
+            <button type="button" class="btn btn-outline-success" onclick="submitBulk('status', true)">
               Enable
             </button>
-            <button type="button"
-                    class="btn btn-outline-secondary"
-                    onclick="submitBulk('status', false)">
+            <button type="button" class="btn btn-outline-secondary" onclick="submitBulk('status', false)">
               Disable
             </button>
-            <button type="button"
-                    class="btn btn-primary"
-                    onclick="submitBulk('window', null)">
+            <button type="button" class="btn btn-primary" onclick="submitBulk('window', null)">
               Set Access Window
             </button>
           </div>
 
           <input type="hidden" name="enabled" id="bulkEnabled">
           <input type="hidden" name="mode" id="bulkMode">
-          <!-- ids will be injected here by JS as multiple hidden inputs -->
+          <!-- ids injected by JS -->
         </div>
       </div>
     </form>
@@ -184,10 +251,11 @@
           <th class="col-narrow">Session</th>
           <th>Company</th>
           <th class="col-narrow">Status</th>
-          <th style="min-width:420px">Access Window</th>
+          <th style="min-width:420px;">Access Window</th>
           <th class="col-narrow text-center">Actions</th>
         </tr>
         </thead>
+
         <tbody>
         <tr th:each="student, iterStat : ${students.content}">
           <!-- No + checkbox -->
@@ -197,30 +265,34 @@
                      type="checkbox"
                      th:value="${student.id}"
                      th:id="${'stu-' + student.id}">
-              <label class="form-check-label"
+              <label class="form-check-label fw-semibold"
                      th:for="${'stu-' + student.id}"
                      th:text="${iterStat.index + 1}">1</label>
             </div>
           </td>
 
-          <td th:text="${student.name}">John Doe</td>
-          <td class="text-monospace" th:text="${student.studentId}">213844</td>
+          <td>
+            <div class="fw-semibold" th:text="${student.name}">John Doe</div>
+            <div class="muted small" th:text="${student.username}">username</div>
+          </td>
+
+          <td class="font-monospace" th:text="${student.studentId}">213844</td>
           <td th:text="${student.session}">2024/2025-2</td>
           <td th:text="${student.company}">Huawei</td>
 
           <!-- Status -->
           <td class="col-narrow">
-            <div class="d-flex flex-column align-items-start">
-              <span class="badge status-pill"
-                    th:classappend="${student.enabled} ? 'status-on' : 'status-off'"
+            <div class="d-flex flex-column align-items-start gap-2">
+              <span class="status-pill"
+                    th:classappend="${student.enabled} ? ' status-on' : ' status-off'"
                     th:text="${student.enabled} ? 'ENABLED' : 'DISABLED'">ENABLED</span>
 
-              <form th:action="@{/admin/users/{id}/status(id=${student.id})}" method="post" class="mt-1">
+              <form th:action="@{/admin/users/{id}/status(id=${student.id})}" method="post">
                 <input type="hidden" name="backTo" value="students">
                 <input type="hidden" name="enabled" th:value="${!student.enabled}">
                 <button type="submit"
-                        class="btn btn-sm"
-                        th:classappend="${student.enabled} ? 'btn-outline-danger' : 'btn-outline-success'">
+                        class="btn btn-sm btn-rounded"
+                        th:classappend="${student.enabled} ? ' btn-outline-danger' : ' btn-outline-success'">
                   <i class="bi"
                      th:classappend="${student.enabled} ? ' bi-slash-circle me-1' : ' bi-check-circle me-1'"></i>
                   <span th:text="${student.enabled} ? 'Disable' : 'Enable'"></span>
@@ -248,7 +320,7 @@
                   <input class="form-control" type="date" name="end" th:value="${student.accessEnd}">
                 </div>
                 <input type="hidden" name="backTo" value="students">
-                <button type="submit" class="btn btn-primary btn-sm ms-1">
+                <button type="submit" class="btn btn-primary btn-sm btn-rounded">
                   <i class="bi bi-calendar-check me-1"></i>Set
                 </button>
               </form>
@@ -258,14 +330,16 @@
           <!-- Actions -->
           <td class="text-center">
             <div class="action-group d-inline-flex gap-1">
-              <a th:href="@{/admin/students/edit/{id}(id=${student.id})}" class="btn btn-outline-primary"
+              <a th:href="@{/admin/students/edit/{id}(id=${student.id})}"
+                 class="btn btn-outline-primary"
                  data-bs-toggle="tooltip" data-bs-title="Edit student">
                 <i class="bi bi-pencil-square"></i>
               </a>
 
               <form th:action="@{/admin/students/delete/{id}(id=${student.id})}" method="post" class="d-inline"
                     onsubmit="return confirm('Delete this student?');">
-                <button type="submit" class="btn btn-outline-danger" data-bs-toggle="tooltip" data-bs-title="Delete">
+                <button type="submit" class="btn btn-outline-danger"
+                        data-bs-toggle="tooltip" data-bs-title="Delete">
                   <i class="bi bi-trash3"></i>
                 </button>
               </form>
@@ -273,7 +347,7 @@
           </td>
         </tr>
 
-        <!-- Empty state -->
+        <!-- Empty -->
         <tr th:if="${#lists.isEmpty(students.content)}">
           <td colspan="8" class="text-center py-5 text-muted">
             <i class="bi bi-people fs-3 d-block mb-2"></i>
@@ -285,14 +359,14 @@
     </div>
 
     <!-- Pagination -->
-    <div class="d-flex align-items-center justify-content-between p-2 page-footer bg-white">
-      <small class="text-muted">
-        Page <span th:text="${currentPage + 1}">1</span> of
-        <span th:text="${students.totalPages}">1</span>
+    <div class="d-flex align-items-center justify-content-between p-3 page-footer">
+      <small class="muted">
+        Page <span class="fw-semibold" th:text="${currentPage + 1}">1</span> of
+        <span class="fw-semibold" th:text="${students.totalPages}">1</span>
       </small>
+
       <nav th:if="${students.totalPages > 0}">
         <ul class="pagination pagination-sm mb-0">
-          <!-- Previous -->
           <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
             <a class="page-link"
                th:href="@{/admin/students(page=${currentPage - 1},size=${size},search=${search},session=${selectedSession})}">
@@ -300,7 +374,6 @@
             </a>
           </li>
 
-          <!-- Page numbers -->
           <li class="page-item"
               th:each="i : ${#numbers.sequence(0, students.totalPages - 1)}"
               th:classappend="${i == currentPage} ? 'active'">
@@ -311,7 +384,6 @@
             </a>
           </li>
 
-          <!-- Next -->
           <li class="page-item" th:classappend="${currentPage == students.totalPages - 1} ? 'disabled'">
             <a class="page-link"
                th:href="@{/admin/students(page=${currentPage + 1},size=${size},search=${search},session=${selectedSession})}">
@@ -321,6 +393,7 @@
         </ul>
       </nav>
     </div>
+
   </div>
 </main>
 
@@ -330,21 +403,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // tooltips for action icons
+  // tooltips
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
 
-  // select all checkboxes
+  // select all
   const selectAll = document.getElementById('selectAll');
   if (selectAll) {
     selectAll.addEventListener('change', function () {
-      document.querySelectorAll('.student-check').forEach(cb => {
-        cb.checked = selectAll.checked;
-      });
+      document.querySelectorAll('.student-check').forEach(cb => cb.checked = selectAll.checked);
     });
   }
 
-  // submit bulk actions
+  // submit bulk
   function submitBulk(mode, enabledFlag) {
     const form = document.getElementById('bulkForm');
     const checks = document.querySelectorAll('.student-check:checked');
@@ -354,10 +425,10 @@
       return;
     }
 
-    // remove any previous dynamic id inputs
+    // remove previous ids
     Array.from(form.querySelectorAll('input[name="ids"]')).forEach(el => el.remove());
 
-    // add selected ids as hidden inputs
+    // add selected ids
     checks.forEach(cb => {
       const hidden = document.createElement('input');
       hidden.type = 'hidden';
@@ -367,9 +438,7 @@
     });
 
     document.getElementById('bulkMode').value = mode;
-    if (enabledFlag !== null) {
-      document.getElementById('bulkEnabled').value = enabledFlag;
-    }
+    if (enabledFlag !== null) document.getElementById('bulkEnabled').value = enabledFlag;
 
     form.submit();
   }

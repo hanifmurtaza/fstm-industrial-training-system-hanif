@@ -5,47 +5,53 @@
     <title>Industry Logbooks - UPM Industrial Training</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- Bootstrap + Icons + Font (match dashboard) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Global theme -->
+    <link th:href="@{/app.css}" rel="stylesheet">
 
     <style>
-        body { background:#f5f7fa; }
-
-        .appbar{ background:#0d6efd; color:#fff; }
-        .appbar .nav-link{ color:#fff; opacity:.9; font-weight:500; }
-        .appbar .nav-link:hover{ opacity:1; text-decoration:underline; }
-
-        .container-narrow{ max-width:1100px; }
-
-        .card-table{ border-radius:16px; box-shadow:0 4px 10px rgba(0,0,0,.06); }
-
+        /* Keep only tiny page-specific bits */
         .badge-status{
             font-size:.75rem;
             padding:6px 10px;
-            border-radius:6px;
+            border-radius:999px;
+            font-weight:700;
         }
         .badge-pending{ background:#fce8b2; color:#7a5a00; }
         .badge-approved{ background:#d4f4dd; color:#0b6b2f; }
         .badge-rejected{ background:#ffd6d6; color:#8a1c1c; }
+
+        /* Make action column never wrap */
+        .col-actions{ white-space:nowrap; }
     </style>
 </head>
+
 <body>
 
-<!-- NAVBAR -->
+<!-- NAVBAR (match Industry dashboard) -->
 <nav class="navbar navbar-expand-lg appbar">
     <div class="container container-narrow">
-        <a class="navbar-brand fw-bold" th:href="@{/industry/dashboard}">Industry Supervisor</a>
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Industry Supervisor • UPM Industrial Training</span>
+        </a>
 
-        <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navIndustry">
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div id="nav" class="collapse navbar-collapse">
+        <div id="navIndustry" class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a th:href="@{/industry/logbooks}" class="nav-link">Logbooks</a></li>
+                <li class="nav-item"><a th:href="@{/industry/dashboard}" class="nav-link">Dashboard</a></li>
+                <li class="nav-item"><a th:href="@{/industry/logbooks}" class="nav-link fw-semibold">Logbooks</a></li>
                 <li class="nav-item"><a th:href="@{/industry/placements}" class="nav-link">Placements</a></li>
                 <li class="nav-item"><a th:href="@{/industry/evaluations}" class="nav-link">Evaluations</a></li>
                 <li class="nav-item"><a th:href="@{/industry/opportunities}" class="nav-link">Opportunities</a></li>
+                <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">My Companies</a></li>
                 <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
             </ul>
         </div>
@@ -53,82 +59,101 @@
 </nav>
 
 <main class="container container-narrow py-4">
-    <h2 class="mb-3 fw-bold">Student Logbooks</h2>
 
-    <!-- FILTER BAR -->
-    <form class="row g-3 mb-4" th:action="@{/industry/logbooks}" method="get">
-        <div class="col-md-4">
-            <label class="form-label fw-semibold">Status</label>
-            <select class="form-select form-select-sm" name="status">
-                <option value="">All</option>
-
-                <option th:each="st : ${statuses}"
-                        th:value="${st}"
-                        th:text="${st}"
-                        th:selected="${status == st}">
-                </option>
-            </select>
+    <!-- Header (same pattern as admin/industry dashboard) -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <span class="pill"><i class="bi bi-journal-text"></i> Logbooks</span>
+            <h1 class="h4 page-title mb-0 mt-2">Student Logbooks</h1>
+            <div class="muted mt-1">Filter by status or student ID, then review submissions.</div>
         </div>
+    </div>
 
-        <div class="col-md-4">
-            <label class="form-label fw-semibold">Student ID</label>
-            <input class="form-control form-control-sm"
-                   type="text" name="studentId"
-                   th:value="${studentId}">
-        </div>
+    <!-- Filters (card) -->
+    <div class="card-soft p-3 p-md-4 mb-3">
+        <form class="row g-3 align-items-end" th:action="@{/industry/logbooks}" method="get">
 
-        <div class="col-md-4 d-flex align-items-end">
-            <button class="btn btn-primary w-100">Filter</button>
-        </div>
-    </form>
+            <div class="col-md-4">
+                <label class="form-label mb-1 fw-semibold" for="statusSelect">Status</label>
+                <select id="statusSelect" class="form-select form-select-sm" name="status">
+                    <option value="" th:selected="${status == null || status == ''}">All</option>
+                    <option th:each="st : ${statuses}"
+                            th:value="${st}"
+                            th:text="${st}"
+                            th:selected="${status == st}">
+                    </option>
+                </select>
+            </div>
 
-    <!-- TABLE LIST -->
-    <div class="card card-table p-3">
+            <div class="col-md-5">
+                <label class="form-label mb-1 fw-semibold" for="studentIdInput">Student ID</label>
+                <input id="studentIdInput"
+                       class="form-control form-control-sm"
+                       type="text"
+                       name="studentId"
+                       placeholder="e.g., 22012345"
+                       th:value="${studentId}">
+            </div>
+
+            <div class="col-md-3 d-grid">
+                <button class="btn btn-primary btn-rounded" type="submit">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table (card) -->
+    <div class="card-soft p-3">
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
                 <tr>
-                    <th>Student</th>
-                    <th>Week</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th class="text-end">Actions</th>
+                    <th style="min-width:240px;">Student</th>
+                    <th style="min-width:140px;">Week</th>
+                    <th style="min-width:120px;">Status</th>
+                    <th style="min-width:140px;">Submitted</th>
+                    <th class="text-end col-actions" style="min-width:120px;">Actions</th>
                 </tr>
                 </thead>
 
                 <tbody>
+                <tr th:if="${entries == null || #lists.isEmpty(entries)}">
+                    <td colspan="5" class="text-center py-4 muted">
+                        No logbook entries found for the selected filters.
+                    </td>
+                </tr>
+
                 <tr th:each="entry : ${entries}">
                     <td>
                         <div th:if="${studentById[entry.studentId] != null}">
-                            <span th:text="${studentById[entry.studentId].name}">Student Name</span><br/>
-                            <small class="text-muted"
-                                   th:text="${studentById[entry.studentId].studentId}">Matric</small>
+                            <div class="fw-semibold" th:text="${studentById[entry.studentId].name}">Student Name</div>
+                            <div class="small-note" th:text="${studentById[entry.studentId].studentId}">Matric</div>
                         </div>
                         <div th:if="${studentById[entry.studentId] == null}">
-                            <span class="text-muted">Unknown student</span>
+                            <span class="muted">Unknown student</span>
                         </div>
                     </td>
 
-                    <td th:text="${entry.weekStartDate} ?: 'N/A'"></td>
+                    <td th:text="${entry.weekStartDate} ?: 'N/A'">N/A</td>
 
                     <td>
-                        <span class="badge"
+                        <span class="badge-status"
                               th:classappend="${entry.status.name() == 'PENDING'
-                       ? ' badge-pending'
-                       : (entry.status.name() == 'APPROVED'
-                          ? ' badge-approved'
-                          : ' badge-rejected')}"
+                                ? ' badge-pending'
+                                : (entry.status.name() == 'APPROVED'
+                                  ? ' badge-approved'
+                                  : ' badge-rejected')}"
                               th:text="${entry.status.name()}">
                             PENDING
                         </span>
-
-
                     </td>
 
-                    <td th:text="${#dates.format(entry.createdAt, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${#dates.format(entry.createdAt, 'dd/MM/yyyy')}">01/01/2025</td>
 
-                    <td class="text-end">
-                        <a th:href="@{'/industry/logbooks/' + ${entry.id}}" class="btn btn-sm btn-outline-primary">
+                    <td class="text-end col-actions">
+                        <a th:href="@{'/industry/logbooks/' + ${entry.id}}"
+                           class="btn btn-sm btn-outline-primary btn-rounded">
                             View
                         </a>
                     </td>
@@ -137,20 +162,22 @@
             </table>
         </div>
 
-        <!-- PAGINATION -->
-        <div class="d-flex justify-content-between mt-3" th:if="${totalPages > 1}">
-            <a class="btn btn-outline-secondary btn-sm"
+        <!-- Pagination -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3"
+             th:if="${totalPages > 1}">
+
+            <a class="btn btn-outline-secondary btn-sm btn-rounded"
                th:if="${currentPage > 0}"
                th:href="@{|/industry/logbooks?page=${currentPage-1}&status=${status}&studentId=${studentId}|}">
                 ‹ Prev
             </a>
 
-            <span class="align-self-center fw-semibold">
-                Page <span th:text="${currentPage + 1}"></span> /
-                <span th:text="${totalPages}"></span>
+            <span class="fw-semibold">
+                Page <span th:text="${currentPage + 1}">1</span> /
+                <span th:text="${totalPages}">1</span>
             </span>
 
-            <a class="btn btn-outline-secondary btn-sm"
+            <a class="btn btn-outline-secondary btn-sm btn-rounded"
                th:if="${currentPage + 1 < totalPages}"
                th:href="@{|/industry/logbooks?page=${currentPage+1}&status=${status}&studentId=${studentId}|}">
                 Next ›
@@ -161,6 +188,5 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>

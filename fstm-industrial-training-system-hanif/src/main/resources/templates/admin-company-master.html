@@ -1,237 +1,334 @@
 <!DOCTYPE html>
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout}">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Company Master</title>
-</head>
-<body>
-<section layout:fragment="content" class="container mt-4">
+    <meta charset="UTF-8">
+    <title>Company Master • UPM Industrial Training</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Header + search -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Bootstrap + Icons + Font -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- your global css -->
+    <link th:href="@{/app.css}" rel="stylesheet">
+
+    <style>
+        :root{
+            --border: rgba(148,163,184,.25);
+            --muted:#64748b;
+            --ink:#0f172a;
+            --bg:#f5f7fa;
+        }
+        body{
+            font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            background:var(--bg);
+            color:var(--ink);
+        }
+        .container-narrow{ max-width:1240px; }
+
+        .pill{
+            display:inline-flex; gap:8px; align-items:center;
+            padding:6px 12px; border-radius:999px;
+            background:#eef2ff; color:#1e40af;
+            font-size:.85rem; font-weight:800;
+        }
+        .page-title{ letter-spacing:-0.2px; }
+        .muted{ color:var(--muted); }
+
+        .card-soft{
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:18px;
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+        }
+
+        .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+        .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+
+        .badge-pill{
+            border-radius:999px;
+            padding:.4rem .7rem;
+            font-weight:900;
+            font-size:.72rem;
+            letter-spacing:.04em;
+            border:1px solid transparent;
+            display:inline-block;
+            white-space:nowrap;
+        }
+        .b-yes{ background:rgba(34,197,94,.15); color:#166534; border-color:rgba(34,197,94,.22); }
+        .b-no{ background:#eef2f7; color:#475569; border-color:rgba(71,85,105,.18); }
+
+        .table thead th{
+            background:#fff;
+            border-bottom:1px solid var(--border);
+            font-weight:800;
+            color:#334155;
+            font-size:.9rem;
+            white-space:nowrap;
+        }
+        .table tbody td{ vertical-align:middle; }
+        .col-narrow{ width:1%; white-space:nowrap; }
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+
+        /* keep big tables usable */
+        .table-responsive{ max-height: 66vh; overflow:auto; }
+        .table thead th{ position: sticky; top: 0; z-index: 2; }
+
+        .form-help{ font-size:.9rem; color:var(--muted); }
+    </style>
+</head>
+
+<body>
+
+<!-- Navbar (match dashboard) -->
+<nav class="navbar navbar-expand-lg appbar">
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Admin Panel • UPM Industrial Training</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminCompanyMaster">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navAdminCompanyMaster" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
+                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+                <li class="nav-item"><a th:href="@{/admin/companies}" class="nav-link">Companies</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link active">Company Master</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+                <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container container-narrow py-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div>
-            <h3 class="mb-0">Company Master</h3>
-            <small class="text-muted">Directory of all approved industrial partners</small>
+            <span class="pill"><i class="bi bi-buildings"></i> Company Master</span>
+            <h1 class="h4 page-title mb-0 mt-2">Directory of Approved Industrial Partners</h1>
+            <div class="muted mt-1">Search, view/edit, and maintain the deduped company catalog.</div>
         </div>
 
-        <form class="d-flex" th:action="@{/admin/company-master}" method="get">
-            <input class="form-control me-2" type="search" name="q"
-                   placeholder="Search by name..."
-                   th:value="${q}">
-            <button class="btn btn-outline-primary" type="submit">
-                <i class="bi bi-search"></i> Search
-            </button>
+        <!-- Search -->
+        <form class="d-flex gap-2" th:action="@{/admin/company-master}" method="get">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input class="form-control" type="search" name="q"
+                       placeholder="Search by name..."
+                       th:value="${q}">
+            </div>
+            <button class="btn btn-outline-primary btn-rounded" type="submit">Search</button>
         </form>
     </div>
 
-    <!-- Flash info (optional) -->
-    <div th:if="${param.saved}" class="alert alert-success alert-dismissible fade show" role="alert">
-        Company saved successfully.
+    <!-- Flash -->
+    <div th:if="${param.saved}" class="alert alert-success alert-dismissible fade show card-soft" role="alert">
+        <i class="bi bi-check-circle me-1"></i> Company saved successfully.
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
     <!-- Company table -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th style="width: 50px;">#</th>
-                        <th>Name</th>
-                        <th style="width: 140px;">Sector</th>
-                        <th style="width: 220px;">Location</th>
-                        <th style="width: 140px;">Allowance</th>
-                        <th style="width: 90px;">Acc.</th>
-                        <th style="width: 160px;">PIC</th>
-                        <th style="width: 190px;">Contact</th>
-                        <th style="width: 150px;">Rating</th>
-                        <th style="width: 150px;">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:if="${companies.empty}">
-                        <td colspan="10" class="text-center py-4 text-muted">
-                            No companies found.
-                        </td>
-                    </tr>
+    <div class="card-soft overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle bg-white">
+                <thead>
+                <tr>
+                    <th class="col-narrow">#</th>
+                    <th style="min-width:240px;">Name</th>
+                    <th class="col-narrow">Sector</th>
+                    <th style="min-width:220px;">Location</th>
+                    <th class="col-narrow">Allowance</th>
+                    <th class="col-narrow">Acc.</th>
+                    <th style="min-width:160px;">PIC</th>
+                    <th style="min-width:190px;">Contact</th>
+                    <th class="col-narrow">Rating</th>
+                    <th class="col-narrow">Actions</th>
+                </tr>
+                </thead>
 
-                    <tr th:each="c, stat : ${companies.content}">
-                        <td th:text="${companies.number * companies.size + stat.index + 1}">1</td>
+                <tbody>
+                <tr th:if="${companies.empty}">
+                    <td colspan="10" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No companies found.
+                    </td>
+                </tr>
 
-                        <td>
-                            <div class="fw-semibold" th:text="${c.name}">BYTE DANCE</div>
-                            <small class="text-muted"
-                                   th:if="${c.defaultJobScope != null}"
-                                   th:text="${#strings.abbreviate(c.defaultJobScope, 60)}">
-                                Typical job scope summary...
-                            </small>
-                        </td>
+                <tr th:each="c, stat : ${companies.content}">
+                    <td class="col-narrow" th:text="${companies.number * companies.size + stat.index + 1}">1</td>
 
-                        <td th:text="${c.sector != null ? c.sector : '-'}">Food Science</td>
-
-                        <td th:text="${c.address != null ? #strings.abbreviate(c.address, 35) : '-'}">
-                            Serdang, Selangor
-                        </td>
-
-                        <td>
-                            <span th:if="${c.typicalAllowance != null}"
-                                  th:text="${'RM ' + #numbers.formatDecimal(c.typicalAllowance, 0, 'COMMA', 2, 'POINT')}">
-                                RM 2,000.00
-                            </span>
-                            <span th:if="${c.typicalAllowance == null}">–</span>
-                        </td>
-
-                        <td>
-                            <span class="badge"
-                                  th:classappend="${c.accommodation} ? ' bg-success' : ' bg-secondary'"
-                                  th:text="${c.accommodation} ? 'Yes' : 'No'">
-                                No
-                            </span>
-                        </td>
-
-                        <td th:text="${c.contactName != null ? c.contactName : '-'}">
-                            Mr. Ahmad
-                        </td>
-
-                        <td>
-                            <div th:if="${c.contactEmail != null}" th:text="${c.contactEmail}">
-                                hr@company.com
-                            </div>
-                            <div th:if="${c.contactEmail == null and c.contactPhone != null}"
-                                 th:text="${c.contactPhone}">
-                                012-3456789
-                            </div>
-                            <span th:if="${c.contactEmail == null and c.contactPhone == null}">-</span>
-                        </td>
-
-                        <td>
-                            <span th:if="${c.ratingAvg != null}"
-                                  th:text="${#numbers.formatDecimal(c.ratingAvg, 1, 1)} + ' ★ (' + c.ratingCount + ')'">
-                                4.3 ★ (12)
-                            </span>
-                            <span th:if="${c.ratingAvg == null}">–</span>
-                        </td>
-
-                        <td class="text-nowrap">
-                            <a class="btn btn-sm btn-outline-primary"
-                               th:href="@{|/admin/company-master/${c.id}|}">
-                                View / Edit
-                            </a>
-                            <form th:action="@{|/admin/company-master/${c.id}/delete|}"
-                                  method="post" class="d-inline"
-                                  onsubmit="return confirm('Delete this company?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination (uses Page<Company>) -->
-            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
-                <div class="text-muted small">
-                    Page <span th:text="${companies.number + 1}">1</span>
-                    of <span th:text="${companies.totalPages}">1</span>,
-                    total <span th:text="${companies.totalElements}">0</span> companies
-                </div>
-                <nav>
-                    <ul class="pagination mb-0">
-                        <li class="page-item" th:classappend="${companies.first} ? ' disabled'">
-                            <a class="page-link"
-                               th:href="@{/admin/company-master(page=${companies.number - 1}, q=${q})}">
-                                Previous
-                            </a>
-                        </li>
-                        <li class="page-item" th:classappend="${companies.last} ? ' disabled'">
-                            <a class="page-link"
-                               th:href="@{/admin/company-master(page=${companies.number + 1}, q=${q})}">
-                                Next
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Add / Update Company (minimal fields) -->
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title mb-3">
-                Add / Update Company (Quick)
-            </h5>
-            <p class="text-muted small mb-3">
-                Use this form to quickly register a new company. For full details and linked supervisors,
-                edit later from the <strong>View / Edit</strong> page.
-            </p>
-
-            <form method="post" th:action="@{/admin/company-master}">
-                <!-- For "update" via this form you may set id manually later if you want -->
-                <input type="hidden" name="id" id="companyId">
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Name<span class="text-danger">*</span></label>
-                        <input class="form-control" name="name" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Sector</label>
-                        <input class="form-control" name="sector" placeholder="Food Science / QA Lab / R&D">
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Address</label>
-                    <input class="form-control" name="address" placeholder="Full address">
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Typical Allowance (RM)</label>
-                        <input class="form-control" type="number" min="0" step="50" name="typicalAllowance">
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <div class="form-check mt-3">
-                            <input class="form-check-input" type="checkbox" id="accCheck" name="accommodation" value="true">
-                            <label class="form-check-label" for="accCheck">
-                                Accommodation provided
-                            </label>
+                    <td>
+                        <div class="fw-semibold" th:text="${c.name}">Company</div>
+                        <div class="muted small" th:if="${c.defaultJobScope != null}"
+                             th:text="${#strings.abbreviate(c.defaultJobScope, 70)}">
+                            Typical job scope summary...
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Website</label>
-                        <input class="form-control" name="website" placeholder="https://...">
-                    </div>
-                </div>
+                    </td>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">PIC Name</label>
-                        <input class="form-control" name="contactName">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">PIC Email</label>
-                        <input class="form-control" type="email" name="contactEmail">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">PIC Phone</label>
-                        <input class="form-control" name="contactPhone">
-                    </div>
-                </div>
+                    <td class="col-narrow" th:text="${c.sector != null ? c.sector : '-'}">-</td>
 
-                <button class="btn btn-primary" type="submit">
-                    Save
-                </button>
-            </form>
+                    <td th:text="${c.address != null ? #strings.abbreviate(c.address, 45) : '-'}">-</td>
+
+                    <td class="col-narrow">
+            <span th:if="${c.typicalAllowance != null}"
+                  th:text="${'RM ' + #numbers.formatDecimal(c.typicalAllowance, 0, 'COMMA', 2, 'POINT')}">
+              RM 0.00
+            </span>
+                        <span th:if="${c.typicalAllowance == null}" class="text-muted">–</span>
+                    </td>
+
+                    <td class="col-narrow">
+            <span class="badge-pill"
+                  th:classappend="${c.accommodation} ? 'b-yes' : 'b-no'"
+                  th:text="${c.accommodation} ? 'Yes' : 'No'">No</span>
+                    </td>
+
+                    <td th:text="${c.contactName != null ? c.contactName : '-'}">-</td>
+
+                    <td>
+                        <div th:if="${c.contactEmail != null}" th:text="${c.contactEmail}">hr@company.com</div>
+                        <div th:if="${c.contactEmail == null and c.contactPhone != null}" th:text="${c.contactPhone}">012-3456789</div>
+                        <span th:if="${c.contactEmail == null and c.contactPhone == null}" class="text-muted">-</span>
+                    </td>
+
+                    <td class="col-narrow">
+            <span th:if="${c.ratingAvg != null}"
+                  th:text="${#numbers.formatDecimal(c.ratingAvg, 1, 1)} + ' ★ (' + c.ratingCount + ')'}">
+              4.3 ★ (12)
+            </span>
+                        <span th:if="${c.ratingAvg == null}" class="text-muted">–</span>
+                    </td>
+
+                    <td class="col-narrow text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary btn-rounded"
+                           th:href="@{|/admin/company-master/${c.id}|}">
+                            <i class="bi bi-pencil-square me-1"></i> View / Edit
+                        </a>
+
+                        <form th:action="@{|/admin/company-master/${c.id}/delete|}"
+                              method="post" class="d-inline"
+                              onsubmit="return confirm('Delete this company?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-rounded">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center p-3 border-top" style="border-color: var(--border) !important;">
+            <div class="muted small">
+                Page <span th:text="${companies.number + 1}">1</span> of
+                <span th:text="${companies.totalPages}">1</span>,
+                total <span class="fw-semibold" th:text="${companies.totalElements}">0</span> companies
+            </div>
+            <nav th:if="${companies.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${companies.first} ? 'disabled' : ''">
+                        <a class="page-link"
+                           th:href="@{/admin/company-master(page=${companies.number - 1}, q=${q})}">
+                            Previous
+                        </a>
+                    </li>
+                    <li class="page-item" th:classappend="${companies.last} ? 'disabled' : ''">
+                        <a class="page-link"
+                           th:href="@{/admin/company-master(page=${companies.number + 1}, q=${q})}">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 
-</section>
+    <!-- Quick Add / Update Company -->
+    <div class="card-soft p-4">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
+            <div>
+                <h2 class="h5 mb-1">Add / Update Company (Quick)</h2>
+                <div class="form-help">
+                    Quickly register a new company. For full details and linked supervisors, use <strong>View / Edit</strong>.
+                </div>
+            </div>
+        </div>
+
+        <form method="post" th:action="@{/admin/company-master}">
+            <input type="hidden" name="id" id="companyId">
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                    <input class="form-control" name="name" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sector</label>
+                    <input class="form-control" name="sector" placeholder="Food Science / QA Lab / R&D">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Address</label>
+                <input class="form-control" name="address" placeholder="Full address">
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Typical Allowance (RM)</label>
+                    <input class="form-control" type="number" min="0" step="50" name="typicalAllowance">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="accCheck" name="accommodation" value="true">
+                        <label class="form-check-label fw-semibold" for="accCheck">
+                            Accommodation provided
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Website</label>
+                    <input class="form-control" name="website" placeholder="https://...">
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">PIC Name</label>
+                    <input class="form-control" name="contactName">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">PIC Email</label>
+                    <input class="form-control" type="email" name="contactEmail">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">PIC Phone</label>
+                    <input class="form-control" name="contactPhone">
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-rounded" type="submit">
+                <i class="bi bi-check2-circle me-1"></i> Save
+            </button>
+        </form>
+    </div>
+
+</main>
+
+<footer class="text-center text-muted py-4 small">
+    © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
