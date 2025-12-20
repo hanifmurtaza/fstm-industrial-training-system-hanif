@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
+import java.util.Set;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,6 +36,11 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.example.itsystem.model.Department;
+import java.util.stream.Collectors;
+import java.util.Objects;
+
+
 
 
 
@@ -132,39 +137,80 @@ public class AdminController {
     // Students
     // ============================
     @GetMapping("/students")
-    public String students(@RequestParam(value = "search", required = false) String search,
-                           @RequestParam(value = "session", required = false) String session,
-                           @RequestParam(value = "page", defaultValue = "0") int page,
-                           @RequestParam(value = "size", defaultValue = "15") int size,
-                           Model model) {
+    public String students(
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "session", required = false) String session,
+            @RequestParam(value = "department", required = false) Department department,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "15") int size,
+            Model model
+    ) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<User> students;
 
-        if (session != null && !session.isBlank()) {
-            students = (search != null && !search.isBlank())
-                    ? userRepository.searchStudentsBySession("student", session, search.trim(), pageable)
-                    : userRepository.findAllByRoleAndSession("student", session, pageable);
-        } else {
-            students = (search != null && !search.isBlank())
-                    ? userRepository.searchStudents("student", search.trim(), pageable)
-                    : userRepository.findAllByRole("student", pageable);
+        Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
+                "student",
+                search != null ? search.trim() : null,
+                session != null && !session.isBlank() ? session : null,
+                department,
+                pageable
+        );
+
+        // ✅ Company shown in list comes from APPROVED placement (Company Master)
+        Map<Long, String> studentCompanyMap = new HashMap<>();
+
+// 1) latest approved placement per student on current page
+        Map<Long, Placement> latestApprovedPlacement = new HashMap<>();
+        for (User s : students.getContent()) {
+            placementRepository
+                    .findTopByStudentIdAndStatusOrderByIdDesc(s.getId(), PlacementStatus.APPROVED)
+                    .ifPresent(p -> latestApprovedPlacement.put(s.getId(), p));
         }
 
+// 2) collect companyIds from placements
+        Set<Long> companyIds = latestApprovedPlacement.values().stream()
+                .map(Placement::getCompanyId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+// 3) batch fetch company names
+        Map<Long, String> companyNameById = new HashMap<>();
+        if (!companyIds.isEmpty()) {
+            companyRepository.findAllById(companyIds).forEach(c ->
+                    companyNameById.put(c.getId(), c.getName())
+            );
+        }
+
+// 4) final map studentId -> companyName
+        for (User s : students.getContent()) {
+            Placement p = latestApprovedPlacement.get(s.getId());
+            String companyName = "-";
+            if (p != null && p.getCompanyId() != null) {
+                companyName = companyNameById.getOrDefault(p.getCompanyId(), "-");
+            }
+            studentCompanyMap.put(s.getId(), companyName);
+        }
+
+        model.addAttribute("studentCompanyMap", studentCompanyMap);
         model.addAttribute("students", students);
         model.addAttribute("search", search);
+        model.addAttribute("department", department);
         model.addAttribute("selectedSession", session);
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", students.getTotalPages());
         model.addAttribute("size", size);
+
         return "admin-students";
     }
+
 
     @GetMapping("/students/add")
     public String addStudentForm(Model model) {
         model.addAttribute("student", new User());
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("lecturers", userRepository.findByRole("teacher"));
 
         return "admin-student-form";
@@ -176,7 +222,8 @@ public class AdminController {
                                  @RequestParam String password,
                                  @RequestParam String studentId,
                                  @RequestParam String session,
-                                 @RequestParam String company) {
+                                 @RequestParam String company,
+                                 @RequestParam(required = false) Department department) {
 
         User user = new User();
         user.setName(name);
@@ -184,6 +231,7 @@ public class AdminController {
         user.setStudentId(studentId);
         user.setSession(session);
         user.setCompany(company);
+        user.setDepartment(department);
         user.setRole("student");
 
         if (password == null || password.isBlank()) {
@@ -202,8 +250,26 @@ public class AdminController {
 
     @GetMapping("/students/edit/{id}")
     public String showEditStudentForm(@PathVariable Long id, Model model) {
+
+        User student = userRepository.findById(id).orElse(null);
+        model.addAttribute("student", student);
+
+// ✅ show company from APPROVED placement (read-only)
+        String currentPlacementCompany = "-";
+        if (student != null && placementRepository != null && companyRepository != null) {
+            Placement p = placementRepository
+                    .findTopByStudentIdAndStatusOrderByIdDesc(student.getId(), PlacementStatus.APPROVED)
+                    .orElse(null);
+            if (p != null && p.getCompanyId() != null) {
+                currentPlacementCompany = companyRepository.findById(p.getCompanyId())
+                        .map(Company::getName)
+                        .orElse("-");
+            }
+        }
+        model.addAttribute("currentPlacementCompany", currentPlacementCompany);
         model.addAttribute("student", userRepository.findById(id).orElse(null));
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("lecturers", userRepository.findByRole("teacher"));
         return "admin-student-form";
     }
@@ -216,6 +282,7 @@ public class AdminController {
             if (current != null) {
                 if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
                     incoming.setPassword(current.getPassword());
+                    incoming.setCompany(current.getCompany());
                 } else {
                     incoming.setPassword(encode(incoming.getPassword()));
                 }
@@ -231,6 +298,20 @@ public class AdminController {
             if (incoming.getEnabled() == null) incoming.setEnabled(true);
             if (incoming.getAccessStart() == null) incoming.setAccessStart(LocalDate.now());
             if (incoming.getAccessEnd() == null) incoming.setAccessEnd(LocalDate.now().plusMonths(6));
+        }
+
+        // Fix transient lecturer object from form binding
+        if (incoming.getLecturer() != null) {
+            Long lecId = incoming.getLecturer().getId();
+
+            if (lecId == null) {
+                // If user selected 'none' / empty option
+                incoming.setLecturer(null);
+            } else {
+                // Replace transient User with a managed entity from DB
+                User managedLecturer = userRepository.findById(lecId).orElse(null);
+                incoming.setLecturer(managedLecturer);
+            }
         }
 
         userRepository.save(incoming);
@@ -323,22 +404,29 @@ public class AdminController {
     @GetMapping("/students/import")
     public String importForm(Model model) {
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("departmentOptions", Department.values());
         return "admin-students-import";
     }
 
     @PostMapping("/students/import/preview")
     public String importPreview(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
                                 @RequestParam("defaultSession") String defaultSession,
+                                @RequestParam("defaultDepartment") Department defaultDepartment,
                                 Model model,
                                 jakarta.servlet.http.HttpSession session) throws IOException {
 
         var preview = bulkImportService.preview(file, defaultSession);
+
         session.setAttribute("bulkImportPreview", preview);
+        session.setAttribute("bulkImportDepartment", defaultDepartment);
 
         model.addAttribute("preview", preview);
         model.addAttribute("defaultSession", defaultSession);
+        model.addAttribute("defaultDepartment", defaultDepartment);
+
         return "admin-students-import-preview";
     }
+
 
     @PostMapping("/students/import/commit")
     public String importCommit(jakarta.servlet.http.HttpSession session,
@@ -352,8 +440,10 @@ public class AdminController {
             return "redirect:/admin/students";
         }
 
-        int created = bulkImportService.commit(preview.validRows(), this::ensureUser);
-        session.removeAttribute("bulkImportPreview");
+        Department dept = (Department) session.getAttribute("bulkImportDepartment");
+        int created = bulkImportService.commit(preview.validRows(), this::ensureUser, dept);
+        session.removeAttribute("bulkImportDepartment");
+
 
         logAction("BULK_IMPORT_STUDENTS", "Imported " + created + " students");
         ra.addFlashAttribute("toast", "Imported " + created + " students.");
@@ -512,6 +602,7 @@ public class AdminController {
         User lecturer = new User();
         lecturer.setRole("teacher"); // pre-set role
         model.addAttribute("lecturer", lecturer);
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("formTitle", "Add Lecturer");
         return "admin-lecturer-form";
     }
@@ -521,6 +612,7 @@ public class AdminController {
         User lecturer = userRepository.findById(id).orElseThrow(() ->
                 new IllegalArgumentException("Invalid lecturer Id:" + id));
         model.addAttribute("lecturer", lecturer);
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("formTitle", "Edit Lecturer");
         return "admin-lecturer-form";
     }

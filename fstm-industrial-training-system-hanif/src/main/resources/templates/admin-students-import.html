@@ -11,7 +11,7 @@
     <h3 class="mb-3">Bulk Import Students</h3>
 
     <div class="alert alert-info">
-        Upload a <strong>.csv</strong> file containing the student list from the main system.<br/>
+        Upload a <strong>.csv, xlsx</strong> file containing the student list from the main system.<br/>
         The system will detect the <strong>Matric No</strong> and <strong>Name</strong> columns
         from headers such as <code>NO. MATRIK</code> and <code>NAMA PELAJAR</code>.
     </div>
@@ -28,6 +28,20 @@
                    name="file"
                    accept=".csv"
                    required>
+        </div>
+
+        <div>
+            <label class="form-label">Default Department</label>
+            <select class="form-select" name="defaultDepartment" required>
+                <option value="">-- Select department --</option>
+                <option th:each="d : ${departmentOptions}"
+                        th:value="${d}"
+                        th:text="${d.label}">
+                </option>
+            </select>
+            <div class="form-text">
+                This department will be assigned to all imported students.
+            </div>
         </div>
 
         <div>

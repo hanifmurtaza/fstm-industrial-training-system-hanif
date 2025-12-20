@@ -226,5 +226,28 @@ html,body{
 
 /* Optional: when feature-card used with p-3/p-4, it already looks good,
    so no extra padding here to avoid double-padding. */
+/* Filters: make it feel less cramped */
+.filters-card { padding: 18px 18px; }
+@media (min-width: 768px) {
+    .filters-card { padding: 20px 22px; }
+}
+
+.filter-control { min-height: 42px; }
+.filter-btn { min-height: 42px; }
+
+.total-box {
+    border-left: 1px solid var(--border);
+    padding-left: 18px;
+    margin-left: 12px;
+}
+@media (max-width: 767.98px) {
+    .total-box {
+        border-left: 0;
+        padding-left: 0;
+        margin-left: 0;
+        margin-top: 10px;
+        text-align: left !important;
+    }
+}
 
 

@@ -11,6 +11,8 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.itsystem.model.Department;
+
 
 import java.io.*;
 import java.time.LocalDate;
@@ -45,7 +47,9 @@ public class BulkStudentImportService {
     return res;
   }
 
-  public int commit(List<BulkStudentRow> rows, java.util.function.BiConsumer<String,String> ensureUserFn) {
+  public int commit(List<BulkStudentRow> rows,
+                    java.util.function.BiConsumer<String,String> ensureUserFn,
+                    Department defaultDepartment) {
     int created = 0;
     for (BulkStudentRow r : rows) {
       if (r.getError() != null) continue;
@@ -62,6 +66,10 @@ public class BulkStudentImportService {
         u.setSession(r.getSession());
         if (r.getAccessStart() != null) u.setAccessStart(r.getAccessStart());
         if (r.getAccessEnd() != null)   u.setAccessEnd(r.getAccessEnd());
+
+        if (defaultDepartment != null) {
+          u.setDepartment(defaultDepartment);
+        }
         userRepository.save(u);
         created++;
       }

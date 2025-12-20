@@ -2,6 +2,7 @@ package com.example.itsystem.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import com.example.itsystem.model.Department;
 
 @Entity
 @Table(
@@ -55,6 +56,12 @@ public class User {
     private LocalDate accessStart;   // nullable until Admin sets it
     private LocalDate accessEnd;     // nullable until Admin sets it
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 80)
+    private Department department;
+
+
+
     // ---- getters & setters ----
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -91,4 +98,8 @@ public class User {
 
     public LocalDate getAccessEnd() { return accessEnd; }
     public void setAccessEnd(LocalDate accessEnd) { this.accessEnd = accessEnd; }
+
+    public Department getDepartment() { return department; }
+    public void setDepartment(Department department) { this.department = department; }
+
 }

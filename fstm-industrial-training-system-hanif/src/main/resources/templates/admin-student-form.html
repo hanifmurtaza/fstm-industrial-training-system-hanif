@@ -67,6 +67,18 @@
                     </div>
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">Department</label>
+                    <select class="form-select" th:field="*{department}" required>
+                        <option value="">-- Select department --</option>
+                        <option th:each="d : ${departmentOptions}"
+                                th:value="${d}"
+                                th:text="${d.label}">
+                        </option>
+                    </select>
+                </div>
+
+
 
                 <div class="mb-3">
                     <label class="form-label">Session</label>
@@ -83,11 +95,12 @@
 
                 <div class="mb-3">
                     <label class="form-label">Internship Company</label>
-                    <input type="text" th:field="*{company}" class="form-control">
+                    <input type="text" class="form-control" th:value="${currentPlacementCompany}" disabled>
                     <div class="form-text">
-                        Optional. Students can later submit their placement details for approval.
+                        Company is managed through the Placements workflow (Approved placement).
                     </div>
                 </div>
+
 
                 <div class="text-center">
                     <button type="submit" class="btn btn-primary">Save</button>

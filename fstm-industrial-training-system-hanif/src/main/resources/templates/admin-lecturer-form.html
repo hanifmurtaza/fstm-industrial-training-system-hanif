@@ -34,6 +34,20 @@
                    th:field="*{name}" placeholder="DR. MASLINA ZOLKEPLI" required>
           </div>
 
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Department</label>
+              <select class="form-select" th:field="*{department}" required>
+                <option value="">-- Select department --</option>
+                <option th:each="d : ${departmentOptions}"
+                        th:value="${d}"
+                        th:text="${d.label}">
+                </option>
+              </select>
+            </div>
+          </div>
+
+
           <div class="col-md-6 mb-3">
             <label class="form-label">Username</label>
             <input type="text" class="form-control"

@@ -22,6 +22,11 @@ import com.example.itsystem.model.VisitSchedule;
 import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.model.CompanyInfo;
 import com.example.itsystem.model.CompanyInfoStatus;
+import com.example.itsystem.model.Company;
+import com.example.itsystem.model.Placement;
+import com.example.itsystem.model.PlacementStatus;
+import com.example.itsystem.repository.CompanyRepository;
+import com.example.itsystem.repository.PlacementRepository;
 
 import com.example.itsystem.repository.LogbookEntryRepository;
 import com.example.itsystem.repository.UserRepository;
@@ -45,6 +50,9 @@ public class StudentController {
     @Autowired private VisitScheduleService visitScheduleService;
     @Autowired private LogbookEntryRepository logbookEntryRepository;
     @Autowired private LogbookEntryService logbookEntryService;
+    @Autowired private PlacementRepository placementRepository;
+    @Autowired private CompanyRepository companyRepository;
+
 
     // ★ 访问评分表
     @Autowired private StudentAssessmentRepository studentAssessmentRepository;
@@ -238,14 +246,27 @@ public class StudentController {
         User student = (User) session.getAttribute("user");
         if (student == null) return "redirect:/login";
 
-        // Reload from DB so lecturer/session updates reflect immediately
+        // Reload from DB so updates reflect immediately
         User fresh = userRepository.findById(student.getId()).orElse(student);
         session.setAttribute("user", fresh);
+
+        // ✅ Company should come from Placement (APPROVED) -> Company master
+        String companyName = "-";
+        Placement approved = placementRepository
+                .findTopByStudentIdAndStatusOrderByIdDesc(fresh.getId(), PlacementStatus.APPROVED)
+                .orElse(null);
+
+        if (approved != null && approved.getCompanyId() != null) {
+            companyName = companyRepository.findById(approved.getCompanyId())
+                    .map(Company::getName)
+                    .orElse("-");
+        }
 
         List<User> lecturers = userRepository.findByRole("teacher");
 
         model.addAttribute("user", fresh);
         model.addAttribute("lecturers", lecturers);
+        model.addAttribute("companyName", companyName); // ✅ send to view
         return "student/student-profile";
     }
 
@@ -269,12 +290,10 @@ public class StudentController {
     // update profile fields (fixed redirect to existing route)
     @PostMapping("/student/profile/update")
     public String updateProfile(@RequestParam String session,
-                                @RequestParam String company,
                                 HttpSession httpSession) {
         User user = (User) httpSession.getAttribute("user");
         if (user != null) {
             user.setSession(session);
-            user.setCompany(company);
             userRepository.save(user);
 
             User updated = userRepository.findById(user.getId()).orElse(user);
@@ -282,6 +301,7 @@ public class StudentController {
         }
         return "redirect:/student/profile?success=true";
     }
+
 
     // ==========================
     //          Visit

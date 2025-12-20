@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import com.example.itsystem.model.Department;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -89,6 +91,26 @@ WHERE u.role = 'student' AND u.session IS NOT NULL
 ORDER BY u.session DESC
 """)
     List<String> findDistinctStudentSessions();
+
+    @Query("""
+SELECT u FROM User u
+WHERE u.role = :role
+AND (
+     :search IS NULL OR :search = '' OR
+     LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR
+     LOWER(u.studentId) LIKE LOWER(CONCAT('%', :search, '%'))
+)
+AND (:session IS NULL OR :session = '' OR u.session = :session)
+AND (:department IS NULL OR u.department = :department)
+""")
+    Page<User> searchStudentsWithSessionAndDepartment(
+            @Param("role") String role,
+            @Param("search") String search,
+            @Param("session") String session,
+            @Param("department") Department department,
+            Pageable pageable
+    );
+
 
 
 

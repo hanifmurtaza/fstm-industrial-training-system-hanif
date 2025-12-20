@@ -21,12 +21,16 @@
         <td th:text="${user.studentId}">123456</td>
       </tr>
       <tr>
+        <th>Department</th>
+        <td th:text="${user.department != null ? user.department.label : '-'}">-</td>
+      </tr>
+      <tr>
         <th>Session</th>
         <td th:text="${user.session}">2024/2025</td>
       </tr>
       <tr>
         <th>Company</th>
-        <td th:text="${user.company}">ABC Sdn Bhd</td>
+        <td th:text="${companyName}">-</td>
       </tr>
       <tr>
         <th>Username</th>

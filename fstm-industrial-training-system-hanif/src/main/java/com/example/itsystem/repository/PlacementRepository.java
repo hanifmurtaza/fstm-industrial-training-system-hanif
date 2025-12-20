@@ -60,6 +60,9 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
     Optional<Placement> findTopByStudentIdOrderByIdDesc(Long studentId);
 
+    Optional<Placement> findTopByStudentIdAndStatusOrderByIdDesc(Long studentId, PlacementStatus status);
+
+
 
 
 

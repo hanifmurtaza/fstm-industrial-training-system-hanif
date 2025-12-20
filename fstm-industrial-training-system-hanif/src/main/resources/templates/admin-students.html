@@ -154,29 +154,47 @@
   </div>
 
   <!-- Filters -->
-  <div class="card-soft p-3 mb-3">
-    <div class="toolbar">
-      <form class="row g-2 align-items-end flex-grow-1" method="get" th:action="@{/admin/students}">
+  <!-- Filters -->
+  <div class="card-soft filters-card mb-3">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+
+      <form class="row g-3 align-items-end flex-grow-1"
+            method="get" th:action="@{/admin/students}">
+
+        <!-- Department -->
+        <div class="col-12 col-md-3">
+          <label class="form-label mb-1">Department</label>
+          <select name="department" class="form-select form-select-sm filter-control">
+            <option value="" th:selected="${department == null}">All Departments</option>
+            <option th:each="d : ${departmentOptions}"
+                    th:value="${d}"
+                    th:text="${d.label}"
+                    th:selected="${department != null and department.name() == d.name()}">
+            </option>
+          </select>
+        </div>
+
         <!-- Session -->
         <div class="col-12 col-md-3">
           <label class="form-label mb-1">Session</label>
-          <select class="form-select" name="session">
+          <select class="form-select form-select-sm filter-control" name="session">
             <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
             <option th:each="s : ${sessionOptions}"
                     th:value="${s}"
                     th:text="${s}"
-                    th:selected="${s == selectedSession}"></option>
+                    th:selected="${s == selectedSession}">
+            </option>
           </select>
         </div>
 
         <!-- Search -->
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
           <label class="form-label mb-1">Search</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text"
                    name="search"
-                   class="form-control"
+                   class="form-control filter-control"
                    placeholder="Search by name, student ID, company..."
                    th:value="${search}">
           </div>
@@ -185,20 +203,23 @@
         <!-- Keep size -->
         <input type="hidden" name="size" th:value="${size}"/>
 
-        <!-- Filter -->
-        <div class="col-12 col-md-3 d-grid">
-          <button class="btn btn-primary btn-rounded" type="submit">
+        <!-- Button -->
+        <div class="col-12 col-md-2 d-grid">
+          <button class="btn btn-primary btn-rounded filter-btn" type="submit">
             <i class="bi bi-funnel me-1"></i> Filter
           </button>
         </div>
       </form>
 
-      <div class="text-end ms-auto">
+      <!-- Total -->
+      <div class="text-end total-box">
         <div class="muted small">Total Students</div>
         <div class="fw-black fs-5" style="font-weight:900;" th:text="${students.totalElements}">0</div>
       </div>
+
     </div>
   </div>
+
 
   <!-- Table Card -->
   <div class="card-soft table-card">
@@ -248,6 +269,7 @@
           <th class="col-narrow">No</th>
           <th>Name</th>
           <th class="col-narrow">Student&nbsp;ID</th>
+          <th class="col-narrow">Department</th>
           <th class="col-narrow">Session</th>
           <th>Company</th>
           <th class="col-narrow">Status</th>
@@ -277,8 +299,9 @@
           </td>
 
           <td class="font-monospace" th:text="${student.studentId}">213844</td>
+          <td th:text="${student.department != null ? student.department.label : '-'}">-</td>
           <td th:text="${student.session}">2024/2025-2</td>
-          <td th:text="${student.company}">Huawei</td>
+          <td th:text="${studentCompanyMap[student.id]}">-</td>
 
           <!-- Status -->
           <td class="col-narrow">
@@ -349,7 +372,7 @@
 
         <!-- Empty -->
         <tr th:if="${#lists.isEmpty(students.content)}">
-          <td colspan="8" class="text-center py-5 text-muted">
+          <td colspan="9" class="text-center py-5 text-muted">
             <i class="bi bi-people fs-3 d-block mb-2"></i>
             No students found. Try adjusting your search.
           </td>
@@ -369,7 +392,11 @@
         <ul class="pagination pagination-sm mb-0">
           <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
             <a class="page-link"
-               th:href="@{/admin/students(page=${currentPage - 1},size=${size},search=${search},session=${selectedSession})}">
+               th:href="@{/admin/students(page=${currentPage - 1},
+                          size=${size},
+                          search=${search},
+                          session=${selectedSession},
+                          department=${department})}">
               Previous
             </a>
           </li>
@@ -379,14 +406,24 @@
               th:classappend="${i == currentPage} ? 'active'">
             <a class="page-link"
                th:text="${i + 1}"
-               th:href="@{/admin/students(page=${i},size=${size},search=${search},session=${selectedSession})}">
+               th:href="@{/admin/students(page=${i},
+                          size=${size},
+                          search=${search},
+                          session=${selectedSession},
+                          department=${department})}"
+            >
               1
             </a>
           </li>
 
           <li class="page-item" th:classappend="${currentPage == students.totalPages - 1} ? 'disabled'">
             <a class="page-link"
-               th:href="@{/admin/students(page=${currentPage + 1},size=${size},search=${search},session=${selectedSession})}">
+               th:href="@{/admin/students(page=${currentPage + 1},
+                          size=${size},
+                          search=${search},
+                          session=${selectedSession},
+                          department=${department})}"
+            >
               Next
             </a>
           </li>
