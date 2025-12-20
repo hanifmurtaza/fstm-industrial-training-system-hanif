@@ -6,13 +6,18 @@ import com.example.itsystem.service.StudentAssessmentService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+
+import static org.springframework.format.annotation.DateTimeFormat.ISO;
 
 @Controller
 @RequestMapping("/industry")
@@ -229,34 +234,69 @@ public class IndustrySupervisorController {
     }
 
     // =========================
-    // Placements
+    // Placements  ✅ (use OLD WORKING logic)
     // =========================
     @GetMapping("/placements")
-    public String listPlacements(@RequestParam(value = "status", required = false) PlacementStatus status,
+    public String listPlacements(@RequestParam(value = "status", required = false) String status,
                                  @RequestParam(value = "page", defaultValue = "0") int page,
                                  @RequestParam(value = "size", defaultValue = "10") int size,
                                  HttpSession session,
                                  Model model) {
 
         if (notIndustry(session)) return "redirect:/login";
-
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Placement> placements = placementRepo.findBySupervisorUserIdAndStatus(me, status, pageable);
+        // Safe parse: null/""/"ALL"/invalid -> show ALL
+        PlacementStatus st = null;
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status.trim())) {
+            try { st = PlacementStatus.valueOf(status.trim()); }
+            catch (Exception ignore) { st = null; }
+        }
 
-        model.addAttribute("placements", placements);
-        model.addAttribute("status", status);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Placement> pageObj = (st == null)
+                ? placementRepo.findBySupervisorUserId(me, pageable)
+                : placementRepo.findBySupervisorUserIdAndStatus(me, st, pageable);
+
+        List<Placement> items = pageObj.getContent();
+
+        // Resolve names
+        Set<Long> studentIds = new HashSet<>();
+        Set<Long> companyIds = new HashSet<>();
+        for (Placement p : items) {
+            if (p.getStudentId() != null) studentIds.add(p.getStudentId());
+            if (p.getCompanyId() != null) companyIds.add(p.getCompanyId());
+        }
+
+        Map<Long, String> studentNames = new HashMap<>();
+        Map<Long, String> companyNames = new HashMap<>();
+
+        if (!studentIds.isEmpty()) {
+            userRepository.findAllById(studentIds).forEach(u -> {
+                String nm = (u.getName() != null && !u.getName().isBlank()) ? u.getName() : u.getUsername();
+                studentNames.put(u.getId(), nm);
+            });
+        }
+        if (!companyIds.isEmpty()) {
+            companyRepository.findAllById(companyIds).forEach(c -> companyNames.put(c.getId(), c.getName()));
+        }
+
+        model.addAttribute("placements", pageObj); // keep if your template uses it
+        model.addAttribute("items", items);
+        model.addAttribute("studentNames", studentNames);
+        model.addAttribute("companyNames", companyNames);
+
+        model.addAttribute("status", (st == null ? "ALL" : st.name()));
         model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", placements.getTotalPages());
+        model.addAttribute("totalPages", pageObj.getTotalPages());
         model.addAttribute("statuses", PlacementStatus.values());
 
         return "industry-placements";
     }
 
     @GetMapping("/placements/{id}")
-    public String placementView(@PathVariable Long id, HttpSession session, Model model) {
+    public String placementEdit(@PathVariable Long id, HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
 
         Long me = currentUserId(session);
@@ -265,6 +305,7 @@ public class IndustrySupervisorController {
         Placement placement = placementRepo.findById(id).orElse(null);
         if (placement == null) return "redirect:/industry/placements";
 
+        // security: must belong to this supervisor
         if (placement.getSupervisorUserId() == null || !placement.getSupervisorUserId().equals(me)) {
             return "redirect:/industry/placements";
         }
@@ -281,13 +322,21 @@ public class IndustrySupervisorController {
                     model.addAttribute("companyName", c.getName()));
         }
 
-        return "industry-placement-view";
+        // optional: if your HTML shows sector checkboxes
+        model.addAttribute("sectorOptions", List.of("Bakery","Food Manufacturing","Frozen Food","Catering","Others"));
+
+        return "industry-placement-edit";
     }
 
     @PostMapping("/placements/{id}/verify")
+    @Transactional
     public String verifyPlacement(@PathVariable Long id,
-                                  @RequestParam("action") String action,
-                                  @RequestParam(value = "comment", required = false) String comment,
+                                  @RequestParam String department,
+                                  @RequestParam String jobScope,
+                                  @RequestParam(required = false) String allowance,
+                                  @RequestParam(defaultValue = "false") boolean accommodation,
+                                  @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate reportDutyDate,
+                                  @RequestParam(required = false) List<String> sectors,
                                   HttpSession session) {
 
         if (notIndustry(session)) return "redirect:/login";
@@ -297,21 +346,28 @@ public class IndustrySupervisorController {
 
         String who = currentDisplayName(session);
 
-        Placement placement = placementRepo.findById(id).orElse(null);
-        if (placement == null) return "redirect:/industry/placements";
+        Placement p = placementRepo.findById(id).orElse(null);
+        if (p == null) return "redirect:/industry/placements";
 
-        if (placement.getSupervisorUserId() == null || !placement.getSupervisorUserId().equals(me)) {
+        // security: must belong to this supervisor
+        if (p.getSupervisorUserId() == null || !p.getSupervisorUserId().equals(me)) {
             return "redirect:/industry/placements";
         }
 
-        placement.setStatus("approve".equalsIgnoreCase(action) ? PlacementStatus.APPROVED : PlacementStatus.REJECTED);
-        placementRepo.save(placement);
+        p.setDepartment(department);
+        p.setJobScope(jobScope);
+        p.setAllowance(allowance);
+        p.setAccommodation(accommodation);
+        p.setReportDutyDate(reportDutyDate);
+
+        // ✅ main behavior: verified -> go to admin
+        p.setStatus(PlacementStatus.AWAITING_ADMIN);
+        placementRepo.save(p);
 
         AuditLog log = new AuditLog();
         log.setAction("PLACEMENT_VERIFY");
         log.setUsername(who);
-        log.setDescription("Placement " + id + " -> " + placement.getStatus()
-                + (comment != null && !comment.isBlank() ? " | " + comment : ""));
+        log.setDescription("Verified placement " + id + " and set status to AWAITING_ADMIN");
         log.setTimestamp(LocalDateTime.now());
         auditLogRepo.save(log);
 
@@ -333,15 +389,15 @@ public class IndustrySupervisorController {
                 ? List.of()
                 : companyRepository.findAllById(companyIds);
 
-        // Optional: keep stable order (same as IDs order)
         Map<Long, Integer> order = new HashMap<>();
-        for (int i = 0; i < companyIds.size(); i++) order.put(companyIds.get(i), i);
+        if (companyIds != null) {
+            for (int i = 0; i < companyIds.size(); i++) order.put(companyIds.get(i), i);
+        }
         companies.sort(Comparator.comparingInt(c -> order.getOrDefault(c.getId(), 999999)));
 
         model.addAttribute("companies", companies);
         return "industry-companies";
     }
-
 
     @GetMapping("/companies/{companyId}")
     public String editCompany(@PathVariable Long companyId, HttpSession session, Model model) {
@@ -349,7 +405,6 @@ public class IndustrySupervisorController {
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        // ✅ access control
         if (!placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId)) {
             return "redirect:/industry/companies";
         }
@@ -360,7 +415,6 @@ public class IndustrySupervisorController {
         model.addAttribute("company", company);
         return "industry-company-edit";
     }
-
 
     @PostMapping("/companies/{companyId}")
     public String updateCompany(@PathVariable Long companyId,
@@ -377,7 +431,6 @@ public class IndustrySupervisorController {
         if (me == null) return "redirect:/login";
         String who = currentDisplayName(session);
 
-        // ✅ access control
         if (!placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId)) {
             return "redirect:/industry/companies";
         }
@@ -402,9 +455,8 @@ public class IndustrySupervisorController {
         return "redirect:/industry/companies";
     }
 
-
     // =========================
-    // End-of-internship evaluation (40%)
+    // Evaluations (40%)
     // =========================
     @GetMapping("/evaluations")
     public String listEvaluations(HttpSession session, Model model) {
@@ -412,11 +464,9 @@ public class IndustrySupervisorController {
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
 
-        // ✅ Show ALL placements assigned to this supervisor (approved placements)
         List<Placement> placements = placementRepo.findBySupervisorUserIdAndStatus(me, PlacementStatus.APPROVED);
         model.addAttribute("placements", placements);
 
-        // Build lookup maps for Student + Company names
         Set<Long> studentIds = new HashSet<>();
         Set<Long> companyIds = new HashSet<>();
         List<Long> placementIds = new ArrayList<>();
@@ -437,7 +487,6 @@ public class IndustrySupervisorController {
             companyRepository.findAllById(companyIds).forEach(c -> companyById.put(c.getId(), c));
         }
 
-        // ✅ Find which placements already have evaluation
         Map<Long, SupervisorEvaluation> evalByPlacementId = new HashMap<>();
         if (!placementIds.isEmpty()) {
             List<SupervisorEvaluation> evals = evalRepo.findByPlacementIdIn(placementIds);
@@ -452,7 +501,6 @@ public class IndustrySupervisorController {
 
         return "industry-evaluations";
     }
-
 
     @GetMapping("/evaluations/{placementId}")
     public String evaluationForm(@PathVariable Long placementId, HttpSession session, Model model) {
@@ -509,13 +557,12 @@ public class IndustrySupervisorController {
             return "redirect:/industry/evaluations";
         }
 
-        // Save supervisor evaluation record
         form.setPlacementId(placementId);
         form.setSubmittedAt(LocalDateTime.now());
         form.setSubmittedBy(who);
         evalRepo.save(form);
 
-        // Sync to StudentAssessment (for Student Dashboard)
+        // Sync to StudentAssessment
         try {
             Long studentId = placement.getStudentId();
             if (studentId != null) {
@@ -546,9 +593,7 @@ public class IndustrySupervisorController {
                         true
                 );
             }
-        } catch (Exception ignore) {
-            // don't block submission
-        }
+        } catch (Exception ignore) {}
 
         AuditLog log = new AuditLog();
         log.setAction("EVALUATION_SUPERVISOR_SUBMIT");
@@ -563,7 +608,7 @@ public class IndustrySupervisorController {
     // Backward-compatible edit URL: /industry/companies/{id}/edit
     @GetMapping("/companies/{companyId}/edit")
     public String editCompanyEditPath(@PathVariable Long companyId, HttpSession session, Model model) {
-        return editCompany(companyId, session, model); // reuse your existing method
+        return editCompany(companyId, session, model);
     }
 
     @PostMapping("/companies/{companyId}/edit")
@@ -577,5 +622,4 @@ public class IndustrySupervisorController {
                                         HttpSession session) {
         return updateCompany(companyId, name, address, contactName, contactEmail, contactPhone, website, session);
     }
-
 }

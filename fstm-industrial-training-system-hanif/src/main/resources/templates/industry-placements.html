@@ -14,7 +14,6 @@
     <link th:href="@{/app.css}" rel="stylesheet">
 
     <style>
-        /* Only page-specific bits */
         .status-pill{
             display:inline-flex;
             align-items:center;
@@ -26,14 +25,13 @@
         .pill-awaiting-supervisor{ background:#fce8b2; color:#7a5a00; }
         .pill-awaiting-admin{ background:#e0ecff; color:#114a96; }
         .pill-approved{ background:#d4f4dd; color:#0b6b2f; }
-
         .col-actions{ white-space:nowrap; }
     </style>
 </head>
 
 <body>
 
-<!-- NAVBAR (same as industry dashboard) -->
+<!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg appbar">
     <div class="container container-narrow">
         <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
@@ -76,12 +74,16 @@
 
             <div class="col-md-5">
                 <label class="form-label mb-1 fw-semibold" for="statusSelect">Status</label>
+
+                <!-- IMPORTANT CHANGE:
+                     Use ALL instead of empty string to avoid enum conversion crash -->
                 <select id="statusSelect" class="form-select form-select-sm" name="status">
-                    <option value="" th:selected="${status == null || status == ''}">All</option>
+                    <option value="ALL" th:selected="${status == null || status == '' || status == 'ALL'}">All</option>
+
                     <option th:each="st : ${T(com.example.itsystem.model.PlacementStatus).values()}"
-                            th:value="${st}"
-                            th:text="${st}"
-                            th:selected="${status == st}">
+                            th:value="${st.name()}"
+                            th:text="${st.name()}"
+                            th:selected="${status != null && (status == st || status == st.name())}">
                     </option>
                 </select>
             </div>
@@ -117,22 +119,22 @@
                 </thead>
 
                 <tbody>
-                <tr th:if="${items == null || items.isEmpty()}">
+                <tr th:if="${items == null || #lists.isEmpty(items)}">
                     <td colspan="6" class="text-center py-4 muted">
                         No placement records found.
                     </td>
                 </tr>
 
                 <tr th:each="p : ${items}">
-                    <td th:text="${studentNames[p.studentId]} ?: ${p.studentId}">Student Name</td>
-                    <td th:text="${companyNames[p.companyId]} ?: ${p.companyId}">Company Name</td>
+                    <td th:text="${studentNames != null && studentNames[p.studentId] != null ? studentNames[p.studentId] : p.studentId}">Student Name</td>
+                    <td th:text="${companyNames != null && companyNames[p.companyId] != null ? companyNames[p.companyId] : p.companyId}">Company Name</td>
                     <td th:text="${p.department} ?: '—'">Department</td>
 
                     <td>
                         <span class="status-pill"
-                              th:classappend="${p.status.name() == 'AWAITING_SUPERVISOR'
+                              th:classappend="${p.status != null && p.status.name() == 'AWAITING_SUPERVISOR'
                                 ? ' pill-awaiting-supervisor'
-                                : (p.status.name() == 'AWAITING_ADMIN'
+                                : (p.status != null && p.status.name() == 'AWAITING_ADMIN'
                                   ? ' pill-awaiting-admin'
                                   : ' pill-approved')}"
                               th:text="${p.status}">
@@ -142,7 +144,8 @@
                     <td th:text="${p.reportDutyDate} ?: '—'">2025-06-01</td>
 
                     <td class="text-end col-actions">
-                        <a th:href="@{'/industry/placements/' + ${p.id}}"
+                        <!-- safer, cleaner thymeleaf -->
+                        <a th:href="@{/industry/placements/{id}(id=${p.id})}"
                            class="btn btn-sm btn-outline-primary btn-rounded">
                             Review
                         </a>
@@ -155,10 +158,10 @@
 
         <!-- Pagination -->
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3"
-             th:if="${totalPages > 1}">
+             th:if="${totalPages != null && totalPages > 1}">
 
             <a class="btn btn-outline-secondary btn-sm btn-rounded"
-               th:if="${currentPage > 0}"
+               th:if="${currentPage != null && currentPage > 0}"
                th:href="@{/industry/placements(page=${currentPage-1}, status=${status})}">
                 ‹ Prev
             </a>
@@ -169,7 +172,7 @@
             </span>
 
             <a class="btn btn-outline-secondary btn-sm btn-rounded"
-               th:if="${currentPage + 1 < totalPages}"
+               th:if="${currentPage != null && totalPages != null && currentPage + 1 < totalPages}"
                th:href="@{/industry/placements(page=${currentPage+1}, status=${status})}">
                 Next ›
             </a>
