@@ -22,16 +22,53 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-            <li class="nav-item"><a class="nav-link [[${activePage == 'home'} ? 'active' : '']]" th:href="@{/lecturer/home}">Home</a></li>
-            <li class="nav-item"><a class="nav-link [[${activePage == 'students'} ? 'active' : '']]" th:href="@{/lecturer/students}">Students</a></li>
-            <li class="nav-item"><a class="nav-link [[${activePage == 'logbook'} ? 'active' : '']]" th:href="@{/lecturer/logbook/logbook-list}">LogBook</a></li>
-            <li class="nav-item"><a class="nav-link [[${activePage == 'evaluation'} ? 'active' : '']]" th:href="@{/lecturer/evaluation/list}">Evaluation</a></li>
-            <li class="nav-item"><a class="nav-link [[${activePage == 'schedule'} ? 'active' : '']]" th:href="@{/lecturer/schedule}">Schedule Visit</a></li>
             <li class="nav-item">
-                <a class="nav-link" th:href="@{/lecturer/final-report/list}">Final Report</a>
+                <a class="nav-link [[${activePage == 'home'} ? 'active' : '']]" th:href="@{/lecturer/home}">
+                    Home
+                </a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link [[${activePage == 'students'} ? 'active' : '']]" th:href="@{/lecturer/students}">
+                    Students
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link [[${activePage == 'logbook'} ? 'active' : '']]" th:href="@{/lecturer/logbook/logbook-list}">
+                    LogBook
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link [[${activePage == 'evaluation'} ? 'active' : '']]" th:href="@{/lecturer/evaluation/list}">
+                    Evaluation
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link [[${activePage == 'schedule'} ? 'active' : '']]" th:href="@{/lecturer/schedule}">
+                    Schedule Visit
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link [[${activePage == 'finalReport'} ? 'active' : '']]" th:href="@{/lecturer/final-report/list}">
+                    Final Report
+                </a>
+            </li>
+
+            <!-- ✅ 新增：Change Password -->
+            <li class="nav-item">
+                <a class="nav-link [[${activePage == 'changePassword'} ? 'active' : '']]]"
+                   href="/lecturer/change-password"
+                   th:href="@{/lecturer/change-password}">
+                    Change Password
+                </a>
+
+            </li>
         </ul>
+
         <form th:action="@{/logout}" method="post" class="d-flex">
             <button type="submit" class="btn btn-outline-light">Logout</button>
         </form>

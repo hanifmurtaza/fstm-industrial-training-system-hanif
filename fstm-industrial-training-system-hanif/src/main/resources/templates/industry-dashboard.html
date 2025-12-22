@@ -145,7 +145,7 @@
     .tile-title{ font-weight:900; margin:0; letter-spacing:-.15px; }
     .tile-desc{ margin:0; color:#64748b; font-size:.9rem; }
     .tile-right{
-      width:38px;height:38px;border-radius:12px;
+      width:38px;height:42px;border-radius:12px;
       background:#f1f5f9; display:grid; place-items:center;
       color:#0f172a;
       flex:0 0 auto;
@@ -191,11 +191,11 @@
       <span class="pill"><i class="bi bi-building"></i> Industry Supervisor</span>
 
       <h1 class="h4 page-title mb-0 mt-2">
-        Welcome, <span th:text="${displayName}"></span> 🏢
+        Welcome, <span th:text="${displayName} ?: 'Industry Supervisor'">Industry Supervisor</span> 🏢
       </h1>
 
       <div class="muted mt-1">
-        Company: <span th:text="${companyName}"></span>
+        Company: <span class="fw-semibold text-dark" th:text="${companyName} ?: '—'">—</span>
       </div>
     </div>
   </div>
@@ -303,7 +303,7 @@
 
           <hr class="my-1">
 
-          <!-- Placements to verify (no backend variable used in your current file) -->
+          <!-- Placements to verify -->
           <div class="queue-row">
             <div class="queue-left">
               <span class="queue-dot"></span>
@@ -403,6 +403,20 @@
             <div>
               <p class="tile-title mb-1">My Companies</p>
               <p class="tile-desc">Update organisation profiles and contact details</p>
+            </div>
+          </div>
+          <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
+        </a>
+      </div>
+
+      <!-- ✅ Added: Change Password tile -->
+      <div class="col-12 col-lg-6">
+        <a class="tile" th:href="@{/industry/change-password}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="tile-ico"><i class="bi bi-key"></i></div>
+            <div>
+              <p class="tile-title mb-1">Change Password</p>
+              <p class="tile-desc">Update your password securely</p>
             </div>
           </div>
           <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
