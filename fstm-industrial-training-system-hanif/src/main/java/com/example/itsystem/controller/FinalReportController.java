@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Controller
-@RequestMapping("/student/final-report")
+//@Controller
+//@RequestMapping("/student/final-report")
 public class FinalReportController {
 
     @Autowired

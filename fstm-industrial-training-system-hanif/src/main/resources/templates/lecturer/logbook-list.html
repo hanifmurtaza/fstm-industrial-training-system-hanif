@@ -7,10 +7,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
 <body>
+
 <section layout:fragment="content">
 
   <div class="card p-4 shadow-sm mb-4">
-    <!-- 标题行 -->
+
+    <!-- Title Row -->
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
       <h5 class="m-0">
         <i class="bi bi-journal-bookmark-fill me-1"></i>
@@ -18,7 +20,7 @@
       </h5>
     </div>
 
-    <!-- 筛选器 -->
+    <!-- Filter -->
     <form class="row g-2 align-items-end mb-3" method="get" th:action="@{/lecturer/logbook/list}">
       <div class="col-auto">
         <label for="sessionSelect" class="form-label mb-0 fw-semibold">Session</label>
@@ -31,6 +33,7 @@
           </th:block>
         </select>
       </div>
+
       <div class="col-auto">
         <button type="submit" class="btn btn-primary btn-sm">
           <i class="bi bi-funnel"></i> Filter
@@ -39,7 +42,7 @@
       </div>
     </form>
 
-    <!-- 表格 -->
+    <!-- Table -->
     <div class="table-responsive">
       <table class="table table-bordered table-hover align-middle text-center">
         <thead class="table-primary text-center">
@@ -48,6 +51,7 @@
           <th>Student ID</th>
           <th>Week Start</th>
           <th>Preview</th>
+          <th>File</th>
           <th>Endorsed</th>
           <th>Export</th>
         </tr>
@@ -55,6 +59,8 @@
 
         <tbody>
         <tr th:each="entry : ${logbookWithNames}">
+
+          <!-- student info -->
           <td th:text="${entry.value.name}">Student Name</td>
           <td th:text="${entry.value.studentId}">213793</td>
           <td th:text="${#temporals.format(entry.key.weekStartDate, 'yyyy-MM-dd')}">2025-05-03</td>
@@ -69,7 +75,7 @@
               Preview
             </button>
 
-            <!-- 隐藏模板 -->
+            <!-- Hidden template -->
             <div class="d-none" th:attr="id=|tpl-${entry.key.id}|">
               <div class="lh-lg">
                 <div th:if="${entry.key.mainTask}">
@@ -92,6 +98,7 @@
                   <strong>Internal Note:</strong>
                   <div th:text="${entry.key.internalNote}"></div>
                 </div>
+
                 <div th:if="${
                       (entry.key.mainTask == null or entry.key.mainTask == '') and
                       (entry.key.skills == null or entry.key.skills == '') and
@@ -105,14 +112,35 @@
             </div>
           </td>
 
+          <!-- File (View/Download) -->
+          <td>
+            <span th:if="${entry.key.photoPath == null}" class="text-muted">No file</span>
+
+            <div th:if="${entry.key.photoPath != null}" class="d-flex gap-2 justify-content-center flex-wrap">
+              <a th:href="${entry.key.photoPath}"
+                 class="btn btn-sm btn-outline-primary"
+                 target="_blank">
+                View
+              </a>
+
+              <!-- optional: force download button -->
+              <a th:href="${entry.key.photoPath}"
+                 class="btn btn-sm btn-outline-secondary"
+                 download>
+                Download
+              </a>
+            </div>
+          </td>
+
           <!-- Endorse -->
           <td>
             <form th:action="@{/lecturer/logbook/endorse}" method="post">
-              <input type="hidden" name="entryId" th:value="${entry.key.id}"/>
-
+              <input type="hidden" name="entryId" th:value="${entry.key.id}">
+              <input type="hidden" name="session" th:value="${selectedSession}">
               <button type="submit"
-                      th:class="'btn btn-sm ' + (${entry.key.endorsedByLecturer} ? 'btn-success' : 'btn-outline-success')">
-                <span th:text="${entry.key.endorsedByLecturer} ? 'Endorsed' : 'Endorse'">Endorse</span>
+                      th:class="'btn btn-sm ' + (${entry.key.endorsed} ? 'btn-success' : 'btn-outline-success')">
+                <i class="bi bi-check2-circle"></i>
+                <span th:text="${entry.key.endorsed} ? 'Endorsed' : 'Endorse'">Endorse</span>
               </button>
             </form>
           </td>
@@ -124,19 +152,20 @@
               <i class="bi bi-file-earmark-arrow-down"></i> Export
             </a>
           </td>
+
         </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 页脚统计（可选） -->
+    <!-- Footer stats -->
     <div class="mt-2 text-muted small">
       Record 1 to <span th:text="${#lists.size(logbookWithNames)}">0</span>
       daripada <span th:text="${#lists.size(logbookWithNames)}">0</span> record(s)
     </div>
   </div>
 
-  <!-- 预览弹窗 -->
+  <!-- Preview Modal -->
   <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
@@ -157,7 +186,7 @@
     </div>
   </div>
 
-  <!-- 预览脚本 -->
+  <!-- Preview Script -->
   <script>
     document.addEventListener('click', function (e) {
       const btn = e.target.closest('.preview-btn');
@@ -170,8 +199,7 @@
       const name = tr ? tr.children[0].textContent.trim() : 'Student';
       const week = tr ? tr.children[2].textContent.trim() : '';
 
-      document.getElementById('previewMeta').textContent =
-              name + ' • Week start ' + week;
+      document.getElementById('previewMeta').textContent = name + ' • Week start ' + week;
 
       document.getElementById('previewContent').innerHTML =
               holder ? holder.innerHTML : '<div class="text-muted">No content.</div>';
@@ -179,5 +207,6 @@
   </script>
 
 </section>
+
 </body>
 </html>

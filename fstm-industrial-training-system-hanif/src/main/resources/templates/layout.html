@@ -27,6 +27,10 @@
             <li class="nav-item"><a class="nav-link [[${activePage == 'logbook'} ? 'active' : '']]" th:href="@{/lecturer/logbook/logbook-list}">LogBook</a></li>
             <li class="nav-item"><a class="nav-link [[${activePage == 'evaluation'} ? 'active' : '']]" th:href="@{/lecturer/evaluation/list}">Evaluation</a></li>
             <li class="nav-item"><a class="nav-link [[${activePage == 'schedule'} ? 'active' : '']]" th:href="@{/lecturer/schedule}">Schedule Visit</a></li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/lecturer/final-report/list}">Final Report</a>
+            </li>
+
         </ul>
         <form th:action="@{/logout}" method="post" class="d-flex">
             <button type="submit" class="btn btn-outline-light">Logout</button>

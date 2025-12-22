@@ -11,7 +11,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -92,6 +95,15 @@ public class IndustrySupervisorController {
         return (int) Math.round(out);
     }
 
+    private String safeDisplayName(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated()) return "Industry Supervisor";
+        String name = auth.getName();
+        if (name == null || name.trim().isEmpty() || "anonymousUser".equalsIgnoreCase(name)) {
+            return "Industry Supervisor";
+        }
+        return name;
+    }
+
     // =========================
     // Dashboard
     // =========================
@@ -106,6 +118,20 @@ public class IndustrySupervisorController {
         model.addAttribute("pending", pending);
         model.addAttribute("approved", approved);
         model.addAttribute("rejected", rejected);
+
+
+        // Logged-in username (safe)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = (auth != null) ? auth.getName() : null;
+        model.addAttribute("displayName", safeDisplayName(auth));
+        // Show on UI
+        model.addAttribute("displayName", username);
+
+        String companyName = "—";
+
+        model.addAttribute("companyName", "—");
+
+
         return "industry-dashboard";
     }
 

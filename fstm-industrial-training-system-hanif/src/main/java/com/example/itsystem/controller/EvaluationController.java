@@ -1,21 +1,18 @@
 package com.example.itsystem.controller;
 
+import com.example.itsystem.model.StudentAssessment;
+import com.example.itsystem.model.User;
+import com.example.itsystem.model.VisitEvaluation;
+import com.example.itsystem.model.VisitSchedule;
+import com.example.itsystem.repository.UserRepository;
+import com.example.itsystem.repository.VisitEvaluationRepository;
+import com.example.itsystem.service.StudentAssessmentService;
+import com.example.itsystem.service.VisitScheduleService;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
-import com.example.itsystem.repository.UserRepository;
-import com.example.itsystem.model.User;
-import com.example.itsystem.model.VisitEvaluation;
-import com.example.itsystem.model.VisitSchedule;
-import com.example.itsystem.repository.VisitEvaluationRepository;
-import com.example.itsystem.service.VisitScheduleService;
-
-// ==== 新增 import ====
-import com.example.itsystem.service.StudentAssessmentService;
-import com.example.itsystem.model.StudentAssessment;
-import java.math.BigDecimal;
-
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -23,17 +20,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.Objects;
-import java.util.Objects;  // 你之前少的这个也要有
-import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/lecturer/evaluation")
@@ -48,34 +41,36 @@ public class EvaluationController {
     @Autowired
     private UserRepository userRepository;
 
-    // ==== 新增：注入成绩汇总服务 ====
     @Autowired
     private StudentAssessmentService studentAssessmentService;
 
-    // ==== 学期工具（如果你有动态学期，可替换为读取配置/数据库）====
+    // If you have dynamic session, replace this method later
     private String currentSession() {
         return "2024/2025-2";
     }
 
-    private static Integer toInt(BigDecimal v) { return v == null ? null : v.intValue(); }
-
+    private static Integer toInt(BigDecimal v) {
+        return v == null ? null : v.intValue();
+    }
 
     @GetMapping("/form/{visitId}")
     public String showEvaluationForm(@PathVariable Long visitId,
-                                     @RequestParam(name="session", required=false) String sessionFilter,
-                                     HttpSession session, Model model) {
+                                     @RequestParam(name = "session", required = false) String sessionFilter,
+                                     HttpSession session,
+                                     Model model) {
 
         User lecturer = (User) session.getAttribute("user");
         if (lecturer == null || !"teacher".equals(lecturer.getRole())) return "redirect:/login";
 
         VisitSchedule visit = visitScheduleService.findById(visitId);
-        if (visit == null || !Objects.equals(visit.getLecturerId(), lecturer.getId()))
+        if (visit == null || !Objects.equals(visit.getLecturerId(), lecturer.getId())) {
             return "redirect:/lecturer/evaluation/list";
+        }
 
         String finalSession = (sessionFilter != null && !sessionFilter.isBlank())
                 ? sessionFilter : currentSession();
 
-        // 取/建 evaluation（A/B部分）
+        // Get/create evaluation (Part A/B)
         List<VisitEvaluation> list = evaluationRepository.findByVisitId(visitId);
         VisitEvaluation evaluation = list.isEmpty() ? new VisitEvaluation() : list.get(0);
 
@@ -83,12 +78,13 @@ public class EvaluationController {
         evaluation.setStudentId(visit.getStudentId());
         evaluation.setLecturerId(lecturer.getId());
 
-        // ✅ session 必须写进去并且回传表单（你前端已加 hidden th:field="*{session}"）
+        // session must be set (and front-end posts hidden field)
         evaluation.setSession(finalSession);
 
-        // ✅ 回填 C 部分：按 student+session+lecturerId 精准读
+        // Fill Part C from student_assessment (student + session + lecturerId)
         StudentAssessment sa = studentAssessmentService.getOrCreate(
-                visit.getStudentId(), finalSession, lecturer.getId());
+                visit.getStudentId(), finalSession, lecturer.getId()
+        );
 
         evaluation.setVlEvaluation10(toInt(sa.getVlEvaluation10()));
         evaluation.setVlAttendance5(toInt(sa.getVlAttendance5()));
@@ -100,23 +96,19 @@ public class EvaluationController {
         return "lecturer/evaluation-form";
     }
 
-
-
     @PostMapping("/submit")
     public String submitEvaluation(@ModelAttribute VisitEvaluation evaluation,
-                                   @RequestParam(name="session", required=false) String sessionFilter,
+                                   @RequestParam(name = "session", required = false) String sessionFilter,
                                    HttpSession session,
                                    RedirectAttributes ra) {
 
         User lecturer = (User) session.getAttribute("user");
-        if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
-            return "redirect:/login";
-        }
+        if (lecturer == null || !"teacher".equals(lecturer.getRole())) return "redirect:/login";
 
-        // ✅ 先保存 Part A / Part B 文本（visit_evaluation 表）
+        // Save Part A/B (visit_evaluation table)
         evaluationRepository.save(evaluation);
 
-        // ✅ session：空字符串也要 fallback，否则会写进 session=""
+        // session fallback (avoid saving empty session)
         String sessionStr = (evaluation.getSession() == null || evaluation.getSession().isBlank())
                 ? currentSession()
                 : evaluation.getSession();
@@ -128,7 +120,7 @@ public class EvaluationController {
         int l5  = (evaluation.getVlLogbook5() == null) ? 0 : evaluation.getVlLogbook5();
         int r40 = (evaluation.getVlFinalReport40() == null) ? 0 : evaluation.getVlFinalReport40();
 
-        // ✅ 保存 Part C 到 student_assessment（按 student+session+lecturerId）
+        // Save Part C to student_assessment (student + session + lecturerId)
         studentAssessmentService.saveVisitingLecturerScores(
                 studentId, sessionStr, lecturer.getId(),
                 BigDecimal.valueOf(e10),
@@ -146,71 +138,52 @@ public class EvaluationController {
         return "redirect:/lecturer/evaluation/list";
     }
 
-
+    /**
+     * ✅ Merged improvement:
+     * List page based on lecturer-bound students (even if no visit yet),
+     * while still providing latest visit for each student if available.
+     */
     @GetMapping("/list")
-    public String showEvaluationList(
-            @RequestParam(name = "session", required = false) String sessionFilter,
-            Model model,
-            HttpSession session) {
+    public String showEvaluationList(@RequestParam(name = "session", required = false) String sessionFilter,
+                                     Model model,
+                                     HttpSession session) {
 
-        // 1) 登录/角色检查
         User lecturer = (User) session.getAttribute("user");
-        if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
-            return "redirect:/login";
-        }
+        if (lecturer == null || !"teacher".equals(lecturer.getRole())) return "redirect:/login";
 
-        // 2) 下拉选项：该讲师名下所有学生的去重 Session
+        // Dropdown options: distinct sessions under this lecturer
         List<String> sessions = userRepository.findDistinctSessionsByLecturer(lecturer);
         model.addAttribute("sessions", sessions);
         model.addAttribute("selectedSession", sessionFilter == null ? "" : sessionFilter);
 
-        // 3) 取该讲师的所有 visit（不再限制 Confirmed）
+        // ✅ Main list: students bound to lecturer (optionally filtered by session)
+        List<User> students = (sessionFilter != null && !sessionFilter.isBlank())
+                ? userRepository.findByLecturerAndSession(lecturer, sessionFilter)
+                : userRepository.findByLecturer(lecturer);
+
+        // Get all visits for lecturer to find latest per student
         List<VisitSchedule> allVisits = visitScheduleService.findByLecturerId(lecturer.getId());
 
-        // 4) 如果选择了 session，则只保留该 session 下的学生的 visit
-        List<VisitSchedule> filtered = allVisits;
-        if (sessionFilter != null && !sessionFilter.isBlank()) {
-            List<User> studentsInSession = userRepository.findByLecturerAndSession(lecturer, sessionFilter);
-            var allowedIds = studentsInSession.stream()
-                    .map(User::getId)
-                    .collect(Collectors.toSet());
-
-            filtered = allVisits.stream()
-                    .filter(v -> allowedIds.contains(v.getStudentId()))
-                    .collect(Collectors.toList());
-        }
-
-        // 5) 同一个学生只保留“最新一条 visit”
-        //    这里假设 id 自增，id 越大越新
-        Map<Long, VisitSchedule> latestByStudent = new HashMap<>();
-        for (VisitSchedule v : filtered) {
+        Map<Long, VisitSchedule> latestVisitMap = new HashMap<>();
+        for (VisitSchedule v : allVisits) {
             Long sid = v.getStudentId();
-            VisitSchedule existing = latestByStudent.get(sid);
+            VisitSchedule existing = latestVisitMap.get(sid);
             if (existing == null || v.getId() > existing.getId()) {
-                latestByStudent.put(sid, v);
+                latestVisitMap.put(sid, v);
             }
         }
 
-        // 6) 构建学生姓名映射 & 转成列表
-        Map<Long, String> studentNameMap = new HashMap<>();
-        for (VisitSchedule v : latestByStudent.values()) {
-            Long sid = v.getStudentId();
-            if (!studentNameMap.containsKey(sid)) {
-                userRepository.findById(sid).ifPresent(u -> studentNameMap.put(sid, u.getName()));
-            }
-        }
+        model.addAttribute("students", students);
+        model.addAttribute("latestVisitMap", latestVisitMap);
+        model.addAttribute("total", students.size());
 
-        List<VisitSchedule> visitList = latestByStudent.values().stream().toList();
-
-        model.addAttribute("visitList", visitList);
-        model.addAttribute("studentNameMap", studentNameMap);
-        return "evaluation"; // 对应 templates/evaluation.html
+        return "evaluation";
     }
 
-
-
     @GetMapping("/pdf/{visitId}")
-    public void downloadEvaluationPdf(@PathVariable Long visitId, HttpServletResponse response) throws IOException {
+    public void downloadEvaluationPdf(@PathVariable Long visitId,
+                                      HttpServletResponse response) throws IOException {
+
         List<VisitEvaluation> evalList = evaluationRepository.findByVisitId(visitId);
         if (evalList.isEmpty()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Evaluation not found");
@@ -218,13 +191,11 @@ public class EvaluationController {
         }
 
         VisitEvaluation evaluation = evalList.get(0);
-        VisitSchedule schedule = visitScheduleService.findById(visitId); // 获取 VisitSchedule
+        VisitSchedule schedule = visitScheduleService.findById(visitId);
 
-        // 设置响应头
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "attachment; filename=evaluation_" + visitId + ".pdf");
 
-        // PDF 生成
         try (OutputStream os = response.getOutputStream()) {
             PdfWriter writer = new PdfWriter(os);
             PdfDocument pdf = new PdfDocument(writer);

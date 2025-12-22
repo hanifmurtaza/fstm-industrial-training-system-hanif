@@ -5,6 +5,17 @@
 <head>
     <title>Evaluation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .icon-link {
+            font-size: 1.1rem;
+            text-decoration: none;
+        }
+        .icon-disabled {
+            color: #adb5bd;
+            cursor: not-allowed;
+        }
+        .icon-link:hover { opacity: 0.85; }
+    </style>
 </head>
 <body>
 <div layout:fragment="content">
@@ -19,7 +30,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h5 class="m-0">List of Student for Organisation Evaluation</h5>
             <div class="text-muted small">
-                Total:&nbsp;<span class="fw-semibold" th:text="${#lists.size(visitList)}">0</span>
+                Total:&nbsp;<span class="fw-semibold" th:text="${total}">0</span>
             </div>
         </div>
 
@@ -30,7 +41,8 @@
                 <select id="sessionSelect" name="session" class="form-select form-select-sm">
                     <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
                     <th:block th:each="s : ${sessions}">
-                        <option th:value="${s}" th:selected="${selectedSession != null and selectedSession.equals(s)}"
+                        <option th:value="${s}"
+                                th:selected="${selectedSession != null and selectedSession.equals(s)}"
                                 th:text="${s}">2025/2026-1</option>
                     </th:block>
                 </select>
@@ -45,46 +57,60 @@
             </div>
         </form>
 
-
-
         <!-- 表格 -->
         <div class="table-responsive mt-4">
             <table class="table table-bordered align-middle">
                 <thead class="table-primary text-center">
                 <tr>
                     <th style="width: 5%;">No</th>
-                    <th>Name</th>
+                    <th class="text-start">Name</th>
                     <th style="width: 10%;">Evaluate</th>
                     <th style="width: 10%;">PDF</th>
                 </tr>
                 </thead>
 
-                <!-- 有数据 -->
-                <tbody class="text-center" th:if="${visitList != null and !#lists.isEmpty(visitList)}">
-                <tr th:each="v, iterStat : ${visitList}">
-                    <td th:text="${iterStat.count}"></td>
-                    <td class="text-start" th:text="${studentNameMap[v.studentId]}">Student Name</td>
+                <!-- 有数据：以 students 为主 -->
+                <tbody class="text-center" th:if="${students != null and !#lists.isEmpty(students)}">
+                <tr th:each="stu, iterStat : ${students}">
+                    <td th:text="${iterStat.count}">1</td>
+                    <td class="text-start" th:text="${stu.name}">Student Name</td>
 
-                    <!-- 评估入口（带上 selectedSession） -->
+                    <!-- Evaluate：如果该学生有最新 visit 才能点 -->
                     <td>
-                        <a th:href="@{/lecturer/evaluation/form/{visitId}(visitId=${v.id}, session=${selectedSession})}"
+                        <a th:if="${latestVisitMap[stu.id] != null}"
+                           th:href="@{/lecturer/evaluation/form/{visitId}(visitId=${latestVisitMap[stu.id].id}, session=${selectedSession})}"
+                           class="icon-link"
                            title="Evaluate">
                             <i class="bi bi-clipboard-check"></i>
                         </a>
+
+                        <span th:if="${latestVisitMap[stu.id] == null}"
+                              class="icon-disabled"
+                              title="No visit scheduled">
+                            <i class="bi bi-clipboard-x"></i>
+                        </span>
                     </td>
 
-                    <!-- 导出 PDF（带上 selectedSession） -->
+                    <!-- PDF：如果该学生有最新 visit 才能点 -->
                     <td>
-                        <a th:href="@{/lecturer/evaluation/pdf/{id}(id=${v.id}, session=${selectedSession})}" target="_blank"
+                        <a th:if="${latestVisitMap[stu.id] != null}"
+                           th:href="@{/lecturer/evaluation/pdf/{visitId}(visitId=${latestVisitMap[stu.id].id})}"
+                           class="icon-link"
                            title="Export PDF">
                             <i class="bi bi-file-earmark-pdf"></i>
                         </a>
+
+                        <span th:if="${latestVisitMap[stu.id] == null}"
+                              class="icon-disabled"
+                              title="No visit scheduled">
+                            <i class="bi bi-file-earmark-x"></i>
+                        </span>
                     </td>
                 </tr>
                 </tbody>
 
                 <!-- 空状态 -->
-                <tbody class="text-center" th:if="${visitList == null or #lists.isEmpty(visitList)}">
+                <tbody class="text-center" th:if="${students == null or #lists.isEmpty(students)}">
                 <tr>
                     <td colspan="4" class="text-muted py-5">No students to evaluate yet.</td>
                 </tr>
@@ -95,8 +121,8 @@
 
         <!-- Footer 记录数 -->
         <div class="mt-2 text-muted small">
-            Record 1 to <span th:text="${#lists.size(visitList)}">0</span> daripada
-            <span th:text="${#lists.size(visitList)}">0</span> record(s)
+            Record 1 to <span th:text="${total}">0</span> daripada
+            <span th:text="${total}">0</span> record(s)
         </div>
     </div>
 

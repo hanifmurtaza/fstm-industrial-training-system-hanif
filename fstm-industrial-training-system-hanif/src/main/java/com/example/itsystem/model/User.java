@@ -2,7 +2,6 @@ package com.example.itsystem.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
-import com.example.itsystem.model.Department;
 
 @Entity
 @Table(
@@ -15,7 +14,6 @@ import com.example.itsystem.model.Department;
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_users_username", columnNames = {"username"})
-                // ,@UniqueConstraint(name = "uk_users_studentId", columnNames = {"studentId"})
         }
 )
 public class User {
@@ -31,7 +29,7 @@ public class User {
     private String password;
 
     @Column(nullable = false, length = 30)
-    private String role; // "student" | "teacher" | "admin" | "industry"
+    private String role; // student | teacher | admin | industry
 
     @Column(length = 120)
     private String name;
@@ -49,20 +47,27 @@ public class User {
     @JoinColumn(name = "lecturer_id")
     private User lecturer;
 
-    // NEW: account status + access window
+    // ================= Access control =================
     @Column(nullable = false)
     private Boolean enabled = Boolean.TRUE;
 
-    private LocalDate accessStart;   // nullable until Admin sets it
-    private LocalDate accessEnd;     // nullable until Admin sets it
+    private LocalDate accessStart;
+    private LocalDate accessEnd;
 
+    // ================= Academic =================
     @Enumerated(EnumType.STRING)
     @Column(length = 80)
     private Department department;
 
+    // ================= Final Report =================
+    @Column(length = 255)
+    private String finalReportPdfPath;
 
+    @Column(length = 255)
+    private String finalReportVideoPath;
 
-    // ---- getters & setters ----
+    // ================= Getters & Setters =================
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -102,4 +107,13 @@ public class User {
     public Department getDepartment() { return department; }
     public void setDepartment(Department department) { this.department = department; }
 
+    public String getFinalReportPdfPath() { return finalReportPdfPath; }
+    public void setFinalReportPdfPath(String finalReportPdfPath) {
+        this.finalReportPdfPath = finalReportPdfPath;
+    }
+
+    public String getFinalReportVideoPath() { return finalReportVideoPath; }
+    public void setFinalReportVideoPath(String finalReportVideoPath) {
+        this.finalReportVideoPath = finalReportVideoPath;
+    }
 }

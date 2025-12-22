@@ -5,37 +5,166 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class FileStorageService {
 
-    private final Path root = Paths.get("uploads/opportunities");
+    // Root: <project>/uploads (absolute, normalized)
+    private final Path uploadsRoot;
+
+    private final Path opportunitiesRoot;
+    private final Path logbookRoot;
+    private final Path finalReportRoot;
 
     public FileStorageService() {
         try {
-            Files.createDirectories(root);
+            this.uploadsRoot = Paths.get("uploads").toAbsolutePath().normalize();
+
+            this.opportunitiesRoot = uploadsRoot.resolve("opportunities");
+            this.logbookRoot = uploadsRoot.resolve("logbook");
+            this.finalReportRoot = uploadsRoot.resolve("final-report");
+
+            Files.createDirectories(uploadsRoot);
+            Files.createDirectories(opportunitiesRoot);
+            Files.createDirectories(logbookRoot);
+            Files.createDirectories(finalReportRoot);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize upload folder", e);
         }
     }
 
+    // =========================================================
+    // (1) Opportunities image upload  -> /uploads/opportunities/{file}
+    // =========================================================
     public String storeImage(MultipartFile file) {
         if (file == null || file.isEmpty()) return null;
+
         String ext = getExt(file.getOriginalFilename());
         String name = UUID.randomUUID().toString().replace("-", "") + (ext != null ? "." + ext : "");
+
         try {
-            Files.copy(file.getInputStream(), root.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(file.getInputStream(), opportunitiesRoot.resolve(name), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
+            throw new RuntimeException("Failed to store opportunity image", e);
         }
-        // Return a public URL path (served by WebMvcConfig)
+
         return "/uploads/opportunities/" + name;
+    }
+
+    // =========================================================
+    // (2) Logbook file upload (image/pdf)
+    // -> /uploads/logbook/{studentId}/{logbookId}/{file}
+    // =========================================================
+    public String storeLogbookFile(MultipartFile file, Long studentId, Long logbookId) {
+        if (file == null || file.isEmpty()) return null;
+
+        String contentType = file.getContentType();
+
+        // Allow image + PDF
+        Set<String> allowed = Set.of(
+                "image/jpeg", "image/png", "image/webp",
+                "application/pdf"
+        );
+
+        // Some browsers may send null contentType; we’ll validate by extension fallback
+        String ext = getExt(file.getOriginalFilename());
+        boolean extOk = ext != null && (
+                ext.equalsIgnoreCase("jpg") || ext.equalsIgnoreCase("jpeg") ||
+                        ext.equalsIgnoreCase("png") || ext.equalsIgnoreCase("webp") ||
+                        ext.equalsIgnoreCase("pdf")
+        );
+
+        if (contentType != null && !allowed.contains(contentType) && !extOk) {
+            throw new RuntimeException("Only JPG/PNG/WEBP images or PDF are allowed for logbook.");
+        }
+
+        String name = UUID.randomUUID().toString().replace("-", "") + (ext != null ? "." + ext : "");
+
+        Path dir = logbookRoot
+                .resolve(String.valueOf(studentId))
+                .resolve(String.valueOf(logbookId));
+
+        try {
+            Files.createDirectories(dir);
+            Files.copy(file.getInputStream(), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store logbook file", e);
+        }
+
+        return "/uploads/logbook/" + studentId + "/" + logbookId + "/" + name;
+    }
+
+    // =========================================================
+    // (3) Final Report PDF
+    // -> /uploads/final-report/{studentId}/report/{file}.pdf
+    // =========================================================
+    public String storeFinalReportPdf(MultipartFile file, Long studentId) {
+        if (file == null || file.isEmpty()) return null;
+
+        String contentType = file.getContentType();
+        String ext = getExt(file.getOriginalFilename());
+
+        // Strict: prefer PDF
+        boolean isPdf = "application/pdf".equalsIgnoreCase(contentType) || "pdf".equalsIgnoreCase(ext);
+        if (!isPdf) {
+            throw new RuntimeException("Only PDF is allowed for Final Report.");
+        }
+
+        String name = UUID.randomUUID().toString().replace("-", "") + ".pdf";
+
+        Path dir = finalReportRoot
+                .resolve(String.valueOf(studentId))
+                .resolve("report");
+
+        try {
+            Files.createDirectories(dir);
+            Files.copy(file.getInputStream(), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store final report PDF", e);
+        }
+
+        return "/uploads/final-report/" + studentId + "/report/" + name;
+    }
+
+    // =========================================================
+    // (4) Final Report Video (MP4)
+    // -> /uploads/final-report/{studentId}/video/{file}.mp4
+    // =========================================================
+    public String storeFinalReportVideo(MultipartFile file, Long studentId) {
+        if (file == null || file.isEmpty()) return null;
+
+        String contentType = file.getContentType();
+        String ext = getExt(file.getOriginalFilename());
+
+        // Browsers can send video/mp4 or application/octet-stream, so allow MP4 extension as fallback.
+        boolean isMp4 = "mp4".equalsIgnoreCase(ext) || "video/mp4".equalsIgnoreCase(contentType);
+        if (!isMp4) {
+            throw new RuntimeException("Only MP4 is allowed for Final Report video.");
+        }
+
+        String name = UUID.randomUUID().toString().replace("-", "") + ".mp4";
+
+        Path dir = finalReportRoot
+                .resolve(String.valueOf(studentId))
+                .resolve("video");
+
+        try {
+            Files.createDirectories(dir);
+            Files.copy(file.getInputStream(), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store final report video", e);
+        }
+
+        return "/uploads/final-report/" + studentId + "/video/" + name;
     }
 
     private String getExt(String filename) {
         if (filename == null) return null;
         int dot = filename.lastIndexOf('.');
-        return (dot >= 0 && dot < filename.length() - 1) ? filename.substring(dot + 1).toLowerCase() : null;
+        return (dot >= 0 && dot < filename.length() - 1)
+                ? filename.substring(dot + 1).toLowerCase()
+                : null;
     }
 }

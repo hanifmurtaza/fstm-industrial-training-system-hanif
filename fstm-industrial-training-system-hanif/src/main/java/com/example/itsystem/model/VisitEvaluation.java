@@ -1,10 +1,7 @@
 package com.example.itsystem.model;
 
-import jakarta.persistence.*;   // 你已经有
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
-
-
-import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "visit_evaluation")
@@ -35,25 +32,22 @@ public class VisitEvaluation {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // ================== 👇 新增：Part C（临时字段，不入库） ==================
+    // ================== 👇 Part C（临时字段，不入库） ==================
     @Transient
-    private Integer vlEvaluation10;    // 0..10
+    private Integer vlEvaluation10;
 
     @Transient
-    private Integer vlAttendance5;     // 0..5
+    private Integer vlAttendance5;
 
     @Transient
-    private Integer vlLogbook5;        // 0..5
+    private Integer vlLogbook5;
 
     @Transient
-    private Integer vlFinalReport40;   // 0..40
+    private Integer vlFinalReport40;
 
-    // （可选）把学期一并从表单带回来；如果你用固定学期，也可以不加
     @Transient
     private String session;
     // ================== 👆 新增结束 ==================
-
-    // ===== Getter and Setter methods =====
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -85,7 +79,6 @@ public class VisitEvaluation {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    // ==== 新增字段的 getter/setter ====
     public Integer getVlEvaluation10() { return vlEvaluation10; }
     public void setVlEvaluation10(Integer vlEvaluation10) { this.vlEvaluation10 = vlEvaluation10; }
 

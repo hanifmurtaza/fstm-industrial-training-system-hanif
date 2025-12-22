@@ -3,50 +3,78 @@
       layout:decorate="~{layout2}" lang="en">
 <head>
   <title>View Logbook</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
 <body>
+
 <div layout:fragment="content">
   <h3 class="text-center fw-bold mb-4">📖 My Logbook Entries</h3>
 
-  <table class="table table-bordered text-center">
-    <thead class="table-primary">
-    <tr>
-      <th>#</th>
-      <th>Week Start</th>
-      <th>Status</th>
-      <th>Export</th>
-      <th>Delete</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="entry, iterStat : ${logbookEntries}">
-      <td th:text="${iterStat.index + 1}">1</td>
-      <td th:text="${entry.weekStartDate}">2025-05-03</td>
-      <td>
-        <span th:if="${entry.endorsed}" class="text-success">✔ Endorsed</span>
-        <span th:unless="${entry.endorsed}" class="text-danger">✘ Not Endorsed</span>
-      </td>
+  <div class="table-responsive">
+    <table class="table table-bordered text-center align-middle">
+      <thead class="table-primary">
+      <tr>
+        <th>#</th>
+        <th>Week Start</th>
+        <th>Status</th>
+        <th>File</th>
+        <th>Export</th>
+        <th>Delete</th>
+      </tr>
+      </thead>
 
-      <!-- ✅ 新增导出按钮列 -->
-      <td>
-        <a th:href="@{'/student/logbook/download/' + ${entry.id}}"
-           class="btn btn-sm btn-outline-primary">
-          <i class="bi bi-download"></i> Export
-        </a>
-      </td>
+      <tbody>
+      <tr th:each="entry, iterStat : ${logbookEntries}">
+        <td th:text="${iterStat.index + 1}">1</td>
 
-      <td>
-        <a th:href="@{'/student/logbook/delete/' + ${entry.id}}"
-           onclick="return confirm('Are you sure you want to delete this entry?');"
-           class="btn btn-sm btn-outline-danger">
-          <i class="bi bi-trash"></i> Delete
-        </a>
-      </td>
+        <td th:text="${entry.weekStartDate}">2025-05-03</td>
 
-    </tr>
+        <td>
+          <span th:if="${entry.endorsed}" class="text-success">✔ Endorsed</span>
+          <span th:unless="${entry.endorsed}" class="text-danger">✘ Not Endorsed</span>
+        </td>
 
-    </tbody>
-  </table>
+        <!-- ✅ File View/Download -->
+        <td>
+          <span th:if="${entry.photoPath == null}" class="text-muted">No file</span>
+
+          <div th:if="${entry.photoPath != null}" class="d-flex gap-2 justify-content-center flex-wrap">
+            <a th:href="${entry.photoPath}"
+               class="btn btn-sm btn-outline-primary"
+               target="_blank">
+              <i class="bi bi-eye"></i> View
+            </a>
+
+            <a th:href="${entry.photoPath}"
+               class="btn btn-sm btn-outline-secondary"
+               download>
+              <i class="bi bi-download"></i> Download
+            </a>
+          </div>
+        </td>
+
+        <!-- Export PDF (your existing export) -->
+        <td>
+          <a th:href="@{'/student/logbook/download/' + ${entry.id}}"
+             class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-file-earmark-pdf"></i> Export
+          </a>
+        </td>
+
+        <!-- Delete -->
+        <td>
+          <a th:href="@{'/student/logbook/delete/' + ${entry.id}}"
+             onclick="return confirm('Are you sure you want to delete this entry?');"
+             class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash"></i> Delete
+          </a>
+        </td>
+
+      </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
+
 </body>
 </html>

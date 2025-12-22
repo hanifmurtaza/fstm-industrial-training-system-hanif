@@ -2,12 +2,12 @@ package com.example.itsystem.service;
 
 import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.repository.StudentAssessmentRepository;
+import com.example.itsystem.util.UpmGradeUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.math.BigDecimal;
-import com.example.itsystem.util.UpmGradeUtil;
-import java.math.RoundingMode;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 public class StudentAssessmentService {
@@ -18,6 +18,10 @@ public class StudentAssessmentService {
         this.repo = repo;
     }
 
+    /**
+     * ✅ Must be (studentId, session, visitingLecturerId)
+     * Otherwise different lecturers overwrite each other
+     */
     @Transactional
     public StudentAssessment getOrCreate(Long studentId, String session, Long lecturerId) {
         return repo.findByStudentUserIdAndSessionAndVisitingLecturerId(studentId, session, lecturerId)
@@ -26,13 +30,14 @@ public class StudentAssessmentService {
                     sa.setStudentUserId(studentId);
                     sa.setSession(session);
                     sa.setVisitingLecturerId(lecturerId);
-                    if (sa.getStatus() == null) {
-                        sa.setStatus(StudentAssessment.Status.DRAFT);
-                    }
+                    sa.setStatus(StudentAssessment.Status.DRAFT);
                     return repo.save(sa);
                 });
     }
 
+    // =========================
+    // Visiting Lecturer (60%)
+    // =========================
     @Transactional
     public StudentAssessment saveVisitingLecturerScores(
             Long studentId,
@@ -46,10 +51,6 @@ public class StudentAssessmentService {
     ) {
         StudentAssessment sa = getOrCreate(studentId, session, lecturerId);
 
-        if (sa.getVisitingLecturerId() == null) {
-            sa.setVisitingLecturerId(lecturerId);
-        }
-
         sa.setVlEvaluation10(eval10);
         sa.setVlAttendance5(attend5);
         sa.setVlLogbook5(logbook5);
@@ -61,10 +62,9 @@ public class StudentAssessmentService {
         return repo.save(sa);
     }
 
-    /**
-     * Industry Supervisor evaluation (40%) -> Student Dashboard
-     * Skills(20), Communication(10), Teamwork(10)
-     */
+    // =========================
+    // Industry Supervisor (40%)
+    // =========================
     @Transactional
     public StudentAssessment saveIndustrySupervisorScores(
             Long studentId,
@@ -80,9 +80,7 @@ public class StudentAssessmentService {
                     StudentAssessment x = new StudentAssessment();
                     x.setStudentUserId(studentId);
                     x.setSession(session);
-                    if (x.getStatus() == null) {
-                        x.setStatus(StudentAssessment.Status.DRAFT);
-                    }
+                    x.setStatus(StudentAssessment.Status.DRAFT);
                     return repo.save(x);
                 });
 
@@ -100,6 +98,9 @@ public class StudentAssessmentService {
         return repo.save(sa);
     }
 
+    // =========================
+    // Grade calculation
+    // =========================
     private void recomputeGrade(StudentAssessment sa) {
         BigDecimal vl =
                 nz(sa.getVlEvaluation10())
@@ -114,15 +115,15 @@ public class StudentAssessmentService {
 
         BigDecimal total = vl.add(ind); // max 100
 
-        // Convert to double for grade mapping
-        double totalDouble = total.setScale(2, RoundingMode.HALF_UP).doubleValue();
+        double totalDouble = total
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
 
+        sa.setTotal100(total);
         sa.setGrade(UpmGradeUtil.gradeFromTotal(totalDouble));
     }
 
-    // Null-safe BigDecimal
     private BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
     }
-
 }
