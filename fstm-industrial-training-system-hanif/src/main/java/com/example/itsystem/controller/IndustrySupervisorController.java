@@ -119,21 +119,51 @@ public class IndustrySupervisorController {
         model.addAttribute("approved", approved);
         model.addAttribute("rejected", rejected);
 
+        // ===== 1) Get the real logged-in User (prefer session) =====
+        User user = (User) session.getAttribute("user");
 
-        // Logged-in username (safe)
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = (auth != null) ? auth.getName() : null;
-        model.addAttribute("displayName", safeDisplayName(auth));
-        // Show on UI
-        model.addAttribute("displayName", username);
+        if (user == null) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = (auth != null) ? auth.getName() : null;
 
-        String companyName = "—";
+            if (username == null || "anonymousUser".equals(username)) {
+                return "redirect:/login";
+            }
 
-        model.addAttribute("companyName", "—");
+            user = userRepository.findByUsername(username).orElse(null);
+            if (user == null) return "redirect:/login";
 
+            session.setAttribute("user", user);
+        } else {
+            // refresh from DB (optional but recommended)
+            user = userRepository.findById(user.getId()).orElse(user);
+            session.setAttribute("user", user);
+        }
+
+        // ===== 2) Display name =====
+        String displayName = (user.getName() != null && !user.getName().isBlank())
+                ? user.getName()
+                : user.getUsername();
+
+        model.addAttribute("displayName", displayName);
+
+        // ===== 3) Company name =====
+        // Option A: if industry user's company is stored in user.company
+        String companyName = (user.getCompany() != null && !user.getCompany().isBlank())
+                ? user.getCompany()
+                : "—";
+
+        // Option B (better): if you have company table and link supervisor -> company, use that instead
+        // Example (ONLY if you have a relation/method):
+        // companyName = companyRepository.findFirstBySupervisorId(user.getId())
+        //         .map(Company::getName)
+        //         .orElse(companyName);
+
+        model.addAttribute("companyName", companyName);
 
         return "industry-dashboard";
     }
+
 
     @GetMapping("/industry-dashboard")
     public String legacyDashboard(HttpSession session) {
