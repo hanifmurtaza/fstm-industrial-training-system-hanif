@@ -67,8 +67,13 @@ public class EvaluationController {
             return "redirect:/lecturer/evaluation/list";
         }
 
+        User student = userRepository.findById(visit.getStudentId()).orElse(null);
+
         String finalSession = (sessionFilter != null && !sessionFilter.isBlank())
-                ? sessionFilter : currentSession();
+                ? sessionFilter.trim()
+                : (student != null && student.getSession() != null && !student.getSession().isBlank()
+                ? student.getSession().trim()
+                : "2024/2025-2"); // fallback only
 
         // Get/create evaluation (Part A/B)
         List<VisitEvaluation> list = evaluationRepository.findByVisitId(visitId);
@@ -109,9 +114,16 @@ public class EvaluationController {
         evaluationRepository.save(evaluation);
 
         // session fallback (avoid saving empty session)
-        String sessionStr = (evaluation.getSession() == null || evaluation.getSession().isBlank())
-                ? currentSession()
-                : evaluation.getSession();
+        User student = (evaluation.getStudentId() != null)
+                ? userRepository.findById(evaluation.getStudentId()).orElse(null)
+                : null;
+
+        String sessionStr = (evaluation.getSession() != null && !evaluation.getSession().isBlank())
+                ? evaluation.getSession().trim()
+                : (student != null && student.getSession() != null && !student.getSession().isBlank()
+                ? student.getSession().trim()
+                : "2024/2025-2");
+
 
         Long studentId = evaluation.getStudentId();
 

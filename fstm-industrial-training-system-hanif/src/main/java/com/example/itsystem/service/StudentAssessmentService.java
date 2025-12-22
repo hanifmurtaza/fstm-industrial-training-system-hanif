@@ -24,16 +24,25 @@ public class StudentAssessmentService {
      */
     @Transactional
     public StudentAssessment getOrCreate(Long studentId, String session, Long lecturerId) {
-        return repo.findByStudentUserIdAndSessionAndVisitingLecturerId(studentId, session, lecturerId)
+        String s = (session == null) ? null : session.trim();
+
+        StudentAssessment sa = repo.findByStudentUserIdAndSession(studentId, s)
                 .orElseGet(() -> {
-                    StudentAssessment sa = new StudentAssessment();
-                    sa.setStudentUserId(studentId);
-                    sa.setSession(session);
-                    sa.setVisitingLecturerId(lecturerId);
-                    sa.setStatus(StudentAssessment.Status.DRAFT);
-                    return repo.save(sa);
+                    StudentAssessment x = new StudentAssessment();
+                    x.setStudentUserId(studentId);
+                    x.setSession(s);
+                    x.setStatus(StudentAssessment.Status.DRAFT);
+                    return repo.save(x);
                 });
+
+        // bind VL id if not set
+        if (lecturerId != null && sa.getVisitingLecturerId() == null) {
+            sa.setVisitingLecturerId(lecturerId);
+        }
+        return sa;
     }
+
+
 
     // =========================
     // Visiting Lecturer (60%)

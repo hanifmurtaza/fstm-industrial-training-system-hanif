@@ -9,10 +9,6 @@ public interface StudentAssessmentRepository extends JpaRepository<StudentAssess
 
     Optional<StudentAssessment> findByStudentUserIdAndSession(Long studentUserId, String session);
 
-    Optional<StudentAssessment> findByStudentUserIdAndSessionAndVisitingLecturerId(
-            Long studentUserId, String session, Long visitingLecturerId
-    );
-
     // ✅ 让 StudentController 用的“取最新一条记录”能编译通过
     Optional<StudentAssessment> findTopByStudentUserIdOrderByIdDesc(Long studentUserId);
 }
