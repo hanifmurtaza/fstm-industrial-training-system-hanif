@@ -68,5 +68,8 @@ public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long
 """)
     List<StudentLogbookSummary> summarizeByStudentIds(@Param("studentIds") List<Long> studentIds);
 
+    long countByStudentIdInAndStatus(List<Long> studentIds, ReviewStatus status);
+
+
 
 }

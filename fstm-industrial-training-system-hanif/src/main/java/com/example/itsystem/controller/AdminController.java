@@ -41,11 +41,6 @@ import java.util.stream.Collectors;
 import java.util.Objects;
 
 
-
-
-
-
-
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -80,7 +75,7 @@ public class AdminController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         long studentCount   = userRepository.countByRole("student");
-        long companyCount   = companyInfoRepository.count();
+        long companyCount   = companyRepository.count();
         long evalCount      = evaluationRepository.count();
         long documentCount  = documentRepository.count();
 

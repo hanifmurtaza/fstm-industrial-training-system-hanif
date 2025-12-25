@@ -62,6 +62,9 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
     Optional<Placement> findTopByStudentIdAndStatusOrderByIdDesc(Long studentId, PlacementStatus status);
 
+    @Query("select p.studentId from Placement p where p.companyId = :companyId and p.status = :status")
+    List<Long> findStudentIdsByCompanyAndStatus(@Param("companyId") Long companyId,
+                                                @Param("status") PlacementStatus status);
 
 
 

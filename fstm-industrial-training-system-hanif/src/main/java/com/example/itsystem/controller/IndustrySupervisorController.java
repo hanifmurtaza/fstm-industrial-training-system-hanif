@@ -111,58 +111,58 @@ public class IndustrySupervisorController {
     public String dashboard(HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
 
-        long pending  = logbookRepo.countByStatus(ReviewStatus.PENDING);
-        long approved = logbookRepo.countByStatus(ReviewStatus.APPROVED);
-        long rejected = logbookRepo.countByStatus(ReviewStatus.REJECTED);
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        // ✅ display name + company name for UI
+        model.addAttribute("displayName",
+                (user.getName() != null && !user.getName().isBlank())
+                        ? user.getName()
+                        : (user.getUsername() != null ? user.getUsername() : "Industry Supervisor"));
+
+        model.addAttribute("companyName",
+                (user.getCompany() != null && !user.getCompany().isBlank())
+                        ? user.getCompany()
+                        : "—");
+
+        // 1) Find company by supervisor's company name
+        Company company = null;
+        if (user.getCompany() != null && !user.getCompany().isBlank()) {
+            company = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
+        }
+
+        // If no company -> all 0
+        if (company == null) {
+            model.addAttribute("pending", 0);
+            model.addAttribute("approved", 0);
+            model.addAttribute("rejected", 0);
+            return "industry-dashboard";
+        }
+
+        // 2) Get studentIds under this company (APPROVED placements)
+        List<Long> studentIds = placementRepo
+                .findStudentIdsByCompanyAndStatus(company.getId(), PlacementStatus.APPROVED);
+
+        // If no students -> all 0
+        if (studentIds == null || studentIds.isEmpty()) {
+            model.addAttribute("pending", 0);
+            model.addAttribute("approved", 0);
+            model.addAttribute("rejected", 0);
+            return "industry-dashboard";
+        }
+
+        // 3) Count logbooks only for those students
+        long pending  = logbookRepo.countByStudentIdInAndStatus(studentIds, ReviewStatus.PENDING);
+        long approved = logbookRepo.countByStudentIdInAndStatus(studentIds, ReviewStatus.APPROVED);
+        long rejected = logbookRepo.countByStudentIdInAndStatus(studentIds, ReviewStatus.REJECTED);
 
         model.addAttribute("pending", pending);
         model.addAttribute("approved", approved);
         model.addAttribute("rejected", rejected);
 
-        // ===== 1) Get the real logged-in User (prefer session) =====
-        User user = (User) session.getAttribute("user");
-
-        if (user == null) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String username = (auth != null) ? auth.getName() : null;
-
-            if (username == null || "anonymousUser".equals(username)) {
-                return "redirect:/login";
-            }
-
-            user = userRepository.findByUsername(username).orElse(null);
-            if (user == null) return "redirect:/login";
-
-            session.setAttribute("user", user);
-        } else {
-            // refresh from DB (optional but recommended)
-            user = userRepository.findById(user.getId()).orElse(user);
-            session.setAttribute("user", user);
-        }
-
-        // ===== 2) Display name =====
-        String displayName = (user.getName() != null && !user.getName().isBlank())
-                ? user.getName()
-                : user.getUsername();
-
-        model.addAttribute("displayName", displayName);
-
-        // ===== 3) Company name =====
-        // Option A: if industry user's company is stored in user.company
-        String companyName = (user.getCompany() != null && !user.getCompany().isBlank())
-                ? user.getCompany()
-                : "—";
-
-        // Option B (better): if you have company table and link supervisor -> company, use that instead
-        // Example (ONLY if you have a relation/method):
-        // companyName = companyRepository.findFirstBySupervisorId(user.getId())
-        //         .map(Company::getName)
-        //         .orElse(companyName);
-
-        model.addAttribute("companyName", companyName);
-
         return "industry-dashboard";
     }
+
 
 
     @GetMapping("/industry-dashboard")
