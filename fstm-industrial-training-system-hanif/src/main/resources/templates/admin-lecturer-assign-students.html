@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assign Students • UPM Industrial Training</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/app.css}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Admin Navbar -->
+<nav class="navbar navbar-expand-lg appbar">
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Admin Panel • UPM Industrial Training</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAssignStudents">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navAssignStudents" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
+                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link active">Lecturers</a></li>
+                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+                <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+
+<div class="container py-4">
+
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h4 class="mb-1">Assign Students</h4>
+            <div class="text-muted">
+                Lecturer: <span class="fw-semibold" th:text="${lecturer.name}">Lecturer Name</span>
+            </div>
+        </div>
+        <a class="btn btn-outline-secondary" th:href="@{/admin/lecturers}">Back</a>
+    </div>
+
+    <div th:if="${toast}" class="alert alert-info" th:text="${toast}"></div>
+
+    <!-- Filter -->
+    <form class="card card-body mb-3" method="get"
+          th:action="@{'/admin/lecturers/' + ${lecturer.id} + '/assign-students'}">
+        <div class="row g-2">
+
+            <div class="col-md-5">
+                <label class="form-label">Search (name / studentId)</label>
+                <input class="form-control" name="search" th:value="${search}" placeholder="e.g. Ali / 22012345">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Session</label>
+                <select class="form-select" name="session">
+                    <option value="">All</option>
+                    <option th:each="s : ${sessionOptions}"
+                            th:value="${s}"
+                            th:text="${s}"
+                            th:selected="${s == selectedSession}">
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Department</label>
+                <select class="form-select" name="department">
+                    <option value="">All</option>
+                    <option th:each="d : ${departmentOptions}"
+                            th:value="${d}"
+                            th:text="${d}"
+                            th:selected="${d == department}">
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+                <button class="btn btn-primary w-100" type="submit">Go</button>
+            </div>
+
+        </div>
+    </form>
+
+    <!-- Assign Form -->
+    <form class="card" method="post"
+          th:action="@{'/admin/lecturers/' + ${lecturer.id} + '/assign-students'}">
+
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="overwrite" name="overwrite" value="true">
+                    <label class="form-check-label" for="overwrite">Overwrite existing assignments</label>
+                </div>
+
+                <!-- Keep current filter for applyAll -->
+                <input type="hidden" name="search" th:value="${search}">
+                <input type="hidden" name="session" th:value="${selectedSession}">
+                <input type="hidden" name="department" th:value="${department}">
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" type="submit" name="mode" value="selected">
+                    Assign selected
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th style="width:42px;">
+                        <input type="checkbox" id="checkAll">
+                    </th>
+                    <th>Name</th>
+                    <th>Student ID</th>
+                    <th>Session</th>
+                    <th>Department</th>
+                    <th>Current Lecturer</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${students.totalElements == 0}">
+                    <td colspan="6" class="text-center text-muted py-4">No students found.</td>
+                </tr>
+
+                <tr th:each="stu : ${students.content}">
+                    <td>
+                        <!-- MUST be "ids" because controller expects @RequestParam List<Long> ids -->
+                        <input class="form-check-input studentCheck" type="checkbox" name="ids" th:value="${stu.id}">
+                    </td>
+                    <td th:text="${stu.name}">Name</td>
+                    <td th:text="${stu.studentId}">ID</td>
+                    <td th:text="${stu.session}">Session</td>
+                    <td th:text="${stu.department}">Dept</td>
+                    <td>
+                        <span th:if="${stu.lecturer != null}" th:text="${stu.lecturer.name}">Lecturer</span>
+                        <span th:if="${stu.lecturer == null}" class="text-muted">Unassigned</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="text-muted">
+                Page <span th:text="${currentPage + 1}">1</span> / <span th:text="${totalPages}">1</span>
+            </div>
+
+            <nav th:if="${totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0}? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{'/admin/lecturers/' + ${lecturer.id} + '/assign-students'(search=${search},session=${selectedSession},department=${department},page=${currentPage-1},size=${size})}">
+                            Prev
+                        </a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${currentPage + 1 >= totalPages}? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{'/admin/lecturers/' + ${lecturer.id} + '/assign-students'(search=${search},session=${selectedSession},department=${department},page=${currentPage+1},size=${size})}">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+    const checkAll = document.getElementById('checkAll');
+    const checks = () => document.querySelectorAll('.studentCheck');
+
+    checkAll?.addEventListener('change', (e) => {
+        checks().forEach(cb => cb.checked = e.target.checked);
+    });
+</script>
+
+</body>
+</html>

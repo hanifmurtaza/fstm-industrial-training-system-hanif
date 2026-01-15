@@ -143,7 +143,7 @@
                     <th>Username</th>
                     <th>Department</th>
                     <th style="width:140px;">Status</th>
-                    <th style="width:160px;" class="text-center">Actions</th>
+                    <th style="width:190px;" class="text-center">Actions</th>
                 </tr>
                 </thead>
 
@@ -163,7 +163,7 @@
                         <div class="muted small">Visiting Lecturer</div>
                     </td>
 
-                    <td class="font-monospace" th:text="${lec.username}">csit001
+                    <td class="font-monospace" th:text="${lec.username}">csit001</td>
 
                     <td th:text="${lec.department != null ? lec.department.label : '-'}">-</td>
 
@@ -188,7 +188,14 @@
                                onclick="return confirm('Delete this lecturer?');">
                                 <i class="bi bi-trash3"></i>
                             </a>
+
+                            <a class="btn btn-outline-primary"
+                               th:href="@{'/admin/lecturers/' + ${lec.id} + '/assign-students'}"
+                               data-bs-toggle="tooltip" data-bs-title="Assign students">
+                                <i class="bi bi-people"></i>
+                            </a>
                         </div>
+
                     </td>
                 </tr>
                 </tbody>

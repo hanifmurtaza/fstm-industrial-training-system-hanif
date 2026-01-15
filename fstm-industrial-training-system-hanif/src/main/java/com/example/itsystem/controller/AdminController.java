@@ -744,6 +744,128 @@ public class AdminController {
         return "redirect:/admin/lecturers";
     }
 
+    @GetMapping("/lecturers/{lecturerId}/assign-students")
+    public String assignStudentsToLecturerPage(
+            @PathVariable Long lecturerId,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "session", required = false) String session,
+            @RequestParam(value = "department", required = false) Department department,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "15") int size,
+            Model model
+    ) {
+        User lecturer = userRepository.findById(lecturerId)
+                .orElseThrow(() -> new IllegalArgumentException("Lecturer not found: " + lecturerId));
+
+        // Optional safety (recommended)
+        if (!"teacher".equalsIgnoreCase(lecturer.getRole())) {
+            throw new IllegalArgumentException("Selected user is not a lecturer.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+
+        Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
+                "student",
+                search != null ? search.trim() : null,
+                session != null && !session.isBlank() ? session : null,
+                department,
+                pageable
+        );
+
+        model.addAttribute("lecturer", lecturer);
+        model.addAttribute("students", students);
+
+        model.addAttribute("search", search);
+        model.addAttribute("selectedSession", session);
+        model.addAttribute("department", department);
+
+        // reuse dropdown helpers you already use in students page
+        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("departmentOptions", Department.values());
+
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", students.getTotalPages());
+        model.addAttribute("size", size);
+
+        return "admin-lecturer-assign-students";
+    }
+
+    @PostMapping("/lecturers/{lecturerId}/assign-students")
+    public String assignStudentsToLecturerSubmit(
+            @PathVariable Long lecturerId,
+            @RequestParam(value = "ids", required = false) List<Long> ids,
+
+            @RequestParam("mode") String mode, // selected | allFiltered
+            @RequestParam(value = "overwrite", defaultValue = "false") boolean overwrite,
+
+            // keep filters (for applyAll)
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "session", required = false) String session,
+            @RequestParam(value = "department", required = false) Department department,
+
+            RedirectAttributes ra
+    ) {
+        User lecturer = userRepository.findById(lecturerId)
+                .orElseThrow(() -> new IllegalArgumentException("Lecturer not found: " + lecturerId));
+
+        if (!"teacher".equalsIgnoreCase(lecturer.getRole())) {
+            throw new IllegalArgumentException("Selected user is not a lecturer.");
+        }
+
+        List<User> targets;
+
+        boolean applyAll = "allFiltered".equalsIgnoreCase(mode);
+
+        if (applyAll) {
+            targets = userRepository.findAllStudentsForBulk("student", search, session, department);
+
+            if (targets.isEmpty()) {
+                ra.addFlashAttribute("toast", "No students found for the current filter.");
+                return "redirect:/admin/lecturers/" + lecturerId + "/assign-students"
+                        + buildStudentsQueryString(search, session, department);
+            }
+
+        } else {
+            if (ids == null || ids.isEmpty()) {
+                ra.addFlashAttribute("toast", "No students selected.");
+                return "redirect:/admin/lecturers/" + lecturerId + "/assign-students"
+                        + buildStudentsQueryString(search, session, department);
+            }
+
+            targets = userRepository.findAllById(ids);
+            if (targets.isEmpty()) {
+                ra.addFlashAttribute("toast", "Selected students not found.");
+                return "redirect:/admin/lecturers/" + lecturerId + "/assign-students"
+                        + buildStudentsQueryString(search, session, department);
+            }
+        }
+
+        int assigned = 0;
+        int skipped = 0;
+
+        for (User stu : targets) {
+            if (!overwrite && stu.getLecturer() != null) {
+                skipped++;
+                continue;
+            }
+            stu.setLecturer(lecturer);
+            assigned++;
+        }
+
+        userRepository.saveAll(targets);
+
+        logAction("ASSIGN_STUDENTS_TO_LECTURER",
+                "lecturerId=" + lecturerId + ", assigned=" + assigned + ", skipped=" + skipped
+                        + ", applyAllFiltered=" + applyAll);
+
+        ra.addFlashAttribute("toast",
+                "Assigned " + assigned + " student(s) to " + lecturer.getName()
+                        + (skipped > 0 ? (" (skipped " + skipped + ")") : ""));
+
+        return "redirect:/admin/lecturers";
+    }
+
+
 
     // ============================
     // Placements
