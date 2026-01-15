@@ -123,7 +123,6 @@
                 View
               </a>
 
-              <!-- optional: force download button -->
               <a th:href="${entry.key.photoPath}"
                  class="btn btn-sm btn-outline-secondary"
                  download>
@@ -132,17 +131,28 @@
             </div>
           </td>
 
-          <!-- Endorse -->
+          <!-- Endorse (✅ fixed: use endorsedByLecturer + CSRF) -->
           <td>
-            <form th:action="@{/lecturer/logbook/endorse}" method="post">
+            <form th:action="@{/lecturer/logbook/endorse}" method="post" class="d-inline">
+
+              <!-- ✅ 防止 _csrf 为 null 导致模板报错 -->
+              <input type="hidden"
+                     th:if="${_csrf != null}"
+                     th:name="${_csrf.parameterName}"
+                     th:value="${_csrf.token}" />
+
               <input type="hidden" name="entryId" th:value="${entry.key.id}">
               <input type="hidden" name="session" th:value="${selectedSession}">
+
               <button type="submit"
-                      th:class="'btn btn-sm ' + (${entry.key.endorsed} ? 'btn-success' : 'btn-outline-success')">
+                      class="btn btn-sm"
+                      th:classappend="${entry.key.endorsedByLecturer} ? ' btn-success' : ' btn-outline-success'">
                 <i class="bi bi-check2-circle"></i>
-                <span th:text="${entry.key.endorsed} ? 'Endorsed' : 'Endorse'">Endorse</span>
+                <span th:text="${entry.key.endorsedByLecturer} ? 'Endorsed' : 'Endorse'">Endorse</span>
               </button>
+
             </form>
+
           </td>
 
           <!-- Export -->

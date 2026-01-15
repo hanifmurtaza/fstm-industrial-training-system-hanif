@@ -348,53 +348,151 @@ public class AdminController {
     }
 
     @PostMapping("/students/bulk")
-    public String bulkStudents(@RequestParam(value = "ids", required = false) List<Long> ids,
-                               @RequestParam("mode") String mode,
-                               @RequestParam(value = "enabled", required = false) Boolean enabled,
-                               @RequestParam(value = "start", required = false) String start,
-                               @RequestParam(value = "end", required = false) String end,
-                               RedirectAttributes ra) {
+    public String bulkStudents(
+            @RequestParam(value = "ids", required = false) List<Long> ids,
+            @RequestParam("mode") String mode,
+            @RequestParam(value = "enabled", required = false) Boolean enabled,
+            @RequestParam(value = "start", required = false) String start,
+            @RequestParam(value = "end", required = false) String end,
 
-        if (ids == null || ids.isEmpty()) {
-            ra.addFlashAttribute("toast", "No students selected for bulk action.");
-            return "redirect:/admin/students";
+            // ✅ new: apply to all filtered students
+            @RequestParam(value = "applyAll", defaultValue = "false") boolean applyAll,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "session", required = false) String session,
+            @RequestParam(value = "department", required = false) Department department,
+
+            RedirectAttributes ra
+    ) {
+
+        // 1) Decide target users
+        List<User> users;
+
+        if (applyAll) {
+            // ✅ apply to ALL students matching current filter
+            users = userRepository.findAllStudentsForBulk("student", search, session, department);
+
+            if (users.isEmpty()) {
+                ra.addFlashAttribute("toast", "No students found for the current filter.");
+                return "redirect:/admin/students";
+            }
+        } else {
+            // ✅ apply only selected students (current behavior)
+            if (ids == null || ids.isEmpty()) {
+                ra.addFlashAttribute("toast", "No students selected for bulk action.");
+                return "redirect:/admin/students";
+            }
+            users = userRepository.findAllById(ids);
+            if (users.isEmpty()) {
+                ra.addFlashAttribute("toast", "Selected students not found.");
+                return "redirect:/admin/students";
+            }
         }
 
-        List<User> users = userRepository.findAllById(ids);
+        int affected = users.size();
 
+        // 2) Apply operation
         if ("status".equals(mode) && enabled != null) {
             for (User u : users) {
                 u.setEnabled(enabled);
             }
             userRepository.saveAll(users);
-            logAction("BULK_USER_STATUS", "Set enabled=" + enabled + " for " + ids.size() + " students");
-            ra.addFlashAttribute("toast", "Updated status for " + ids.size() + " students.");
 
-        } else if ("window".equals(mode)
-                && start != null && !start.isBlank()
-                && end != null && !end.isBlank()) {
+            logAction("BULK_USER_STATUS",
+                    "Set enabled=" + enabled + " for " + affected + " students"
+                            + (applyAll ? " (applyAllFiltered=true)" : ""));
 
-            LocalDate s = LocalDate.parse(start);
-            LocalDate e = LocalDate.parse(end);
+            ra.addFlashAttribute("toast",
+                    (enabled ? "Enabled " : "Disabled ") + affected + " students.");
 
-            if (e.isBefore(s)) {
-                ra.addFlashAttribute("toast", "End date cannot be before start date.");
-                return "redirect:/admin/students";
+        } else if ("window".equals(mode)) {
+
+            // Allow clearing the window if both empty (optional but useful)
+            boolean startEmpty = (start == null || start.isBlank());
+            boolean endEmpty = (end == null || end.isBlank());
+
+            if (!startEmpty && !endEmpty) {
+                LocalDate s = LocalDate.parse(start);
+                LocalDate e = LocalDate.parse(end);
+
+                if (e.isBefore(s)) {
+                    ra.addFlashAttribute("toast", "End date cannot be before start date.");
+                    return "redirect:/admin/students";
+                }
+
+                for (User u : users) {
+                    u.setAccessStart(s);
+                    u.setAccessEnd(e);
+                }
+                userRepository.saveAll(users);
+
+                logAction("BULK_USER_ACCESS_WINDOW",
+                        "Set access window [" + s + " to " + e + "] for " + affected + " students"
+                                + (applyAll ? " (applyAllFiltered=true)" : ""));
+
+                ra.addFlashAttribute("toast",
+                        "Updated access window for " + affected + " students.");
+
+            } else if (startEmpty && endEmpty) {
+                // ✅ optional: clear access window in bulk
+                for (User u : users) {
+                    u.setAccessStart(null);
+                    u.setAccessEnd(null);
+                }
+                userRepository.saveAll(users);
+
+                logAction("BULK_USER_ACCESS_WINDOW",
+                        "Cleared access window for " + affected + " students"
+                                + (applyAll ? " (applyAllFiltered=true)" : ""));
+
+                ra.addFlashAttribute("toast",
+                        "Cleared access window for " + affected + " students.");
+
+            } else {
+                ra.addFlashAttribute("toast", "Please fill BOTH start and end date (or leave both empty to clear).");
             }
 
-            for (User u : users) {
-                u.setAccessStart(s);
-                u.setAccessEnd(e);
-            }
-            userRepository.saveAll(users);
-            logAction("BULK_USER_ACCESS_WINDOW", "Set access window for " + ids.size() + " students");
-            ra.addFlashAttribute("toast", "Updated access window for " + ids.size() + " students.");
         } else {
             ra.addFlashAttribute("toast", "Invalid bulk operation.");
         }
 
-        return "redirect:/admin/students";
+        // 3) Redirect back, preserving current filters (nice UX)
+        String redirect = "redirect:/admin/students";
+        // You can keep it simple:
+        // return redirect;
+
+        // Better: keep filters so admin stays on same filtered session view
+        String qs = buildStudentsQueryString(search, session, department);
+        return redirect + qs;
     }
+
+    // helper to keep filter after redirect (optional but good UX)
+    private String buildStudentsQueryString(String search, String session, Department department) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+
+        if (search != null && !search.isBlank()) {
+            sb.append(first ? "?" : "&").append("search=").append(urlEncode(search));
+            first = false;
+        }
+        if (session != null && !session.isBlank()) {
+            sb.append(first ? "?" : "&").append("session=").append(urlEncode(session));
+            first = false;
+        }
+        if (department != null) {
+            sb.append(first ? "?" : "&").append("department=").append(urlEncode(department.name()));
+        }
+        return sb.toString();
+    }
+
+    // minimal url encode helper
+    private String urlEncode(String v) {
+        try {
+            return java.net.URLEncoder.encode(v, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return v;
+        }
+    }
+
 
     @GetMapping("/students/import")
     public String importForm(Model model) {

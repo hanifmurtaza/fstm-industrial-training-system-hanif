@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
+
 
 import java.util.Map;
 
@@ -77,6 +79,28 @@ public class AuthController {
 
         // 3) Get role from DB (NOT from form)
         String role = user.getRole() != null ? user.getRole().toLowerCase() : "";
+
+// ✅ Enforce enabled: only block if enabled is explicitly FALSE
+        Boolean enabled = user.getEnabled();
+        if (enabled != null && !enabled) {
+            return "redirect:/login?disabled=true";
+        }
+
+// ✅ Enforce access window ONLY for students
+        boolean isStudent = "student".equalsIgnoreCase(role);
+        if (isStudent) {
+            LocalDate today = LocalDate.now();
+            LocalDate start = user.getAccessStart();
+            LocalDate end = user.getAccessEnd();
+
+            if (start != null && today.isBefore(start)) {
+                return "redirect:/login?notstarted=true";
+            }
+            if (end != null && today.isAfter(end)) {
+                return "redirect:/login?expired=true";
+            }
+        }
+
 
         // 4) Put both 'auth' (new) and 'user' (legacy) into session
         session.setAttribute("auth", Map.of(

@@ -1,483 +1,700 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Manage Students • UPM Industrial Training</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <title>Manage Students • UPM Industrial Training</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Bootstrap + Icons + Font -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap + Icons + Font -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- your global css -->
-  <link th:href="@{/app.css}" rel="stylesheet">
+    <!-- your global css -->
+    <link th:href="@{/app.css}" rel="stylesheet">
 
-  <style>
-    :root{
-      --border: rgba(148,163,184,.25);
-      --muted: #64748b;
-      --ink: #0f172a;
-      --bg: #f5f7fa;
-    }
+    <style>
+        :root{
+            --border: rgba(148,163,184,.25);
+            --muted: #64748b;
+            --ink: #0f172a;
+            --bg: #f5f7fa;
+        }
 
-    body{ font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+        body{
+            font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            background:var(--bg); color:var(--ink);
+        }
 
-    /* Match dashboard width */
-    .container-narrow{ max-width:1240px; }
+        /* Match dashboard width */
+        .container-narrow{ max-width:1240px; }
 
-    /* Dashboard-like pill */
-    .pill{
-      display:inline-flex; gap:8px; align-items:center;
-      padding:6px 12px; border-radius:999px;
-      background:#eef2ff; color:#1e40af;
-      font-size:.85rem; font-weight:800;
-    }
-    .page-title{ letter-spacing:-0.2px; }
-    .muted{ color:var(--muted); }
+        /* Dashboard-like pill */
+        .pill{
+            display:inline-flex; gap:8px; align-items:center;
+            padding:6px 12px; border-radius:999px;
+            background:#eef2ff; color:#1e40af;
+            font-size:.85rem; font-weight:800;
+        }
+        .page-title{ letter-spacing:-0.2px; }
+        .muted{ color:var(--muted); }
 
-    /* Cards like dashboard */
-    .card-soft{
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:18px;
-      box-shadow:0 12px 30px rgba(15,23,42,.10);
-    }
+        /* Cards like dashboard */
+        .card-soft{
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:18px;
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+        }
 
-    /* Table wrapper like dashboard cards */
-    .table-card{
-      border-radius:18px;
-      overflow:hidden;
-    }
+        /* Table wrapper like dashboard cards */
+        .table-card{
+            border-radius:18px;
+            overflow:hidden;
+        }
 
-    .table thead th{
-      background:#fff;
-      border-bottom:1px solid var(--border);
-      position:sticky; top:0; z-index:2;
-      font-weight:800;
-      color:#334155;
-      font-size:.9rem;
-      letter-spacing:-0.1px;
-    }
-    .table tbody td{ vertical-align:middle; }
-    .table-responsive{ max-height:64vh; overflow:auto; }
+        .table thead th{
+            background:#fff;
+            border-bottom:1px solid var(--border);
+            position:sticky; top:0; z-index:2;
+            font-weight:800;
+            color:#334155;
+            font-size:.9rem;
+            letter-spacing:-0.1px;
+        }
+        .table tbody td{ vertical-align:middle; }
+        .table-responsive{ max-height:64vh; overflow:auto; }
 
-    .col-narrow{ width:1%; white-space:nowrap; }
+        .col-narrow{ width:1%; white-space:nowrap; }
 
-    /* Status pills */
-    .status-pill{ font-weight:900; letter-spacing:.04em; font-size:.72rem; padding:.45rem .7rem; border-radius:999px; }
-    .status-on{ background:#E6F4EA; color:#1F7A39; border:1px solid rgba(31,122,57,.15); }
-    .status-off{ background:#EEF2F7; color:#475569; border:1px solid rgba(71,85,105,.18); }
+        /* Status pills */
+        .status-pill{ font-weight:900; letter-spacing:.04em; font-size:.72rem; padding:.45rem .7rem; border-radius:999px; }
+        .status-on{ background:#E6F4EA; color:#1F7A39; border:1px solid rgba(31,122,57,.15); }
+        .status-off{ background:#EEF2F7; color:#475569; border:1px solid rgba(71,85,105,.18); }
+        .status-warn{ background:#FFF7ED; color:#9A3412; border:1px solid rgba(154,52,18,.18); }
+        .status-info{ background:#EFF6FF; color:#1D4ED8; border:1px solid rgba(29,78,216,.18); }
 
-    /* Access window */
-    .access-meta{ color:var(--muted); font-size:.85rem; line-height:1.2; }
-    .access-form .form-control{ height:34px; }
-    .access-form .btn{ height:34px; }
+        /* Access window */
+        .access-meta{ color:var(--muted); font-size:.85rem; line-height:1.2; }
 
-    /* Buttons like dashboard */
-    .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
-    .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+        /* Buttons like dashboard */
+        .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+        .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
 
-    /* Action icon buttons */
-    .action-group .btn{
-      width:36px; height:36px; padding:0;
-      display:inline-flex; align-items:center; justify-content:center;
-      border-radius:12px;
-    }
-    .action-group .btn i{ font-size:1rem; }
+        /* Action icon buttons */
+        .action-group .btn{
+            width:36px; height:36px; padding:0;
+            display:inline-flex; align-items:center; justify-content:center;
+            border-radius:12px;
+        }
+        .action-group .btn i{ font-size:1rem; }
 
-    /* Footer of table */
-    .page-footer{ border-top:1px solid var(--border); background:#fff; }
+        /* Footer of table */
+        .page-footer{ border-top:1px solid var(--border); background:#fff; }
 
-    /* Inputs */
-    .input-group-text{ font-weight:700; color:#334155; background:#fff; }
-    .form-label{ font-weight:800; color:#334155; font-size:.9rem; }
+        /* Inputs */
+        .input-group-text{ font-weight:700; color:#334155; background:#fff; }
+        .form-label{ font-weight:800; color:#334155; font-size:.9rem; }
 
-    /* Small polish */
-    .toolbar{
-      display:flex; flex-wrap:wrap; gap:10px;
-      align-items:center; justify-content:space-between;
-    }
-  </style>
+        /* Sticky bulk bar */
+        .bulk-bar{
+            position:sticky;
+            top:0;
+            z-index:5;
+            background:#fff;
+        }
+
+        /* Small helper chip */
+        .chip{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:6px 10px;
+            border-radius:999px;
+            border:1px solid var(--border);
+            background:#fff;
+            font-weight:700;
+            font-size:.85rem;
+            color:#334155;
+        }
+    </style>
 </head>
 
 <body>
 
 <!-- Navbar (match dashboard) -->
 <nav class="navbar navbar-expand-lg appbar">
-  <div class="container container-narrow">
-    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
-      <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
-      <span>Admin Panel • UPM Industrial Training</span>
-    </a>
+    <div class="container container-narrow">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Admin Panel • UPM Industrial Training</span>
+        </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminStudents">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminStudents">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <div id="navAdminStudents" class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link active">Students</a></li>
-        <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
-        <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
-        <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
-        <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
-        <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
-        <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
-      </ul>
+        <div id="navAdminStudents" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link active">Students</a></li>
+                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+                <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+            </ul>
+        </div>
     </div>
-  </div>
 </nav>
 
 <main class="container container-narrow py-4">
 
-  <!-- Header -->
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <div>
-      <span class="pill"><i class="bi bi-people"></i> Students</span>
-      <h1 class="h4 page-title mb-0 mt-2">Manage Students</h1>
-      <div class="muted mt-1">Search, filter by session, manage access windows and status.</div>
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <span class="pill"><i class="bi bi-people"></i> Students</span>
+            <h1 class="h4 page-title mb-0 mt-2">Manage Students</h1>
+            <div class="muted mt-1">Search, filter by session, manage access windows and status.</div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a th:href="@{/admin/students/add}" class="btn btn-success btn-rounded">
+                <i class="bi bi-person-plus me-1"></i> Add New
+            </a>
+            <a th:href="@{/admin/students/import}" class="btn btn-outline-success btn-rounded">
+                <i class="bi bi-upload me-1"></i> Bulk Import
+            </a>
+            <a th:href="@{/admin/dashboard}" class="btn btn-outline-primary btn-rounded">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+        </div>
     </div>
 
-    <div class="d-flex gap-2">
-      <a th:href="@{/admin/students/add}" class="btn btn-success btn-rounded">
-        <i class="bi bi-person-plus me-1"></i> Add New
-      </a>
-      <a th:href="@{/admin/students/import}" class="btn btn-outline-success btn-rounded">
-        <i class="bi bi-upload me-1"></i> Bulk Import
-      </a>
-      <a th:href="@{/admin/dashboard}" class="btn btn-outline-primary btn-rounded">
-        <i class="bi bi-arrow-left me-1"></i> Dashboard
-      </a>
-    </div>
-  </div>
+    <!-- Filters -->
+    <div class="card-soft filters-card mb-3 p-3">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
 
-  <!-- Filters -->
-  <!-- Filters -->
-  <div class="card-soft filters-card mb-3">
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <form class="row g-3 align-items-end flex-grow-1"
+                  method="get" th:action="@{/admin/students}">
 
-      <form class="row g-3 align-items-end flex-grow-1"
-            method="get" th:action="@{/admin/students}">
-
-        <!-- Department -->
-        <div class="col-12 col-md-3">
-          <label class="form-label mb-1">Department</label>
-          <select name="department" class="form-select form-select-sm filter-control">
-            <option value="" th:selected="${department == null}">All Departments</option>
-            <option th:each="d : ${departmentOptions}"
-                    th:value="${d}"
-                    th:text="${d.label}"
-                    th:selected="${department != null and department.name() == d.name()}">
-            </option>
-          </select>
-        </div>
-
-        <!-- Session -->
-        <div class="col-12 col-md-3">
-          <label class="form-label mb-1">Session</label>
-          <select class="form-select form-select-sm filter-control" name="session">
-            <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
-            <option th:each="s : ${sessionOptions}"
-                    th:value="${s}"
-                    th:text="${s}"
-                    th:selected="${s == selectedSession}">
-            </option>
-          </select>
-        </div>
-
-        <!-- Search -->
-        <div class="col-12 col-md-4">
-          <label class="form-label mb-1">Search</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text"
-                   name="search"
-                   class="form-control filter-control"
-                   placeholder="Search by name, student ID, company..."
-                   th:value="${search}">
-          </div>
-        </div>
-
-        <!-- Keep size -->
-        <input type="hidden" name="size" th:value="${size}"/>
-
-        <!-- Button -->
-        <div class="col-12 col-md-2 d-grid">
-          <button class="btn btn-primary btn-rounded filter-btn" type="submit">
-            <i class="bi bi-funnel me-1"></i> Filter
-          </button>
-        </div>
-      </form>
-
-      <!-- Total -->
-      <div class="text-end total-box">
-        <div class="muted small">Total Students</div>
-        <div class="fw-black fs-5" style="font-weight:900;" th:text="${students.totalElements}">0</div>
-      </div>
-
-    </div>
-  </div>
-
-
-  <!-- Table Card -->
-  <div class="card-soft table-card">
-
-    <!-- Bulk actions -->
-    <form th:action="@{/admin/students/bulk}" method="post" id="bulkForm" class="p-3 border-bottom" style="border-bottom:1px solid var(--border)!important;">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="selectAll">
-          <label class="form-check-label fw-semibold" for="selectAll">
-            Select all students on this page
-          </label>
-        </div>
-
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <div class="input-group input-group-sm w-auto">
-            <span class="input-group-text">Start</span>
-            <input type="date" class="form-control" name="start">
-            <span class="input-group-text">End</span>
-            <input type="date" class="form-control" name="end">
-          </div>
-
-          <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-success" onclick="submitBulk('status', true)">
-              Enable
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="submitBulk('status', false)">
-              Disable
-            </button>
-            <button type="button" class="btn btn-primary" onclick="submitBulk('window', null)">
-              Set Access Window
-            </button>
-          </div>
-
-          <input type="hidden" name="enabled" id="bulkEnabled">
-          <input type="hidden" name="mode" id="bulkMode">
-          <!-- ids injected by JS -->
-        </div>
-      </div>
-    </form>
-
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle">
-        <thead>
-        <tr>
-          <th class="col-narrow">No</th>
-          <th>Name</th>
-          <th class="col-narrow">Student&nbsp;ID</th>
-          <th class="col-narrow">Department</th>
-          <th class="col-narrow">Session</th>
-          <th>Company</th>
-          <th class="col-narrow">Status</th>
-          <th style="min-width:420px;">Access Window</th>
-          <th class="col-narrow text-center">Actions</th>
-        </tr>
-        </thead>
-
-        <tbody>
-        <tr th:each="student, iterStat : ${students.content}">
-          <!-- No + checkbox -->
-          <td>
-            <div class="form-check">
-              <input class="form-check-input student-check"
-                     type="checkbox"
-                     th:value="${student.id}"
-                     th:id="${'stu-' + student.id}">
-              <label class="form-check-label fw-semibold"
-                     th:for="${'stu-' + student.id}"
-                     th:text="${iterStat.index + 1}">1</label>
-            </div>
-          </td>
-
-          <td>
-            <div class="fw-semibold" th:text="${student.name}">John Doe</div>
-            <div class="muted small" th:text="${student.username}">username</div>
-          </td>
-
-          <td class="font-monospace" th:text="${student.studentId}">213844</td>
-          <td th:text="${student.department != null ? student.department.label : '-'}">-</td>
-          <td th:text="${student.session}">2024/2025-2</td>
-          <td th:text="${studentCompanyMap[student.id]}">-</td>
-
-          <!-- Status -->
-          <td class="col-narrow">
-            <div class="d-flex flex-column align-items-start gap-2">
-              <span class="status-pill"
-                    th:classappend="${student.enabled} ? ' status-on' : ' status-off'"
-                    th:text="${student.enabled} ? 'ENABLED' : 'DISABLED'">ENABLED</span>
-
-              <form th:action="@{/admin/users/{id}/status(id=${student.id})}" method="post">
-                <input type="hidden" name="backTo" value="students">
-                <input type="hidden" name="enabled" th:value="${!student.enabled}">
-                <button type="submit"
-                        class="btn btn-sm btn-rounded"
-                        th:classappend="${student.enabled} ? ' btn-outline-danger' : ' btn-outline-success'">
-                  <i class="bi"
-                     th:classappend="${student.enabled} ? ' bi-slash-circle me-1' : ' bi-check-circle me-1'"></i>
-                  <span th:text="${student.enabled} ? 'Disable' : 'Enable'"></span>
-                </button>
-              </form>
-            </div>
-          </td>
-
-          <!-- Access window -->
-          <td>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-              <div class="access-meta me-1">
-                <div><strong>Start:</strong> <span th:text="${student.accessStart} ?: '-'">-</span></div>
-                <div><strong>End:</strong> <span th:text="${student.accessEnd} ?: '-'">-</span></div>
-              </div>
-
-              <form th:action="@{/admin/users/{id}/access-window(id=${student.id})}" method="post"
-                    class="access-form d-flex flex-wrap align-items-center gap-2">
-                <div class="input-group input-group-sm w-auto">
-                  <span class="input-group-text">Start</span>
-                  <input class="form-control" type="date" name="start" th:value="${student.accessStart}">
+                <!-- Department -->
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1">Department</label>
+                    <select name="department" class="form-select form-select-sm filter-control">
+                        <option value="" th:selected="${department == null}">All Departments</option>
+                        <option th:each="d : ${departmentOptions}"
+                                th:value="${d}"
+                                th:text="${d.label}"
+                                th:selected="${department != null and department.name() == d.name()}">
+                        </option>
+                    </select>
                 </div>
-                <div class="input-group input-group-sm w-auto">
-                  <span class="input-group-text">End</span>
-                  <input class="form-control" type="date" name="end" th:value="${student.accessEnd}">
+
+                <!-- Session -->
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1">Session</label>
+                    <select class="form-select form-select-sm filter-control" name="session">
+                        <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
+                        <option th:each="s : ${sessionOptions}"
+                                th:value="${s}"
+                                th:text="${s}"
+                                th:selected="${s == selectedSession}">
+                        </option>
+                    </select>
                 </div>
-                <input type="hidden" name="backTo" value="students">
-                <button type="submit" class="btn btn-primary btn-sm btn-rounded">
-                  <i class="bi bi-calendar-check me-1"></i>Set
-                </button>
-              </form>
+
+                <!-- Search -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text"
+                               name="search"
+                               class="form-control filter-control"
+                               placeholder="Search by name, student ID, company..."
+                               th:value="${search}">
+                    </div>
+                </div>
+
+                <!-- Keep size -->
+                <input type="hidden" name="size" th:value="${size}"/>
+
+                <!-- Button -->
+                <div class="col-12 col-md-2 d-grid">
+                    <button class="btn btn-primary btn-rounded filter-btn" type="submit">
+                        <i class="bi bi-funnel me-1"></i> Filter
+                    </button>
+                </div>
+            </form>
+
+            <!-- Total -->
+            <div class="text-end total-box">
+                <div class="muted small">Total Students</div>
+                <div class="fw-black fs-5" style="font-weight:900;" th:text="${students.totalElements}">0</div>
             </div>
-          </td>
 
-          <!-- Actions -->
-          <td class="text-center">
-            <div class="action-group d-inline-flex gap-1">
-              <a th:href="@{/admin/students/edit/{id}(id=${student.id})}"
-                 class="btn btn-outline-primary"
-                 data-bs-toggle="tooltip" data-bs-title="Edit student">
-                <i class="bi bi-pencil-square"></i>
-              </a>
-
-              <form th:action="@{/admin/students/delete/{id}(id=${student.id})}" method="post" class="d-inline"
-                    onsubmit="return confirm('Delete this student?');">
-                <button type="submit" class="btn btn-outline-danger"
-                        data-bs-toggle="tooltip" data-bs-title="Delete">
-                  <i class="bi bi-trash3"></i>
-                </button>
-              </form>
-            </div>
-          </td>
-        </tr>
-
-        <!-- Empty -->
-        <tr th:if="${#lists.isEmpty(students.content)}">
-          <td colspan="9" class="text-center py-5 text-muted">
-            <i class="bi bi-people fs-3 d-block mb-2"></i>
-            No students found. Try adjusting your search.
-          </td>
-        </tr>
-        </tbody>
-      </table>
+        </div>
     </div>
 
-    <!-- Pagination -->
-    <div class="d-flex align-items-center justify-content-between p-3 page-footer">
-      <small class="muted">
-        Page <span class="fw-semibold" th:text="${currentPage + 1}">1</span> of
-        <span class="fw-semibold" th:text="${students.totalPages}">1</span>
-      </small>
+    <!-- Table Card -->
+    <div class="card-soft table-card">
 
-      <nav th:if="${students.totalPages > 0}">
-        <ul class="pagination pagination-sm mb-0">
-          <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-            <a class="page-link"
-               th:href="@{/admin/students(page=${currentPage - 1},
+        <!-- Bulk actions (sticky) -->
+        <form th:action="@{/admin/students/bulk}" method="post" id="bulkForm"
+              class="p-3 border-bottom bulk-bar"
+              style="border-bottom:1px solid var(--border)!important;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAll">
+                        <label class="form-check-label fw-semibold" for="selectAll">
+                            Select all on this page
+                        </label>
+                    </div>
+
+                    <!-- ✅ NEW: Apply to all filtered (all pages) -->
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="applyAllFiltered">
+                        <label class="form-check-label fw-semibold" for="applyAllFiltered">
+                            Apply to ALL students in this filter (all pages)
+                        </label>
+                    </div>
+
+                    <span class="badge text-bg-light border" style="font-weight:700;">
+                        Selected: <span id="selectedCount">0</span>
+                    </span>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <div class="input-group input-group-sm w-auto">
+                        <span class="input-group-text">Start</span>
+                        <input type="date" class="form-control" name="start" id="bulkStart">
+                        <span class="input-group-text">End</span>
+                        <input type="date" class="form-control" name="end" id="bulkEnd">
+                    </div>
+
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-success" data-bulk-btn="true" onclick="submitBulk('status', true)">
+                            Enable
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bulk-btn="true" onclick="submitBulk('status', false)">
+                            Disable
+                        </button>
+                        <button type="button" class="btn btn-primary" data-bulk-btn="true" onclick="submitBulk('window', null)">
+                            Set Access Window
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="enabled" id="bulkEnabled">
+                    <input type="hidden" name="mode" id="bulkMode">
+
+                    <!-- ✅ NEW: filters + applyAll -->
+                    <input type="hidden" name="session" th:value="${selectedSession}">
+                    <input type="hidden" name="department" th:value="${department}">
+                    <input type="hidden" name="search" th:value="${search}">
+                    <input type="hidden" name="applyAll" id="applyAllHidden" value="false">
+
+                    <!-- ids injected by JS -->
+                </div>
+            </div>
+
+            <!-- ✅ Optional: small hint for admin -->
+            <div class="mt-2 d-flex flex-wrap gap-2">
+                <span class="chip">
+                    <i class="bi bi-info-circle"></i>
+                    Tip: Filter by session first, then tick “Apply to ALL…” to update everyone.
+                </span>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                <tr>
+                    <th class="col-narrow">No</th>
+                    <th>Name</th>
+                    <th class="col-narrow">Student&nbsp;ID</th>
+                    <th class="col-narrow">Department</th>
+                    <th class="col-narrow">Session</th>
+                    <th>Company</th>
+                    <th class="col-narrow">Status</th>
+                    <th style="min-width:360px;">Access Window</th>
+                    <th class="col-narrow text-center">Actions</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="student, iterStat : ${students.content}">
+                    <!-- No + checkbox -->
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input student-check"
+                                   type="checkbox"
+                                   th:value="${student.id}"
+                                   th:id="${'stu-' + student.id}">
+                            <label class="form-check-label fw-semibold"
+                                   th:for="${'stu-' + student.id}"
+                                   th:text="${iterStat.index + 1}">1</label>
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="fw-semibold" th:text="${student.name}">John Doe</div>
+                    </td>
+
+                    <td class="font-monospace" th:text="${student.studentId}">213844</td>
+                    <td th:text="${student.department != null ? student.department.label : '-'}">-</td>
+                    <td th:text="${student.session}">2024/2025-2</td>
+                    <td th:text="${studentCompanyMap[student.id]}">-</td>
+
+                    <!-- Status -->
+                    <td class="col-narrow">
+                        <div class="d-flex flex-column align-items-start gap-2">
+                            <span class="status-pill"
+                                  th:classappend="${student.enabled} ? ' status-on' : ' status-off'"
+                                  th:text="${student.enabled} ? 'ENABLED' : 'DISABLED'">ENABLED</span>
+
+                            <form th:action="@{/admin/users/{id}/status(id=${student.id})}" method="post">
+                                <input type="hidden" name="backTo" value="students">
+                                <input type="hidden" name="enabled" th:value="${!student.enabled}">
+                                <button type="submit"
+                                        class="btn btn-sm btn-rounded"
+                                        th:classappend="${student.enabled} ? ' btn-outline-danger' : ' btn-outline-success'">
+                                    <i class="bi"
+                                       th:classappend="${student.enabled} ? ' bi-slash-circle me-1' : ' bi-check-circle me-1'"></i>
+                                    <span th:text="${student.enabled} ? 'Disable' : 'Enable'"></span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+
+                    <!-- Access window (clean + modal trigger) -->
+                    <td>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+
+                            <!-- Access status badge (simple: set vs not set) -->
+                            <span class="status-pill status-off"
+                                  th:if="${student.accessStart == null and student.accessEnd == null}">
+                                NOT SET
+                            </span>
+
+                            <span class="status-pill status-info"
+                                  th:if="${student.accessStart != null or student.accessEnd != null}">
+                                SET
+                            </span>
+
+                            <div class="access-meta">
+                                <div><strong>Start:</strong> <span th:text="${student.accessStart} ?: '-'">-</span></div>
+                                <div><strong>End:</strong> <span th:text="${student.accessEnd} ?: '-'">-</span></div>
+                            </div>
+
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm btn-rounded ms-auto"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#accessWindowModal"
+                                    th:attr="data-student-id=${student.id},
+                                             data-student-name=${student.name},
+                                             data-start=${student.accessStart},
+                                             data-end=${student.accessEnd}">
+                                <i class="bi bi-calendar-week me-1"></i>Set Window
+                            </button>
+                        </div>
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="text-center">
+                        <div class="action-group d-inline-flex gap-1">
+                            <a th:href="@{/admin/students/edit/{id}(id=${student.id})}"
+                               class="btn btn-outline-primary"
+                               data-bs-toggle="tooltip" data-bs-title="Edit student">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+
+                            <form th:action="@{/admin/students/delete/{id}(id=${student.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Delete this student?');">
+                                <button type="submit" class="btn btn-outline-danger"
+                                        data-bs-toggle="tooltip" data-bs-title="Delete">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Empty -->
+                <tr th:if="${#lists.isEmpty(students.content)}">
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-people fs-3 d-block mb-2"></i>
+                        No students found. Try adjusting your search.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex align-items-center justify-content-between p-3 page-footer">
+            <small class="muted">
+                Page <span class="fw-semibold" th:text="${currentPage + 1}">1</span> of
+                <span class="fw-semibold" th:text="${students.totalPages}">1</span>
+            </small>
+
+            <nav th:if="${students.totalPages > 0}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/students(page=${currentPage - 1},
                           size=${size},
                           search=${search},
                           session=${selectedSession},
                           department=${department})}">
-              Previous
-            </a>
-          </li>
+                            Previous
+                        </a>
+                    </li>
 
-          <li class="page-item"
-              th:each="i : ${#numbers.sequence(0, students.totalPages - 1)}"
-              th:classappend="${i == currentPage} ? 'active'">
-            <a class="page-link"
-               th:text="${i + 1}"
-               th:href="@{/admin/students(page=${i},
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, students.totalPages - 1)}"
+                        th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link"
+                           th:text="${i + 1}"
+                           th:href="@{/admin/students(page=${i},
                           size=${size},
                           search=${search},
                           session=${selectedSession},
-                          department=${department})}"
-            >
-              1
-            </a>
-          </li>
+                          department=${department})}">
+                            1
+                        </a>
+                    </li>
 
-          <li class="page-item" th:classappend="${currentPage == students.totalPages - 1} ? 'disabled'">
-            <a class="page-link"
-               th:href="@{/admin/students(page=${currentPage + 1},
+                    <li class="page-item" th:classappend="${currentPage == students.totalPages - 1} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/students(page=${currentPage + 1},
                           size=${size},
                           search=${search},
                           session=${selectedSession},
-                          department=${department})}"
-            >
-              Next
-            </a>
-          </li>
-        </ul>
-      </nav>
+                          department=${department})}">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
-
-  </div>
 </main>
 
 <footer class="text-center text-muted py-4 small">
-  © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, UPM
+    © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, UPM
 </footer>
 
+<!-- Access Window Modal -->
+<div class="modal fade" id="accessWindowModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:18px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Set Student Access Window</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="accessWindowForm" method="post">
+                <div class="modal-body">
+                    <div class="mb-2 muted">
+                        Student: <span class="fwf-semibold text-dark" id="awStudentName">-</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Start date</label>
+                            <input type="date" class="form-control" name="start" id="awStart">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">End date</label>
+                            <input type="date" class="form-control" name="end" id="awEnd">
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="backTo" value="students">
+
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm btn-rounded" id="awClear">
+                            Clear
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm btn-rounded" id="awOneYear">
+                            + 1 Year
+                        </button>
+                    </div>
+
+                    <div class="small muted mt-2">
+                        Tip: Leave empty to remove access window restriction for this student.
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-rounded" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-rounded">
+                        <i class="bi bi-check2-circle me-1"></i>Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-  // tooltips
-  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+    // tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
 
-  // select all
-  const selectAll = document.getElementById('selectAll');
-  if (selectAll) {
-    selectAll.addEventListener('change', function () {
-      document.querySelectorAll('.student-check').forEach(cb => cb.checked = selectAll.checked);
-    });
-  }
+    // ✅ update selected count + enable/disable bulk buttons
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.student-check:checked').length;
+        const el = document.getElementById('selectedCount');
+        if (el) el.textContent = selected;
 
-  // submit bulk
-  function submitBulk(mode, enabledFlag) {
-    const form = document.getElementById('bulkForm');
-    const checks = document.querySelectorAll('.student-check:checked');
+        const applyAll = document.getElementById('applyAllFiltered')?.checked;
 
-    if (!checks.length) {
-      alert('Please select at least one student.');
-      return;
+        document.querySelectorAll('[data-bulk-btn="true"]').forEach(btn => {
+            // enable buttons if either some selected OR applyAll is checked
+            btn.disabled = (selected === 0 && !applyAll);
+        });
     }
 
-    // remove previous ids
-    Array.from(form.querySelectorAll('input[name="ids"]')).forEach(el => el.remove());
+    // select all on page
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            // if user selects all on page, disable applyAll to avoid confusion
+            const applyAllBox = document.getElementById('applyAllFiltered');
+            if (this.checked && applyAllBox) applyAllBox.checked = false;
 
-    // add selected ids
-    checks.forEach(cb => {
-      const hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'ids';
-      hidden.value = cb.value;
-      form.appendChild(hidden);
+            document.querySelectorAll('.student-check').forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        });
+    }
+
+    // apply all filtered (all pages)
+    document.getElementById('applyAllFiltered')?.addEventListener('change', function () {
+        if (this.checked) {
+            // uncheck everything on page to make it clear it affects all pages
+            if (selectAll) selectAll.checked = false;
+            document.querySelectorAll('.student-check').forEach(cb => cb.checked = false);
+        }
+        updateSelectedCount();
     });
 
-    document.getElementById('bulkMode').value = mode;
-    if (enabledFlag !== null) document.getElementById('bulkEnabled').value = enabledFlag;
+    // individual checks
+    document.querySelectorAll('.student-check').forEach(cb => {
+        cb.addEventListener('change', function () {
+            // if user manually selects, turn off applyAll
+            const applyAllBox = document.getElementById('applyAllFiltered');
+            if (this.checked && applyAllBox) applyAllBox.checked = false;
 
-    form.submit();
-  }
+            // if any unchecked, uncheck selectAll
+            if (selectAll && !this.checked) selectAll.checked = false;
+
+            updateSelectedCount();
+        });
+    });
+
+    // Access window modal wiring
+    const accessWindowModal = document.getElementById('accessWindowModal');
+    if (accessWindowModal) {
+        accessWindowModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-student-id');
+            const name = button.getAttribute('data-student-name') || '-';
+            const start = button.getAttribute('data-start') || '';
+            const end = button.getAttribute('data-end') || '';
+
+            document.getElementById('awStudentName').textContent = name;
+            document.getElementById('awStart').value = start;
+            document.getElementById('awEnd').value = end;
+
+            // set correct action: /admin/users/{id}/access-window
+            const form = document.getElementById('accessWindowForm');
+            form.action = `/admin/users/${id}/access-window`;
+        });
+
+        document.getElementById('awClear')?.addEventListener('click', () => {
+            document.getElementById('awStart').value = '';
+            document.getElementById('awEnd').value = '';
+        });
+
+        document.getElementById('awOneYear')?.addEventListener('click', () => {
+            const startInput = document.getElementById('awStart');
+            const endInput = document.getElementById('awEnd');
+            const startVal = startInput.value;
+
+            const startDate = startVal ? new Date(startVal) : new Date();
+            const endDate = new Date(startDate);
+            endDate.setFullYear(endDate.getFullYear() + 1);
+
+            const pad = (n) => String(n).padStart(2, '0');
+            const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+            startInput.value = startVal ? startVal : fmt(startDate);
+            endInput.value = fmt(endDate);
+        });
+    }
+
+    // ✅ submit bulk with "Apply to ALL filtered" support
+    function submitBulk(mode, enabledFlag) {
+        const form = document.getElementById('bulkForm');
+        const applyAll = document.getElementById('applyAllFiltered')?.checked;
+
+        // remove previous ids
+        Array.from(form.querySelectorAll('input[name="ids"]')).forEach(el => el.remove());
+
+        document.getElementById('bulkMode').value = mode;
+        if (enabledFlag !== null) document.getElementById('bulkEnabled').value = enabledFlag;
+
+        // ✅ set applyAll hidden value
+        document.getElementById('applyAllHidden').value = applyAll ? "true" : "false";
+
+        if (!applyAll) {
+            const checks = document.querySelectorAll('.student-check:checked');
+            if (!checks.length) {
+                alert('Please select at least one student, or tick "Apply to ALL students in this filter".');
+                return;
+            }
+
+            // add selected ids
+            checks.forEach(cb => {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'ids';
+                hidden.value = cb.value;
+                form.appendChild(hidden);
+            });
+        } else {
+            // safety confirm
+            const action = (mode === 'status')
+                ? (enabledFlag ? 'ENABLE' : 'DISABLE')
+                : 'SET ACCESS WINDOW';
+
+            // require start/end if mode is window? (recommended)
+            if (mode === 'window') {
+                const s = document.getElementById('bulkStart')?.value;
+                const e = document.getElementById('bulkEnd')?.value;
+                if (!s && !e) {
+                    if (!confirm('Start/End are empty. This will CLEAR access windows for ALL filtered students. Continue?')) {
+                        return;
+                    }
+                }
+            }
+
+            if (!confirm(`Apply "${action}" to ALL students in the current filter (all pages)?`)) return;
+        }
+
+        form.submit();
+    }
+
+    // initial state
+    updateSelectedCount();
 </script>
+
 </body>
 </html>

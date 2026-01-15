@@ -112,6 +112,23 @@ AND (:department IS NULL OR u.department = :department)
     );
 
 
+    @Query("""
+SELECT u FROM User u
+WHERE u.role = :role
+AND (
+    :search IS NULL OR :search = '' OR
+    LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR
+    LOWER(u.studentId) LIKE LOWER(CONCAT('%', :search, '%'))
+)
+AND (:session IS NULL OR :session = '' OR u.session = :session)
+AND (:department IS NULL OR u.department = :department)
+""")
+    List<User> findAllStudentsForBulk(
+            @Param("role") String role,
+            @Param("search") String search,
+            @Param("session") String session,
+            @Param("department") Department department
+    );
 
 
 

@@ -235,7 +235,5 @@ public class LogbookEntry {
     public void setLecturerReviewedAt(java.time.LocalDateTime lecturerReviewedAt) { this.lecturerReviewedAt = lecturerReviewedAt; }
 
 
-    public Boolean getEndorsed (){
-        return endorsed;
-    }
+
 }

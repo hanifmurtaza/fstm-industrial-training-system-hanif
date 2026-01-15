@@ -112,6 +112,22 @@
                     Invalid username, password, or role.
                 </div>
 
+                <!-- ✅ Access-window / account status messages -->
+                <div th:if="${param.disabled}" class="alert alert-danger py-2">
+                    Your account is disabled. Please contact the admin.
+                </div>
+
+                <div th:if="${param.notstarted}" class="alert alert-warning py-2">
+                    Your access has not started yet. Please check the access window set by the admin.
+                </div>
+
+                <div th:if="${param.expired}" class="alert alert-danger py-2">
+                    Your access has expired. Please contact the admin to renew your access.
+                </div>
+
+                <form th:action="@{/login}" method="post">
+
+
                 <form th:action="@{/login}" method="post">
                     <div class="mb-3">
                         <label for="username" class="form-label mb-1">UPM ID</label>
