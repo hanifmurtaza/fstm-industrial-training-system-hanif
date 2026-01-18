@@ -1,6 +1,7 @@
 package com.example.itsystem.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,39 +16,70 @@ public class VisitEvaluation {
     private Long lecturerId;
     private Long studentId;
 
-    @Column(columnDefinition = "TEXT")
-    private String summary;
+    // ===== Part A: Visit Details (record, not scored) =====
+    private LocalDate visitDate;
+
+    @Column(length = 20)
+    private String visitMode; // Physical / Online
 
     @Column(columnDefinition = "TEXT")
-    private String interviewOutcome;
+    private String discussionSummary; // summary of discussions with student & supervisor
 
     @Column(columnDefinition = "TEXT")
-    private String logbookReview;
+    private String overallObservation; // on-site observation
+
+    // ===== Part B1: Student Reflection (Qualitative comments) =====
+    @Column(columnDefinition = "TEXT")
+    private String roleUnderstandingComment;
 
     @Column(columnDefinition = "TEXT")
-    private String workplaceSuitability;
+    private String learningUnderstandingComment;
 
+    // ===== Part B: Likert scores (1-5) =====
+    // B1.2 Reflection Likert -> /10 (x2)
+    private Integer reflectionLikert; // 1-5
+
+    // B2 Engagement -> /10 (x2)
+    private Integer engagementLikert; // 1-5
+
+    // B3 Placement suitability -> /5
+    private Integer placementSuitabilityLikert; // 1-5
+
+    // B4 Logbook evaluation -> /5
+    private Integer logbookLikert; // 1-5
+
+    // B5 Lecturer overall evaluation -> /10 (x2)
+    private Integer lecturerOverallLikert; // 1-5
+
+    // ===== Optional (not scored) =====
     @Column(columnDefinition = "TEXT")
-    private String careerPotential;
+    private String additionalRemarks;
+
+    // ===== Persisted total for student dashboard display =====
+    private Integer totalScore40; // 0-40
 
     private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
-    // ================== 👇 Part C（临时字段，不入库） ==================
-    @Transient
-    private Integer vlEvaluation10;
+    /* ----------------- helper ----------------- */
+    public void recalcTotalScore40() {
+        int reflection10 = safeLikert(reflectionLikert) * 2;          // 2..10
+        int engagement10 = safeLikert(engagementLikert) * 2;          // 2..10
+        int suitability5 = safeLikert(placementSuitabilityLikert);    // 1..5
+        int logbook5 = safeLikert(logbookLikert);                     // 1..5
+        int overall10 = safeLikert(lecturerOverallLikert) * 2;        // 2..10
 
-    @Transient
-    private Integer vlAttendance5;
+        this.totalScore40 = reflection10 + engagement10 + suitability5 + logbook5 + overall10;
+    }
 
-    @Transient
-    private Integer vlLogbook5;
+    private int safeLikert(Integer v) {
+        if (v == null) return 0;
+        if (v < 1) return 0;
+        if (v > 5) return 5;
+        return v;
+    }
 
-    @Transient
-    private Integer vlFinalReport40;
-
-    @Transient
-    private String session;
-    // ================== 👆 新增结束 ==================
+    /* ----------------- getters/setters ----------------- */
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -61,36 +93,48 @@ public class VisitEvaluation {
     public Long getStudentId() { return studentId; }
     public void setStudentId(Long studentId) { this.studentId = studentId; }
 
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
+    public LocalDate getVisitDate() { return visitDate; }
+    public void setVisitDate(LocalDate visitDate) { this.visitDate = visitDate; }
 
-    public String getInterviewOutcome() { return interviewOutcome; }
-    public void setInterviewOutcome(String interviewOutcome) { this.interviewOutcome = interviewOutcome; }
+    public String getVisitMode() { return visitMode; }
+    public void setVisitMode(String visitMode) { this.visitMode = visitMode; }
 
-    public String getLogbookReview() { return logbookReview; }
-    public void setLogbookReview(String logbookReview) { this.logbookReview = logbookReview; }
+    public String getDiscussionSummary() { return discussionSummary; }
+    public void setDiscussionSummary(String discussionSummary) { this.discussionSummary = discussionSummary; }
 
-    public String getWorkplaceSuitability() { return workplaceSuitability; }
-    public void setWorkplaceSuitability(String workplaceSuitability) { this.workplaceSuitability = workplaceSuitability; }
+    public String getOverallObservation() { return overallObservation; }
+    public void setOverallObservation(String overallObservation) { this.overallObservation = overallObservation; }
 
-    public String getCareerPotential() { return careerPotential; }
-    public void setCareerPotential(String careerPotential) { this.careerPotential = careerPotential; }
+    public String getRoleUnderstandingComment() { return roleUnderstandingComment; }
+    public void setRoleUnderstandingComment(String roleUnderstandingComment) { this.roleUnderstandingComment = roleUnderstandingComment; }
+
+    public String getLearningUnderstandingComment() { return learningUnderstandingComment; }
+    public void setLearningUnderstandingComment(String learningUnderstandingComment) { this.learningUnderstandingComment = learningUnderstandingComment; }
+
+    public Integer getReflectionLikert() { return reflectionLikert; }
+    public void setReflectionLikert(Integer reflectionLikert) { this.reflectionLikert = reflectionLikert; }
+
+    public Integer getEngagementLikert() { return engagementLikert; }
+    public void setEngagementLikert(Integer engagementLikert) { this.engagementLikert = engagementLikert; }
+
+    public Integer getPlacementSuitabilityLikert() { return placementSuitabilityLikert; }
+    public void setPlacementSuitabilityLikert(Integer placementSuitabilityLikert) { this.placementSuitabilityLikert = placementSuitabilityLikert; }
+
+    public Integer getLogbookLikert() { return logbookLikert; }
+    public void setLogbookLikert(Integer logbookLikert) { this.logbookLikert = logbookLikert; }
+
+    public Integer getLecturerOverallLikert() { return lecturerOverallLikert; }
+    public void setLecturerOverallLikert(Integer lecturerOverallLikert) { this.lecturerOverallLikert = lecturerOverallLikert; }
+
+    public String getAdditionalRemarks() { return additionalRemarks; }
+    public void setAdditionalRemarks(String additionalRemarks) { this.additionalRemarks = additionalRemarks; }
+
+    public Integer getTotalScore40() { return totalScore40; }
+    public void setTotalScore40(Integer totalScore40) { this.totalScore40 = totalScore40; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public Integer getVlEvaluation10() { return vlEvaluation10; }
-    public void setVlEvaluation10(Integer vlEvaluation10) { this.vlEvaluation10 = vlEvaluation10; }
-
-    public Integer getVlAttendance5() { return vlAttendance5; }
-    public void setVlAttendance5(Integer vlAttendance5) { this.vlAttendance5 = vlAttendance5; }
-
-    public Integer getVlLogbook5() { return vlLogbook5; }
-    public void setVlLogbook5(Integer vlLogbook5) { this.vlLogbook5 = vlLogbook5; }
-
-    public Integer getVlFinalReport40() { return vlFinalReport40; }
-    public void setVlFinalReport40(Integer vlFinalReport40) { this.vlFinalReport40 = vlFinalReport40; }
-
-    public String getSession() { return session; }
-    public void setSession(String session) { this.session = session; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -2,7 +2,11 @@ package com.example.itsystem.controller;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+
+import com.example.itsystem.repository.*;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
@@ -26,13 +30,6 @@ import com.example.itsystem.model.Company;
 import com.example.itsystem.model.Placement;
 import com.example.itsystem.model.PlacementStatus;
 
-import com.example.itsystem.repository.CompanyRepository;
-import com.example.itsystem.repository.PlacementRepository;
-import com.example.itsystem.repository.LogbookEntryRepository;
-import com.example.itsystem.repository.UserRepository;
-import com.example.itsystem.repository.StudentAssessmentRepository;
-import com.example.itsystem.repository.CompanyInfoRepository;
-
 import com.example.itsystem.service.LogbookEntryService;
 import com.example.itsystem.service.VisitScheduleService;
 
@@ -42,6 +39,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.example.itsystem.model.VisitEvaluation;
 
 @Controller
 public class StudentController {
@@ -55,17 +53,15 @@ public class StudentController {
     @Autowired private PlacementRepository placementRepository;
     @Autowired private CompanyRepository companyRepository;
 
-    // ★ Assessments
     @Autowired private StudentAssessmentRepository studentAssessmentRepository;
 
-    // ★ Company Info Submission
     @Autowired private CompanyInfoRepository companyInfoRepository;
+    @Autowired private VisitEvaluationRepository visitEvaluationRepository;
 
-    // ★ File storage (logbook photo + final report)
+
     @Autowired(required = false)
     private FileStorageService fileStorageService;
 
-    // ★ Current session (prefer student.session)
     private String currentSession(User user) {
         if (user != null && user.getSession() != null && !user.getSession().isBlank()) {
             return user.getSession();
@@ -86,13 +82,11 @@ public class StudentController {
         VisitSchedule visit = visitScheduleService.findUpcomingForStudent(user.getId());
         model.addAttribute("visitSchedule", visit);
 
-        // ===== Try sessions in priority to avoid mismatch =====
-        String byVisit = null; // future: if VisitSchedule has session/term
+        // ====== 还是保留你原来 StudentAssessment 的读取逻辑（Industry Supervisor / total / grade 继续用） ======
         String byUser = (user.getSession() != null && !user.getSession().isBlank()) ? user.getSession() : null;
         String fallbackDefault = "2024/2025-2";
 
         ArrayList<String> candidates = new ArrayList<>();
-        if (byVisit != null && !byVisit.isBlank()) candidates.add(byVisit.trim());
         if (byUser != null && !byUser.isBlank()) candidates.add(byUser.trim());
         if (fallbackDefault != null) candidates.add(fallbackDefault.trim());
         candidates = new ArrayList<>(new LinkedHashSet<>(candidates));
@@ -105,38 +99,73 @@ public class StudentController {
         if (sa == null) {
             sa = studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(user.getId()).orElse(null);
         }
-        // ===============================================
 
-        int vlEval10  = sa != null && sa.getVlEvaluation10()  != null ? sa.getVlEvaluation10().intValue()  : 0;
-        int vlAttend5 = sa != null && sa.getVlAttendance5()   != null ? sa.getVlAttendance5().intValue()   : 0;
-        int vlLog5    = sa != null && sa.getVlLogbook5()      != null ? sa.getVlLogbook5().intValue()      : 0;
-        int vlRep40   = sa != null && sa.getVlFinalReport40() != null ? sa.getVlFinalReport40().intValue() : 0;
-
+        // ====== Industry Supervisor (40) 继续从 StudentAssessment 拿 ======
         int isSkill20 = sa != null && sa.getIsSkills20()        != null ? sa.getIsSkills20().intValue()        : 0;
         int isComm10  = sa != null && sa.getIsCommunication10() != null ? sa.getIsCommunication10().intValue() : 0;
         int isTeam10  = sa != null && sa.getIsTeamwork10()      != null ? sa.getIsTeamwork10().intValue()      : 0;
 
-        Integer total100 = sa != null && sa.getTotal100() != null ? sa.getTotal100().intValue() : null;
-        String grade = sa != null ? sa.getGrade() : null;
-
-        boolean hasVL = sa != null && (
-                sa.getVlEvaluation10() != null ||
-                        sa.getVlAttendance5() != null ||
-                        sa.getVlLogbook5() != null ||
-                        sa.getVlFinalReport40() != null
-        );
+        int isSum = isSkill20 + isComm10 + isTeam10;
         boolean hasIS = sa != null && (
                 sa.getIsSkills20() != null ||
                         sa.getIsCommunication10() != null ||
                         sa.getIsTeamwork10() != null
         );
+
+        model.addAttribute("isSkill20", isSkill20);
+        model.addAttribute("isComm10", isComm10);
+        model.addAttribute("isTeam10", isTeam10);
+        model.addAttribute("isSum", isSum);
+        model.addAttribute("hasIS", hasIS);
+
+        Integer total100 = sa != null && sa.getTotal100() != null ? sa.getTotal100().intValue() : null;
+        String grade = sa != null ? sa.getGrade() : null;
+        model.addAttribute("grade", grade);
+
+        // ====== ✅ Visiting Lecturer (40) 新逻辑：从 visit_evaluation 拿（新结构） ======
+        // 你 repo 里需要有这个方法：
+        // Optional<VisitEvaluation> findFirstByStudentIdOrderByCreatedAtDesc(Long studentId);
+        VisitEvaluation ve = visitEvaluationRepository
+                .findFirstByStudentIdOrderByCreatedAtDesc(user.getId())
+                .orElse(null);
+
+        boolean hasVL = (ve != null);
+
+        int vlRef10 = 0, vlEng10 = 0, vlSuit5 = 0, vlLog5 = 0, vlOverall10 = 0;
+        int vlSum40 = 0;
+
+        if (hasVL) {
+            vlRef10 = safeLikert(ve.getReflectionLikert()) * 2;
+            vlEng10 = safeLikert(ve.getEngagementLikert()) * 2;
+            vlSuit5 = safeLikert(ve.getPlacementSuitabilityLikert()); // ✅ Suitability
+            vlLog5 = safeLikert(ve.getLogbookLikert());
+            vlOverall10 = safeLikert(ve.getLecturerOverallLikert()) * 2;
+
+            vlSum40 = (ve.getTotalScore40() != null)
+                    ? ve.getTotalScore40()
+                    : (vlRef10 + vlEng10 + vlSuit5 + vlLog5 + vlOverall10);
+        }
+
+        model.addAttribute("hasVL", hasVL);
+        model.addAttribute("vlRef10", vlRef10);
+        model.addAttribute("vlEng10", vlEng10);
+        model.addAttribute("vlSuit5", vlSuit5);
+        model.addAttribute("vlLog5", vlLog5);
+        model.addAttribute("vlOverall10", vlOverall10);
+        model.addAttribute("vlSum", vlSum40);
+
+
+        // ====== Evaluation Status cards ======
+        // FinalReport / Logbook 的旧字段你现在是拿 VL 的旧结构分数（vlFinalReport40 / vlLogbook5）
+        // 为了不破坏你现有逻辑：我们保持从 StudentAssessment 拿（你之后再统一改也行）
         boolean hasLogbook = sa != null && sa.getVlLogbook5() != null;
         boolean hasFinal   = sa != null && sa.getVlFinalReport40() != null;
 
-        Integer vlShown  = hasVL ? (vlEval10 + vlAttend5 + vlLog5 + vlRep40) : null; // /60
-        Integer isShown  = hasIS ? (isSkill20 + isComm10 + isTeam10) : null;          // /40
-        Integer logShown = hasLogbook ? vlLog5 : null;                                // /5
-        Integer frShown  = hasFinal ? vlRep40 : null;                                 // /40
+        Integer logShown = hasLogbook ? (sa.getVlLogbook5() != null ? sa.getVlLogbook5().intValue() : 0) : null;
+        Integer frShown  = hasFinal ? (sa.getVlFinalReport40() != null ? sa.getVlFinalReport40().intValue() : 0) : null;
+
+        Integer isShown  = hasIS ? isSum : null;
+        Integer vlShown  = hasVL ? vlSum40 : null;
 
         Map<String, Integer> evaluationStatus = new LinkedHashMap<>();
         evaluationStatus.put("FinalReport", frShown);
@@ -149,33 +178,27 @@ public class StudentController {
         maxMap.put("FinalReport", 40);
         maxMap.put("IndustrySupervisor", 40);
         maxMap.put("Logbook", 5);
-        maxMap.put("VisitingLecturer", 60);
+        maxMap.put("VisitingLecturer", 40); // ✅ 改成 40
         model.addAttribute("maxMap", maxMap);
 
-        int vlSum = vlEval10 + vlAttend5 + vlLog5 + vlRep40;
-        int isSum = isSkill20 + isComm10 + isTeam10;
-
-        model.addAttribute("vlEval10", vlEval10);
-        model.addAttribute("vlAttend5", vlAttend5);
-        model.addAttribute("vlLog5", vlLog5);
-        model.addAttribute("vlRep40", vlRep40);
-        model.addAttribute("vlSum", vlSum);
-
-        model.addAttribute("isSkill20", isSkill20);
-        model.addAttribute("isComm10", isComm10);
-        model.addAttribute("isTeam10", isTeam10);
-        model.addAttribute("isSum", isSum);
-
-        model.addAttribute("total100", total100 != null ? total100 : (vlSum + isSum));
-        model.addAttribute("grade", grade);
-
-        model.addAttribute("hasVL", hasVL);
-        model.addAttribute("hasIS", hasIS);
         model.addAttribute("hasLogbook", hasLogbook);
         model.addAttribute("hasFinal", hasFinal);
 
+        // ====== Total ======
+        // 你现在 total100 可能是数据库算好的，也可能 null。
+        // 我们保持你的做法：如果 null，就用 (vlSum40 + isSum) 先顶着
+        model.addAttribute("total100", total100 != null ? total100 : (vlSum40 + isSum));
+
         return "student-dashboard";
     }
+
+    // 放在 StudentController 类里任意位置即可（private helper）
+    private int safeLikert(Integer v) {
+        if (v == null) return 0;
+        if (v < 1) return 0;
+        return Math.min(v, 5);
+    }
+
 
     // ==========================
     //      Student Company Info
@@ -198,18 +221,24 @@ public class StudentController {
         return "student/company-form";
     }
 
+    /**
+     * ✅ 提交公司信息 + 实习起止日期校验（>=24周）
+     */
     @PostMapping("/student/company-info")
     public String submitCompanyInfo(@RequestParam String companyName,
                                     @RequestParam(required = false) String companyAddress,
                                     @RequestParam String supervisorName,
                                     @RequestParam String supervisorEmail,
                                     @RequestParam(required = false) String supervisorPhone,
+                                    @RequestParam("internshipStartDate") LocalDate internshipStartDate,
+                                    @RequestParam("internshipEndDate") LocalDate internshipEndDate,
                                     HttpSession session,
                                     RedirectAttributes ra) {
 
         User student = (User) session.getAttribute("user");
         if (student == null || !"student".equals(student.getRole())) return "redirect:/login";
 
+        // 1) 不能重复提交（除非 REJECTED）
         CompanyInfo latest = companyInfoRepository
                 .findFirstByStudentIdOrderByIdDesc(student.getId())
                 .orElse(null);
@@ -221,6 +250,24 @@ public class StudentController {
             return "redirect:/student/company-info";
         }
 
+        // 2) 日期基础校验
+        if (internshipStartDate == null || internshipEndDate == null) {
+            ra.addFlashAttribute("error", "Please select internship start and end date.");
+            return "redirect:/student/company-info";
+        }
+        if (internshipEndDate.isBefore(internshipStartDate)) {
+            ra.addFlashAttribute("error", "Internship end date must be after start date.");
+            return "redirect:/student/company-info";
+        }
+
+        // 3) ✅ >=24周校验（按天数>=168天）
+        long days = ChronoUnit.DAYS.between(internshipStartDate, internshipEndDate) + 1; // 包含当天
+        if (days < 168) {
+            ra.addFlashAttribute("error", "Internship duration must be greater than 24 weeks.");
+            return "redirect:/student/company-info";
+        }
+
+        // 4) 保存
         CompanyInfo info = new CompanyInfo();
         info.setStudentId(student.getId());
         info.setCompanyName(companyName.trim());
@@ -228,6 +275,11 @@ public class StudentController {
         info.setSupervisorName(supervisorName.trim());
         info.setSupervisorEmail(supervisorEmail.trim());
         info.setSupervisorPhone(supervisorPhone);
+
+        info.setInternshipStartDate(internshipStartDate);
+        info.setInternshipEndDate(internshipEndDate);
+
+        info.setSession(currentSession(student));
         info.setStatus(CompanyInfoStatus.PENDING);
 
         companyInfoRepository.save(info);
@@ -295,7 +347,7 @@ public class StudentController {
     }
 
     // ==========================
-    //          Visit
+    //          Visit (你现有逻辑保留)
     // ==========================
     @PostMapping("/student/visit/confirm")
     public String confirmVisit(@RequestParam Long visitId, HttpSession session) {
@@ -336,10 +388,8 @@ public class StudentController {
         logbookEntry.setStudentId(student.getId());
         logbookEntry.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // ✅ Save entry first to get ID
         LogbookEntry saved = logbookEntryRepository.save(logbookEntry);
 
-        // ✅ Store photo via FileStorageService (if available)
         if (photoFile != null && !photoFile.isEmpty() && fileStorageService != null) {
             String url = fileStorageService.storeLogbookFile(photoFile, student.getId(), saved.getId());
             saved.setPhotoPath(url);
@@ -453,9 +503,6 @@ public class StudentController {
         return "redirect:/student/final-report?success=true";
     }
 
-    // ==========================
-    //          Logout
-    // ==========================
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();

@@ -15,6 +15,7 @@ public interface VisitScheduleRepository extends JpaRepository<VisitSchedule, Lo
 
     Optional<VisitSchedule> findTopByStudentIdOrderByIdDesc(Long studentId);
 
+    long countByLecturerIdAndRescheduleRequestedTrue(Long lecturerId);
 
     // 统计：未拜访的日程（状态 in，且日期>=today）
     long countByLecturerIdAndStatusInAndVisitDateGreaterThanEqual(

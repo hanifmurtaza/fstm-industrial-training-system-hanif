@@ -1,12 +1,10 @@
 package com.example.itsystem.controller;
 
-import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.model.User;
 import com.example.itsystem.model.VisitEvaluation;
 import com.example.itsystem.model.VisitSchedule;
 import com.example.itsystem.repository.UserRepository;
 import com.example.itsystem.repository.VisitEvaluationRepository;
-import com.example.itsystem.service.StudentAssessmentService;
 import com.example.itsystem.service.VisitScheduleService;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -22,11 +20,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Controller
 @RequestMapping("/lecturer/evaluation")
@@ -40,18 +35,6 @@ public class EvaluationController {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private StudentAssessmentService studentAssessmentService;
-
-    // If you have dynamic session, replace this method later
-    private String currentSession() {
-        return "2024/2025-2";
-    }
-
-    private static Integer toInt(BigDecimal v) {
-        return v == null ? null : v.intValue();
-    }
 
     @GetMapping("/form/{visitId}")
     public String showEvaluationForm(@PathVariable Long visitId,
@@ -67,34 +50,21 @@ public class EvaluationController {
             return "redirect:/lecturer/evaluation/list";
         }
 
-        User student = userRepository.findById(visit.getStudentId()).orElse(null);
+        // existing evaluation (same visit) or new one
+        VisitEvaluation evaluation = evaluationRepository.findFirstByVisitId(visitId).orElse(new VisitEvaluation());
 
-        String finalSession = (sessionFilter != null && !sessionFilter.isBlank())
-                ? sessionFilter.trim()
-                : (student != null && student.getSession() != null && !student.getSession().isBlank()
-                ? student.getSession().trim()
-                : "2024/2025-2"); // fallback only
-
-        // Get/create evaluation (Part A/B)
-        List<VisitEvaluation> list = evaluationRepository.findByVisitId(visitId);
-        VisitEvaluation evaluation = list.isEmpty() ? new VisitEvaluation() : list.get(0);
-
+        // bind ownership
         evaluation.setVisitId(visit.getId());
         evaluation.setStudentId(visit.getStudentId());
         evaluation.setLecturerId(lecturer.getId());
 
-        // session must be set (and front-end posts hidden field)
-        evaluation.setSession(finalSession);
-
-        // Fill Part C from student_assessment (student + session + lecturerId)
-        StudentAssessment sa = studentAssessmentService.getOrCreate(
-                visit.getStudentId(), finalSession, lecturer.getId()
-        );
-
-        evaluation.setVlEvaluation10(toInt(sa.getVlEvaluation10()));
-        evaluation.setVlAttendance5(toInt(sa.getVlAttendance5()));
-        evaluation.setVlLogbook5(toInt(sa.getVlLogbook5()));
-        evaluation.setVlFinalReport40(toInt(sa.getVlFinalReport40()));
+        // Part A convenience defaults (optional)
+        if (evaluation.getVisitDate() == null && visit.getVisitDate() != null) {
+            evaluation.setVisitDate(visit.getVisitDate());
+        }
+        if (evaluation.getVisitMode() == null && visit.getMode() != null) {
+            evaluation.setVisitMode(visit.getMode());
+        }
 
         model.addAttribute("evaluation", evaluation);
         model.addAttribute("selectedSession", sessionFilter == null ? "" : sessionFilter);
@@ -110,37 +80,14 @@ public class EvaluationController {
         User lecturer = (User) session.getAttribute("user");
         if (lecturer == null || !"teacher".equals(lecturer.getRole())) return "redirect:/login";
 
-        // Save Part A/B (visit_evaluation table)
+        // safety: force lecturerId from session
+        evaluation.setLecturerId(lecturer.getId());
+        evaluation.setUpdatedAt(LocalDateTime.now());
+
+        // ✅ important: compute totalScore40 based on likert
+        evaluation.recalcTotalScore40();
+
         evaluationRepository.save(evaluation);
-
-        // session fallback (avoid saving empty session)
-        User student = (evaluation.getStudentId() != null)
-                ? userRepository.findById(evaluation.getStudentId()).orElse(null)
-                : null;
-
-        String sessionStr = (evaluation.getSession() != null && !evaluation.getSession().isBlank())
-                ? evaluation.getSession().trim()
-                : (student != null && student.getSession() != null && !student.getSession().isBlank()
-                ? student.getSession().trim()
-                : "2024/2025-2");
-
-
-        Long studentId = evaluation.getStudentId();
-
-        int e10 = (evaluation.getVlEvaluation10() == null) ? 0 : evaluation.getVlEvaluation10();
-        int a5  = (evaluation.getVlAttendance5() == null) ? 0 : evaluation.getVlAttendance5();
-        int l5  = (evaluation.getVlLogbook5() == null) ? 0 : evaluation.getVlLogbook5();
-        int r40 = (evaluation.getVlFinalReport40() == null) ? 0 : evaluation.getVlFinalReport40();
-
-        // Save Part C to student_assessment (student + session + lecturerId)
-        studentAssessmentService.saveVisitingLecturerScores(
-                studentId, sessionStr, lecturer.getId(),
-                BigDecimal.valueOf(e10),
-                BigDecimal.valueOf(a5),
-                BigDecimal.valueOf(l5),
-                BigDecimal.valueOf(r40),
-                true
-        );
 
         ra.addFlashAttribute("successMessage", "Evaluation submitted successfully.");
 
@@ -151,9 +98,7 @@ public class EvaluationController {
     }
 
     /**
-     * ✅ Merged improvement:
-     * List page based on lecturer-bound students (even if no visit yet),
-     * while still providing latest visit for each student if available.
+     * List page: students assigned to lecturer + latest visit mapping
      */
     @GetMapping("/list")
     public String showEvaluationList(@RequestParam(name = "session", required = false) String sessionFilter,
@@ -163,17 +108,14 @@ public class EvaluationController {
         User lecturer = (User) session.getAttribute("user");
         if (lecturer == null || !"teacher".equals(lecturer.getRole())) return "redirect:/login";
 
-        // Dropdown options: distinct sessions under this lecturer
         List<String> sessions = userRepository.findDistinctSessionsByLecturer(lecturer);
         model.addAttribute("sessions", sessions);
         model.addAttribute("selectedSession", sessionFilter == null ? "" : sessionFilter);
 
-        // ✅ Main list: students bound to lecturer (optionally filtered by session)
         List<User> students = (sessionFilter != null && !sessionFilter.isBlank())
                 ? userRepository.findByLecturerAndSession(lecturer, sessionFilter)
                 : userRepository.findByLecturer(lecturer);
 
-        // Get all visits for lecturer to find latest per student
         List<VisitSchedule> allVisits = visitScheduleService.findByLecturerId(lecturer.getId());
 
         Map<Long, VisitSchedule> latestVisitMap = new HashMap<>();
@@ -196,13 +138,12 @@ public class EvaluationController {
     public void downloadEvaluationPdf(@PathVariable Long visitId,
                                       HttpServletResponse response) throws IOException {
 
-        List<VisitEvaluation> evalList = evaluationRepository.findByVisitId(visitId);
-        if (evalList.isEmpty()) {
+        VisitEvaluation evaluation = evaluationRepository.findFirstByVisitId(visitId).orElse(null);
+        if (evaluation == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Evaluation not found");
             return;
         }
 
-        VisitEvaluation evaluation = evalList.get(0);
         VisitSchedule schedule = visitScheduleService.findById(visitId);
 
         response.setContentType("application/pdf");
@@ -216,21 +157,47 @@ public class EvaluationController {
             document.add(new Paragraph("Student Evaluation Form").setBold().setFontSize(16));
 
             document.add(new Paragraph("Student ID: " + evaluation.getStudentId()));
-            document.add(new Paragraph("Date of Visit: " +
-                    (schedule != null && schedule.getVisitDate() != null ? schedule.getVisitDate().toString() : "-")));
-            document.add(new Paragraph("Summary of Discussion: " +
-                    (evaluation.getSummary() != null ? evaluation.getSummary() : "-")));
+            document.add(new Paragraph("Visit Date: " +
+                    (evaluation.getVisitDate() != null ? evaluation.getVisitDate() : "-")));
+            document.add(new Paragraph("Visit Mode: " +
+                    (evaluation.getVisitMode() != null ? evaluation.getVisitMode() : "-")));
 
-            document.add(new Paragraph("Interview Outcome: " +
-                    (evaluation.getInterviewOutcome() != null ? evaluation.getInterviewOutcome() : "-")));
-            document.add(new Paragraph("Logbook Review: " +
-                    (evaluation.getLogbookReview() != null ? evaluation.getLogbookReview() : "-")));
-            document.add(new Paragraph("Workplace Suitability: " +
-                    (evaluation.getWorkplaceSuitability() != null ? evaluation.getWorkplaceSuitability() : "-")));
-            document.add(new Paragraph("Career Potential: " +
-                    (evaluation.getCareerPotential() != null ? evaluation.getCareerPotential() : "-")));
+            document.add(new Paragraph("\nPart A: Visit Details").setBold());
+            document.add(new Paragraph("Discussion Summary: " +
+                    (evaluation.getDiscussionSummary() != null ? evaluation.getDiscussionSummary() : "-")));
+            document.add(new Paragraph("Overall Observation: " +
+                    (evaluation.getOverallObservation() != null ? evaluation.getOverallObservation() : "-")));
+
+            document.add(new Paragraph("\nPart B1: Student Reflection (Comments)").setBold());
+            document.add(new Paragraph("Role Understanding Comment: " +
+                    (evaluation.getRoleUnderstandingComment() != null ? evaluation.getRoleUnderstandingComment() : "-")));
+            document.add(new Paragraph("Learning Understanding Comment: " +
+                    (evaluation.getLearningUnderstandingComment() != null ? evaluation.getLearningUnderstandingComment() : "-")));
+
+            document.add(new Paragraph("\nPart B2: Likert Scores (1-5)").setBold());
+            document.add(new Paragraph("Reflection Likert: " + safe(evaluation.getReflectionLikert())));
+            document.add(new Paragraph("Engagement Likert: " + safe(evaluation.getEngagementLikert())));
+            document.add(new Paragraph("Placement Suitability Likert: " + safe(evaluation.getPlacementSuitabilityLikert())));
+            document.add(new Paragraph("Logbook Likert: " + safe(evaluation.getLogbookLikert())));
+            document.add(new Paragraph("Lecturer Overall Likert: " + safe(evaluation.getLecturerOverallLikert())));
+
+            document.add(new Paragraph("\nTotal Score: " +
+                    (evaluation.getTotalScore40() != null ? evaluation.getTotalScore40() : 0) + " / 40").setBold());
+
+            document.add(new Paragraph("\nAdditional Remarks: " +
+                    (evaluation.getAdditionalRemarks() != null ? evaluation.getAdditionalRemarks() : "-")));
+
+            // Optional: schedule info
+            if (schedule != null) {
+                document.add(new Paragraph("\n(From Visit Schedule)").setItalic());
+                document.add(new Paragraph("Scheduled Date: " + (schedule.getVisitDate() != null ? schedule.getVisitDate() : "-")));
+            }
 
             document.close();
         }
+    }
+
+    private String safe(Integer v) {
+        return v == null ? "-" : String.valueOf(v);
     }
 }

@@ -5,6 +5,7 @@ import com.example.itsystem.model.User;
 import com.example.itsystem.model.VisitSchedule;
 import com.example.itsystem.repository.LogbookEntryRepository;
 import com.example.itsystem.repository.UserRepository;
+import com.example.itsystem.repository.VisitScheduleRepository;
 import com.example.itsystem.service.UserService;
 import com.example.itsystem.service.VisitScheduleService;
 import com.example.itsystem.service.impl.LecturerDashboardService;
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.example.itsystem.model.VisitEvaluation;
+import com.example.itsystem.repository.VisitEvaluationRepository;
+import java.time.LocalDateTime;
 
 import java.util.*;
 
@@ -26,9 +30,12 @@ public class LecturerController {
     @Autowired private VisitScheduleService visitScheduleService;
     @Autowired private UserRepository userRepository;
     @Autowired private LogbookEntryRepository logbookEntryRepository;
+    @Autowired private VisitEvaluationRepository visitEvaluationRepository;
 
     // ★ 仪表服务（KPI & 周统计）
     @Autowired private LecturerDashboardService dashboardService;
+    @Autowired private VisitScheduleRepository visitScheduleRepository;
+
 
     /* ========== 新增：VL 首页（前端：templates/lecturer/home.html） ========== */
     @GetMapping("/home")
@@ -45,6 +52,22 @@ public class LecturerController {
         return "home";
     }
 
+    @GetMapping("/lecturer/schedule")
+    public String scheduleVisit(HttpSession session, Model model) {
+
+        User lecturer = (User) session.getAttribute("user");
+        if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
+            return "redirect:/login";
+        }
+
+        long pendingReschedule =
+                visitScheduleRepository.countByLecturerIdAndRescheduleRequestedTrue(lecturer.getId());
+
+        model.addAttribute("hasRescheduleAlert", pendingReschedule > 0);
+        model.addAttribute("activePage", "schedule");
+
+        return "lecturer/schedule-visit";
+    }
 
     /* ========== 新增：KPI 统计接口（前端 fetch 用） ========== */
     @GetMapping("/dashboard/kpis")
@@ -236,4 +259,34 @@ public class LecturerController {
         stats.put("Pending", pending);
         return stats;
     }
+    @GetMapping("/evaluation/form")
+    public String evaluationForm(@RequestParam Long visitId,
+                                 @RequestParam Long studentId,
+                                 @RequestParam(required = false) String session,
+                                 HttpSession httpSession,
+                                 Model model) {
+
+        User lecturer = (User) httpSession.getAttribute("user");
+        if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
+            return "redirect:/login";
+        }
+
+        VisitEvaluation evaluation = visitEvaluationRepository
+                .findFirstByVisitId(visitId)
+                .orElseGet(() -> {
+                    VisitEvaluation ev = new VisitEvaluation();
+                    ev.setVisitId(visitId);
+                    ev.setStudentId(studentId);
+                    ev.setLecturerId(lecturer.getId());
+                    return ev;
+                });
+
+        model.addAttribute("evaluation", evaluation);
+        model.addAttribute("selectedSession", session == null ? "" : session);
+
+        return "lecturer/evaluation-form";
+    }
+
+
+
 }

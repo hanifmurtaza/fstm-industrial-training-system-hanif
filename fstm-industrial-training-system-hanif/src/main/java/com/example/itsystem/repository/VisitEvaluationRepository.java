@@ -18,4 +18,6 @@ public interface VisitEvaluationRepository extends JpaRepository<VisitEvaluation
 
     // ② 如果只取一条，也可以用这个更方便
     Optional<VisitEvaluation> findFirstByVisitId(Long visitId);
+    Optional<VisitEvaluation> findFirstByStudentIdOrderByCreatedAtDesc(Long studentId);
+
 }

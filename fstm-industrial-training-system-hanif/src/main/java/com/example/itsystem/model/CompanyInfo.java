@@ -2,6 +2,7 @@ package com.example.itsystem.model;
 
 import jakarta.persistence.*;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 
 @Entity
 @Table(
@@ -43,6 +44,10 @@ public class CompanyInfo {
     /** Academic session (e.g., 2024/25-2) */
     @Column(length = 40)
     private String session;
+
+    /** ✅ Internship start/end date */
+    private LocalDate internshipStartDate;
+    private LocalDate internshipEndDate;
 
     /** Admin workflow status */
     @Enumerated(EnumType.STRING)
@@ -110,6 +115,12 @@ public class CompanyInfo {
 
     public String getSession() { return session; }
     public void setSession(String session) { this.session = session; }
+
+    public LocalDate getInternshipStartDate() { return internshipStartDate; }
+    public void setInternshipStartDate(LocalDate internshipStartDate) { this.internshipStartDate = internshipStartDate; }
+
+    public LocalDate getInternshipEndDate() { return internshipEndDate; }
+    public void setInternshipEndDate(LocalDate internshipEndDate) { this.internshipEndDate = internshipEndDate; }
 
     public CompanyInfoStatus getStatus() { return status; }
     public void setStatus(CompanyInfoStatus status) { this.status = status; }

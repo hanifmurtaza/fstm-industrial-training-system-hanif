@@ -47,10 +47,15 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link [[${activePage == 'schedule'} ? 'active' : '']]" th:href="@{/lecturer/schedule}">
+                <a class="nav-link [[${activePage == 'schedule'} ? 'active' : '']]]"
+                   th:href="@{/lecturer/schedule}">
                     Schedule Visit
+                    <span th:if="${hasRescheduleAlert}"
+                          class="ms-1 rounded-circle bg-danger"
+                          style="display:inline-block;width:8px;height:8px;"></span>
                 </a>
             </li>
+
 
             <li class="nav-item">
                 <a class="nav-link [[${activePage == 'finalReport'} ? 'active' : '']]" th:href="@{/lecturer/final-report/list}">

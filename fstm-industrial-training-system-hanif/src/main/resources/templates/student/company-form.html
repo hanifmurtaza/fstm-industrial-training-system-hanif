@@ -14,7 +14,7 @@
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
-    <!-- Status card if student has submitted before -->
+    <!-- Status card -->
     <div th:if="${latestInfo != null}" class="card mb-4 shadow-sm">
         <div class="card-body">
             <h5 class="card-title mb-3">Latest Submission</h5>
@@ -23,11 +23,20 @@
                 <strong>Company:</strong>
                 <span th:text="${latestInfo.companyName}">Company Name</span>
             </p>
+
+            <p class="mb-1">
+                <strong>Internship:</strong>
+                <span th:text="${latestInfo.internshipStartDate != null ? latestInfo.internshipStartDate : '-'}"></span>
+                &nbsp;to&nbsp;
+                <span th:text="${latestInfo.internshipEndDate != null ? latestInfo.internshipEndDate : '-'}"></span>
+            </p>
+
             <p class="mb-1">
                 <strong>Supervisor:</strong>
                 <span th:text="${latestInfo.supervisorName}">Supervisor Name</span>
                 (<span th:text="${latestInfo.supervisorEmail}">email</span>)
             </p>
+
             <p class="mb-2">
                 <strong>Phone:</strong>
                 <span th:text="${latestInfo.supervisorPhone != null ? latestInfo.supervisorPhone : '-'}">phone</span>
@@ -55,7 +64,7 @@
         </div>
     </div>
 
-    <!-- Submission form (only when canSubmit == true) -->
+    <!-- Form -->
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="card-title mb-3">Company Information Form</h5>
@@ -79,6 +88,23 @@
                     <label class="form-label">Company Address</label>
                     <textarea class="form-control" name="companyAddress" rows="2"
                               th:text="${latestInfo != null ? latestInfo.address : ''}"></textarea>
+                </div>
+
+                <!-- ✅ Internship Dates -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Internship Start Date</label>
+                        <input type="date" class="form-control" name="internshipStartDate" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Internship End Date</label>
+                        <input type="date" class="form-control" name="internshipEndDate" required>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-text text-muted">
+                            Internship duration must be greater than 24 weeks.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
