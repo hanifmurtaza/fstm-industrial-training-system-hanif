@@ -248,6 +248,13 @@ html,body{
         margin-top: 10px;
         text-align: left !important;
     }
+
+    .sector-desc{
+        max-width: 720px;
+        line-height: 1.45;
+        margin-left: 1.5rem; /* aligns under label text */
+    }
+
 }
 
 

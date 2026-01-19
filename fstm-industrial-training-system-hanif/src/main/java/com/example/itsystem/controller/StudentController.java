@@ -478,30 +478,37 @@ public class StudentController {
 
     @PostMapping("/student/final-report/submit")
     public String submitFinalReport(@RequestParam(value = "reportFile", required = false) MultipartFile reportFile,
-                                    @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
-                                    HttpSession session) {
+                                    @RequestParam(value = "videoLink", required = false) String videoLink,
+                                    HttpSession session,
+                                    RedirectAttributes ra) {
 
         User student = (User) session.getAttribute("user");
         if (student == null || !"student".equals(student.getRole())) return "redirect:/login";
 
         User dbStudent = userRepository.findById(student.getId()).orElse(student);
 
+        // 1) 保存 PDF（保持原逻辑）
         if (fileStorageService != null) {
             if (reportFile != null && !reportFile.isEmpty()) {
                 String pdfUrl = fileStorageService.storeFinalReportPdf(reportFile, dbStudent.getId());
                 dbStudent.setFinalReportPdfPath(pdfUrl);
             }
-            if (videoFile != null && !videoFile.isEmpty()) {
-                String videoUrl = fileStorageService.storeFinalReportVideo(videoFile, dbStudent.getId());
-                dbStudent.setFinalReportVideoPath(videoUrl);
-            }
         }
+
+        // 2) 保存 Video Link（不再上传视频）
+        if (videoLink == null || videoLink.trim().isEmpty()) {
+            // 你也可以选择不强制 required，这里我按“必须提交链接”处理
+            ra.addFlashAttribute("errorMessage", "Please paste your video presentation link.");
+            return "redirect:/student/final-report";
+        }
+        dbStudent.setFinalReportVideoPath(videoLink.trim()); // ✅ 复用原字段存链接
 
         userRepository.save(dbStudent);
         session.setAttribute("user", dbStudent);
 
         return "redirect:/student/final-report?success=true";
     }
+
 
     @GetMapping("/logout")
     public String logout(HttpSession session) {

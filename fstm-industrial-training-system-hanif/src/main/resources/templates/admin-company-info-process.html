@@ -282,15 +282,117 @@
                                     <input type="text" class="form-control" name="newCompanyName"
                                            th:placeholder="${info.companyName}" th:value="${info.companyName}">
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Sector (optional)</label>
-                                    <select class="form-select" name="newCompanySector">
-                                        <option value="">-- Select sector --</option>
-                                        <option th:each="s : ${sectorOptions}"
-                                                th:value="${s.name()}"
-                                                th:text="${s.name()}"></option>
-                                    </select>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Sector (Faculty list)</label>
+
+                                    <div class="radio-card">
+                                        <div class="d-flex flex-column gap-2">
+
+                                            <!-- 1 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="FOOD_MANUFACTURING_PROCESSING"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'FOOD_MANUFACTURING_PROCESSING'}">
+                                                <div>
+                                                    <div class="fw-semibold">Food Manufacturing and Processing</div>
+                                                    <div class="small-note">Includes food factories, processing plants, packaging facilities, and food production companies.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 2 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="FOOD_SERVICE_RESTAURANT"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'FOOD_SERVICE_RESTAURANT'}">
+                                                <div>
+                                                    <div class="fw-semibold">Food Service and Restaurant Operations</div>
+                                                    <div class="small-note">Covers restaurants, cafés, quick service restaurants, cloud kitchens, catering companies, and food trucks.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 3 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="HOTEL_RESORT_FNB"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'HOTEL_RESORT_FNB'}">
+                                                <div>
+                                                    <div class="fw-semibold">Hotel and Resort Food and Beverage Operations</div>
+                                                    <div class="small-note">Hotels, resorts, and hospitality establishments with structured F&amp;B departments.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 4 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="INSTITUTIONAL_FOOD_SERVICE"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'INSTITUTIONAL_FOOD_SERVICE'}">
+                                                <div>
+                                                    <div class="fw-semibold">Institutional Food Service Operations</div>
+                                                    <div class="small-note">Food services in hospitals, universities, schools, prisons, corporate cafeterias, and military facilities.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 5 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="FOOD_RETAIL_DISTRIBUTION"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'FOOD_RETAIL_DISTRIBUTION'}">
+                                                <div>
+                                                    <div class="fw-semibold">Food Retail and Distribution</div>
+                                                    <div class="small-note">Supermarkets, hypermarkets, specialty stores, wholesalers, and distributors.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 6 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="FOOD_TECH_QA_SAFETY"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'FOOD_TECH_QA_SAFETY'}">
+                                                <div>
+                                                    <div class="fw-semibold">Food Technology, Quality, and Safety Services</div>
+                                                    <div class="small-note">Laboratories, QA firms, halal certification bodies, and food safety consultancies.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 7 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="GOVERNMENT_REGULATORY"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'GOVERNMENT_REGULATORY'}">
+                                                <div>
+                                                    <div class="fw-semibold">Government and Regulatory Agencies</div>
+                                                    <div class="small-note">Ministries, authorities, enforcement agencies, and related government departments.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- 8 -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="FOOD_ENTREPRENEURSHIP_SME"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'FOOD_ENTREPRENEURSHIP_SME'}">
+                                                <div>
+                                                    <div class="fw-semibold">Food Entrepreneurship and Small Enterprises</div>
+                                                    <div class="small-note">SMEs, home-based businesses, start-ups, and social enterprises in the food sector.</div>
+                                                </div>
+                                            </label>
+
+                                            <!-- Others -->
+                                            <label class="form-check d-flex gap-2 align-items-start">
+                                                <input class="form-check-input mt-1" type="radio"
+                                                       name="newCompanySector" value="OTHERS"
+                                                       th:checked="${info.sector != null and info.sector.name() == 'OTHERS'}">
+                                                <div>
+                                                    <div class="fw-semibold">Others</div>
+                                                    <div class="small-note">For companies that do not fall under the categories listed above.</div>
+                                                </div>
+                                            </label>
+
+                                        </div>
+                                    </div>
+
+                                    <div class="small-note mt-2">Please select the most suitable sector based on the faculty list.</div>
                                 </div>
+
                                 <div class="col-12">
                                     <label class="form-label fw-semibold">Address (optional)</label>
                                     <input type="text" class="form-control" name="newCompanyAddress"

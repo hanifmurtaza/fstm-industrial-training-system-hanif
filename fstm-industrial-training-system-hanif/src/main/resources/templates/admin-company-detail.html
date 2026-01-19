@@ -67,12 +67,31 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Sector</label>
-            <input type="text" class="form-control"
-                   name="sector" th:value="${company.sector}">
-          </div>
-        </div>
 
-        <div class="mb-3">
+            <div class="border rounded-3 p-3 bg-white">
+              <div class="row g-2">
+                <div class="col-12 col-sm-6" th:each="s : ${sectorOptions}">
+                  <label class="w-100 border rounded-3 p-2 d-flex align-items-start gap-2"
+                         style="cursor:pointer;">
+                    <input class="form-check-input mt-1"
+                           type="radio"
+                           name="sector"
+                           th:value="${s.name()}"
+                           th:checked="${company.sector != null and company.sector == s.name()}">
+                    <span>
+            <span class="fw-semibold"
+                  th:text="${#strings.replace(s.name(), '_', ' ')}">SECTOR</span>
+          </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-text">Select one sector from the official list.</div>
+          </div>
+
+
+          <div class="mb-3">
           <label class="form-label">Address</label>
           <textarea class="form-control" name="address" rows="2"
                     th:text="${company.address}"></textarea>

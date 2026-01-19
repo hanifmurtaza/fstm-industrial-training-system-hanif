@@ -1214,7 +1214,7 @@ public class AdminController {
     }
 
 
-    // shared helper for the process form
+
     // shared helper for the process form
     private String loadCompanyInfoProcessForm(Long id, Model model) {
         CompanyInfo info = companyInfoRepository.findById(id).orElseThrow();
@@ -1265,7 +1265,7 @@ public class AdminController {
                                      @RequestParam(required = false) Long existingCompanyId,
                                      @RequestParam(required = false) String newCompanyName,
                                      @RequestParam(required = false) String newCompanyAddress,
-                                     @RequestParam(required = false) String newCompanySector,
+                                     @RequestParam(required = false) String sector,
                                      @RequestParam(required = false) String supervisorMode,
                                      @RequestParam(required = false) Long existingSupervisorId,
                                      @RequestParam(required = false) String supervisorName,
@@ -1306,8 +1306,8 @@ public class AdminController {
             company.setAddress((newCompanyAddress != null && !newCompanyAddress.isBlank())
                     ? newCompanyAddress.trim()
                     : info.getAddress());
-            if (newCompanySector != null && !newCompanySector.isBlank()) {
-                company.setSector(newCompanySector.trim());
+            if (sector != null && !sector.isBlank()) {
+                company.setSector(sector.trim());
             }
             companyRepository.save(company);
             companyId = company.getId();
@@ -1393,9 +1393,9 @@ public class AdminController {
         if (placementNotes != null && !placementNotes.isBlank()) {
             info.setJobScope(placementNotes.trim());
         }
-        if (newCompanySector != null && !newCompanySector.isBlank()) {
+        if (sector != null && !sector.isBlank()) {
             try {
-                info.setSector(CompanySector.valueOf(newCompanySector.trim()));
+                info.setSector(CompanySector.valueOf(sector.trim()));
             } catch (IllegalArgumentException ignored) {}
         }
         companyInfoRepository.save(info);
@@ -1492,6 +1492,7 @@ public class AdminController {
                 : companyRepository.findByNameContainingIgnoreCase(q.trim(), p);
 
         model.addAttribute("companies", data);
+        model.addAttribute("sectorOptions", CompanySector.values());
         model.addAttribute("q", q);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
@@ -1574,6 +1575,7 @@ public class AdminController {
         model.addAttribute("supervisors", supervisors);
         // list of all industry users – used in "link existing" dropdown
         model.addAttribute("availableSupervisors", allIndustry);
+        model.addAttribute("sectorOptions", CompanySector.values());
         return "admin-company-detail";
     }
 

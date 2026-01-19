@@ -26,23 +26,29 @@ public class FinalReportController {
 
     @PostMapping("/submit")
     public String submitFinalReport(@RequestParam("reportFile") MultipartFile reportFile,
-                                    @RequestParam("videoFile") MultipartFile videoFile,
+                                    @RequestParam("videoLink") String videoLink,
                                     HttpSession session,
                                     RedirectAttributes redirectAttributes) {
 
         User student = (User) session.getAttribute("user");
         if (student == null) return "redirect:/login";
 
+        // ✅ basic validation
+        if (videoLink == null || videoLink.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Video link is required.");
+            return "redirect:/student/final-report";
+        }
+
         FinalReport report = new FinalReport();
         report.setStudentId(student.getId());
 
-        // 🧪 模拟保存，仅存文件名
+        // 🧪 模拟保存，仅存文件名 + 视频链接
         report.setReportFilename(reportFile.getOriginalFilename());
-        report.setVideoFilename(videoFile.getOriginalFilename());
+        report.setVideoLink(videoLink.trim());
 
         finalReportRepository.save(report);
 
         redirectAttributes.addFlashAttribute("successMessage", "Final Report submitted successfully!");
-        return "redirect:/student/final-report";
+        return "redirect:/student/final-report?success";
     }
 }

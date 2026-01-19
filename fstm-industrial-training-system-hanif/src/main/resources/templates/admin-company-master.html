@@ -273,8 +273,26 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Sector</label>
-                    <input class="form-control" name="sector" placeholder="Food Science / QA Lab / R&D">
+
+                    <div class="border rounded-3 p-3 bg-white">
+                        <div class="row g-2">
+                            <div class="col-12 col-sm-6" th:each="s : ${sectorOptions}">
+                                <label class="w-100 border rounded-3 p-2 d-flex align-items-start gap-2"
+                                       style="cursor:pointer;">
+                                    <input class="form-check-input mt-1"
+                                           type="radio"
+                                           name="sector"
+                                           th:value="${s.name()}">
+                                    <span class="fw-semibold"
+                                          th:text="${#strings.replace(s.name(), '_', ' ')}">SECTOR</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-text">Choose one sector from the faculty list.</div>
                 </div>
+
             </div>
 
             <div class="mb-3">

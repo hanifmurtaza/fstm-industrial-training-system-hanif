@@ -77,8 +77,8 @@ public class CompanyInfo {
     private Boolean isPublicListing; // null -> treat as false in UI
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 40)
-    private CompanySector sector; // e.g., BAKERY, CATERING, ...
+    @Column(name = "sector")
+    private CompanySector sector;
 
     // ---------- lifecycle ----------
     @PrePersist

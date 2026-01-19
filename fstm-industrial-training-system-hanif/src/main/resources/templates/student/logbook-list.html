@@ -16,7 +16,8 @@
       <tr>
         <th>#</th>
         <th>Week Start</th>
-        <th>Status</th>
+        <th style="min-width:260px;">Supervisor Endorsement</th>
+        <th style="min-width:300px;">Visiting Lecturer Endorsement</th>
         <th>File</th>
         <th>Export</th>
         <th>Delete</th>
@@ -29,9 +30,34 @@
 
         <td th:text="${entry.weekStartDate}">2025-05-03</td>
 
+        <!-- ✅ Supervisor endorsement: use status -->
         <td>
-          <span th:if="${entry.endorsed}" class="text-success">✔ Endorsed</span>
-          <span th:unless="${entry.endorsed}" class="text-danger">✘ Not Endorsed</span>
+          <span th:if="${entry.status != null and entry.status.name() == 'APPROVED'}"
+                class="text-success fw-semibold">
+            <i class="bi bi-check-lg"></i> Endorsed
+          </span>
+
+          <span th:if="${entry.status == null or entry.status.name() == 'PENDING'}"
+                class="text-muted fw-semibold">
+            <i class="bi bi-hourglass-split"></i> Pending
+          </span>
+
+          <span th:if="${entry.status != null and entry.status.name() == 'REJECTED'}"
+                class="text-danger fw-semibold">
+            <i class="bi bi-x-lg"></i> Rejected
+          </span>
+        </td>
+
+        <!-- ✅ Visiting Lecturer endorsement: use endorsedByLecturer -->
+        <td>
+          <span th:if="${entry.endorsedByLecturer}"
+                class="text-success fw-semibold">
+            <i class="bi bi-check-lg"></i> Endorsed
+          </span>
+          <span th:unless="${entry.endorsedByLecturer}"
+                class="text-danger fw-semibold">
+            <i class="bi bi-x-lg"></i> Not Endorsed
+          </span>
         </td>
 
         <!-- ✅ File View/Download -->
@@ -53,7 +79,7 @@
           </div>
         </td>
 
-        <!-- Export PDF (your existing export) -->
+        <!-- Export PDF -->
         <td>
           <a th:href="@{'/student/logbook/download/' + ${entry.id}}"
              class="btn btn-sm btn-outline-primary">
@@ -71,6 +97,11 @@
         </td>
 
       </tr>
+
+      <tr th:if="${#lists.isEmpty(logbookEntries)}">
+        <td colspan="7" class="text-muted py-4">No logbook entries found.</td>
+      </tr>
+
       </tbody>
     </table>
   </div>

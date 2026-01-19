@@ -33,6 +33,8 @@ public class IndustrySupervisorController {
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final StudentAssessmentService studentAssessmentService;
+    private final CompanyInfoRepository companyInfoRepo;
+
 
     public IndustrySupervisorController(LogbookEntryRepository logbookRepo,
                                         AuditLogRepository auditLogRepo,
@@ -40,7 +42,8 @@ public class IndustrySupervisorController {
                                         SupervisorEvaluationRepository evalRepo,
                                         UserRepository userRepository,
                                         CompanyRepository companyRepository,
-                                        StudentAssessmentService studentAssessmentService) {
+                                        StudentAssessmentService studentAssessmentService,
+                                        CompanyInfoRepository companyInfoRepo) {
         this.logbookRepo = logbookRepo;
         this.auditLogRepo = auditLogRepo;
         this.placementRepo = placementRepo;
@@ -48,6 +51,7 @@ public class IndustrySupervisorController {
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
         this.studentAssessmentService = studentAssessmentService;
+        this.companyInfoRepo = companyInfoRepo;
     }
 
     // =========================
@@ -290,7 +294,7 @@ public class IndustrySupervisorController {
     }
 
     // =========================
-    // Placements  ✅ (use OLD WORKING logic)
+    // Placements
     // =========================
     @GetMapping("/placements")
     public String listPlacements(@RequestParam(value = "status", required = false) String status,
@@ -378,8 +382,16 @@ public class IndustrySupervisorController {
                     model.addAttribute("companyName", c.getName()));
         }
 
-        // optional: if your HTML shows sector checkboxes
-        model.addAttribute("sectorOptions", List.of("Bakery","Food Manufacturing","Frozen Food","Catering","Others"));
+
+        CompanyInfo companyInfo = null;
+        if (placement.getCompanyInfoId() != null) {
+            companyInfo = companyInfoRepo.findById(placement.getCompanyInfoId()).orElse(null);
+        }
+        model.addAttribute("companyInfo", companyInfo);
+
+
+        model.addAttribute("sectorOptions", CompanySector.values());
+
 
         return "industry-placement-edit";
     }
@@ -392,7 +404,7 @@ public class IndustrySupervisorController {
                                   @RequestParam(required = false) String allowance,
                                   @RequestParam(defaultValue = "false") boolean accommodation,
                                   @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate reportDutyDate,
-                                  @RequestParam(required = false) List<String> sectors,
+                                  @RequestParam(required = false) String sector,
                                   HttpSession session) {
 
         if (notIndustry(session)) return "redirect:/login";
@@ -426,6 +438,19 @@ public class IndustrySupervisorController {
         log.setDescription("Verified placement " + id + " and set status to AWAITING_ADMIN");
         log.setTimestamp(LocalDateTime.now());
         auditLogRepo.save(log);
+
+
+        if (p.getCompanyInfoId() != null && sector != null && !sector.isBlank()) {
+            CompanyInfo info = companyInfoRepo.findById(p.getCompanyInfoId()).orElse(null);
+            if (info != null) {
+                try {
+                    info.setSector(CompanySector.valueOf(sector.trim()));
+                    companyInfoRepo.save(info);
+                } catch (IllegalArgumentException ignored) {
+                    // invalid sector submitted; ignore or add flash error
+                }
+            }
+        }
 
         return "redirect:/industry/placements";
     }
@@ -475,7 +500,11 @@ public class IndustrySupervisorController {
     @PostMapping("/companies/{companyId}")
     public String updateCompany(@PathVariable Long companyId,
                                 @RequestParam String name,
+                                @RequestParam(required = false) String sector,
                                 @RequestParam(required = false) String address,
+                                @RequestParam(required = false) String defaultJobScope,
+                                @RequestParam(required = false) BigDecimal typicalAllowance,
+                                @RequestParam(required = false) Boolean accommodation,
                                 @RequestParam(required = false) String contactName,
                                 @RequestParam(required = false) String contactEmail,
                                 @RequestParam(required = false) String contactPhone,
@@ -493,11 +522,18 @@ public class IndustrySupervisorController {
 
         companyRepository.findById(companyId).ifPresent(company -> {
             company.setName(name);
+            company.setSector(sector);
             company.setAddress(address);
+
+            company.setDefaultJobScope(defaultJobScope);
+            company.setTypicalAllowance(typicalAllowance);
+            company.setAccommodation(accommodation);
+
             company.setContactName(contactName);
             company.setContactEmail(contactEmail);
             company.setContactPhone(contactPhone);
             company.setWebsite(website);
+
             companyRepository.save(company);
 
             AuditLog log = new AuditLog();
@@ -510,6 +546,7 @@ public class IndustrySupervisorController {
 
         return "redirect:/industry/companies";
     }
+
 
     // =========================
     // Evaluations (40%)
@@ -670,12 +707,19 @@ public class IndustrySupervisorController {
     @PostMapping("/companies/{companyId}/edit")
     public String updateCompanyEditPath(@PathVariable Long companyId,
                                         @RequestParam String name,
+                                        @RequestParam(required = false) String sector,
                                         @RequestParam(required = false) String address,
+                                        @RequestParam(required = false) String defaultJobScope,
+                                        @RequestParam(required = false) BigDecimal typicalAllowance,
+                                        @RequestParam(required = false) Boolean accommodation,
                                         @RequestParam(required = false) String contactName,
                                         @RequestParam(required = false) String contactEmail,
                                         @RequestParam(required = false) String contactPhone,
                                         @RequestParam(required = false) String website,
                                         HttpSession session) {
-        return updateCompany(companyId, name, address, contactName, contactEmail, contactPhone, website, session);
+
+        return updateCompany(companyId, name, sector, address, defaultJobScope,
+                typicalAllowance, accommodation, contactName, contactEmail, contactPhone, website, session);
     }
+
 }

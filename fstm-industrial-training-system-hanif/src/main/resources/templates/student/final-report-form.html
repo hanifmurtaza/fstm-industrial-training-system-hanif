@@ -39,16 +39,14 @@
                             </div>
 
                             <div>
-                                <span class="fw-semibold">Video (MP4): </span>
+                                <span class="fw-semibold">Video : </span>
                                 <span th:if="${user.finalReportVideoPath == null}" class="text-muted">Not uploaded</span>
 
                                 <span th:if="${user.finalReportVideoPath != null}" class="d-inline-flex gap-2">
                                     <a th:href="${user.finalReportVideoPath}" target="_blank" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> View
                                     </a>
-                                    <a th:href="${user.finalReportVideoPath}" download class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-download"></i> Download
-                                    </a>
+
                                 </span>
                             </div>
                         </div>
@@ -62,9 +60,15 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Upload Video (MP4)</label>
-                            <input type="file" name="videoFile" class="form-control" accept="video/mp4">
+                            <label class="form-label fw-bold">Video Presentation Link</label>
+                            <input type="url" name="videoLink" class="form-control"
+                                   placeholder="https://drive.google.com/..., https://youtu.be/..."
+                                   required>
+                            <div class="text-muted small mt-1">
+                                Upload your video to Google Drive / OneDrive / YouTube, then paste the link here.
+                            </div>
                         </div>
+
 
                         <div class="text-center">
                             <button type="submit" class="btn btn-primary px-4">

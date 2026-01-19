@@ -156,16 +156,126 @@
         </div>
 
         <div class="row g-3 mt-1">
-          <div class="col-md-6">
+
+          <!-- Company Name (FULL WIDTH) -->
+          <div class="col-12">
             <label class="form-label">Company Name <span class="text-danger">*</span></label>
             <input type="text" class="form-control" th:field="*{name}" required>
           </div>
 
-          <div class="col-md-6">
+
+          <div class="col-12">
             <label class="form-label">Sector</label>
-            <input type="text" class="form-control" th:field="*{sector}"
-                   placeholder="e.g. Food Manufacturing, QA Lab, Catering">
+            <div class="border rounded-3 p-3" style="background:#fff;">
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec1"
+                       value="FOOD_MANUFACTURING_PROCESSING">
+                <label class="form-check-label fw-semibold" for="sec1">
+                  Food Manufacturing and Processing
+                </label>
+                <div class="text-muted small sector-desc">
+                  Includes food factories, processing plants, packaging facilities, and food production companies.
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec2"
+                       value="FOOD_SERVICE_RESTAURANT">
+                <label class="form-check-label fw-semibold" for="sec2">
+                  Food Service and Restaurant Operations
+                </label>
+                <div class="text-muted small sector-desc">
+                  Covers restaurants, cafés, quick service restaurants, cloud kitchens, catering companies, and food trucks.
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec3"
+                       value="HOTEL_RESORT_FNB">
+                <label class="form-check-label fw-semibold" for="sec3">
+                  Hotel and Resort Food and Beverage Operations
+                </label>
+                <div class="text-muted small sector-desc">
+                  Hotel and Resort Food and Beverage Operations	Refers specifically to hotels, resorts, and hospitality establishments with structured F&B departments.
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec4"
+                       value="INSTITUTIONAL_FOOD_SERVICE">
+                <label class="form-check-label fw-semibold" for="sec4">
+                  Institutional Food Service Operations
+                </label>
+                <div class="text-muted small sector-desc">
+                  Includes food services in hospitals, universities, schools, prisons, corporate cafeterias, and military facilities.
+                  Focus is on large-scale, contract, or managed food service operations rather than ownership type.
+
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec5"
+                       value="FOOD_RETAIL_DISTRIBUTION">
+                <label class="form-check-label fw-semibold" for="sec5">
+                  Food Retail and Distribution
+                </label>
+                <div class="text-muted small sector-desc">
+                  Covers supermarkets, hypermarkets, specialty food stores, wholesalers, and food distributors.
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec6"
+                       value="FOOD_TECH_QUALITY_SAFETY">
+                <label class="form-check-label fw-semibold" for="sec6">
+                  Food Technology, Quality, and Safety Services
+                </label>
+                <div class="text-muted small sector-desc">
+                  Includes laboratories, quality assurance firms, halal certification bodies, and food safety consultancies.
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec7"
+                       value="GOVERNMENT_REGULATORY">
+                <label class="form-check-label fw-semibold" for="sec7">
+                  Government and Regulatory Agencies
+                </label>
+                <div class="text-muted small sector-desc">
+                  Refers to ministries, local authorities, enforcement agencies, and government departments related to food, health, agriculture, or trade.
+                </div>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec8"
+                       value="FOOD_ENTREPRENEURSHIP_SME">
+                <label class="form-check-label fw-semibold" for="sec8">
+                  Food Entrepreneurship and Small Enterprises
+                </label>
+                <div class="text-muted small sector-desc">
+                  Includes SMEs, home-based food businesses, start-ups, and social enterprises in the food sector.
+                </div>
+              </div>
+
+              <div class="form-check">
+                <input class="form-check-input" type="radio" th:field="*{sector}" id="sec9"
+                       value="OTHERS">
+                <label class="form-check-label fw-semibold" for="sec9">
+                  Others
+                </label>
+                <div class="text-muted small sector-desc">
+                  For placements that do not clearly fall into the above categories.
+                </div>
+              </div>
+
+            </div>
+
+            <div class="muted small mt-2">
+              Please select the most suitable sector based on the faculty list.
+            </div>
           </div>
+
 
           <div class="col-12">
             <label class="form-label">Address</label>

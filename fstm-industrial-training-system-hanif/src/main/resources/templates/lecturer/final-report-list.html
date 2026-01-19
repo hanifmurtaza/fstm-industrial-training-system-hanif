@@ -52,7 +52,7 @@
           <th style="width:160px;">Student ID</th>
           <th style="width:160px;">Session</th>
           <th style="width:240px;">Report (PDF)</th>
-          <th style="width:240px;">Video (MP4)</th>
+          <th style="width:240px;">Video </th>
         </tr>
         </thead>
 
@@ -78,19 +78,22 @@
             </span>
           </td>
 
-          <!-- Video -->
+          <!-- Video Link -->
           <td>
-            <span th:if="${stu.finalReportVideoPath == null}" class="text-muted">Not uploaded</span>
+            <span th:if="${stu.finalReportVideoPath == null}" class="text-muted">Not submitted</span>
 
             <span th:if="${stu.finalReportVideoPath != null}" class="d-inline-flex gap-2">
-              <a th:href="${stu.finalReportVideoPath}" target="_blank" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-play-circle"></i> View
-              </a>
-              <a th:href="@{'/lecturer/final-report/download/video/' + ${stu.id}}"
-                 class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-download"></i> Download
-              </a>
-            </span>
+    <a th:href="${stu.finalReportVideoPath}" target="_blank"
+       class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-play-circle"></i> Open Video Link
+    </a>
+
+    <button type="button" class="btn btn-sm btn-outline-secondary"
+            th:attr="data-link=${stu.finalReportVideoPath}"
+            onclick="navigator.clipboard.writeText(this.dataset.link)">
+      <i class="bi bi-clipboard"></i> Copy Link
+    </button>
+  </span>
           </td>
 
         </tr>

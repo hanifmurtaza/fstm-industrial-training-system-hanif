@@ -14,7 +14,8 @@ public class FinalReport {
 
     private String reportFilename;
 
-    private String videoFilename;
+    @Column(length = 500)
+    private String videoLink;  // ✅ NEW: store URL instead of file
 
     private LocalDateTime submittedAt = LocalDateTime.now();
 
@@ -28,8 +29,8 @@ public class FinalReport {
     public String getReportFilename() { return reportFilename; }
     public void setReportFilename(String reportFilename) { this.reportFilename = reportFilename; }
 
-    public String getVideoFilename() { return videoFilename; }
-    public void setVideoFilename(String videoFilename) { this.videoFilename = videoFilename; }
+    public String getVideoLink() { return videoLink; }
+    public void setVideoLink(String videoLink) { this.videoLink = videoLink; }
 
     public LocalDateTime getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
