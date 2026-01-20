@@ -1279,6 +1279,14 @@ public class AdminController {
 
         CompanyInfo info = companyInfoRepository.findById(id).orElseThrow();
 
+        //  Block re-processing if already decided
+        if (info.getStatus() != CompanyInfoStatus.PENDING) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "This submission is already " + info.getStatus() + " and cannot be processed again.");
+            return "redirect:/admin/company-info/process?id=" + id;
+        }
+
+
         Long companyId;
         if ("existing".equalsIgnoreCase(companyMode)) {
             if (existingCompanyId == null) {
@@ -1369,6 +1377,8 @@ public class AdminController {
         placement.setCompanyId(companyId);
         placement.setCompanyInfoId(info.getId());
         placement.setSupervisorUserId(supervisorUserId);
+        placement.setStartDate(info.getInternshipStartDate());
+        placement.setEndDate(info.getInternshipEndDate());
         placement.setStatus(PlacementStatus.AWAITING_SUPERVISOR);
         if (placementNotes != null && !placementNotes.isBlank()) {
             placement.setJobScope(placementNotes.trim());
