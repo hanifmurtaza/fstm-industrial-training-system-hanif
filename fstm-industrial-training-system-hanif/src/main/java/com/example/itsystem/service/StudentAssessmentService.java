@@ -74,6 +74,44 @@ public class StudentAssessmentService {
     // =========================
     // Industry Supervisor (40%)
     // =========================
+    /**
+     * ✅ OFFICIAL RUBRIC (2026): Section B (30) + Section C (10) = 40
+     */
+    @Transactional
+    public StudentAssessment saveIndustrySupervisorOfficialScores(
+            Long studentId,
+            String session,
+            Long supervisorId,
+            BigDecimal attributes30,
+            BigDecimal overall10,
+            boolean submit
+    ) {
+        StudentAssessment sa = repo.findByStudentUserIdAndSession(studentId, session)
+                .orElseGet(() -> {
+                    StudentAssessment x = new StudentAssessment();
+                    x.setStudentUserId(studentId);
+                    x.setSession(session);
+                    x.setStatus(StudentAssessment.Status.DRAFT);
+                    return repo.save(x);
+                });
+
+        if (sa.getIndustrySupervisorId() == null) {
+            sa.setIndustrySupervisorId(supervisorId);
+        }
+
+        sa.setIsAttributes30(attributes30);
+        sa.setIsOverall10(overall10);
+
+        // Keep legacy buckets cleared to avoid confusion in UI (optional)
+        sa.setIsSkills20(BigDecimal.ZERO);
+        sa.setIsCommunication10(BigDecimal.ZERO);
+        sa.setIsTeamwork10(BigDecimal.ZERO);
+
+        sa.setStatus(submit ? StudentAssessment.Status.SUBMITTED : StudentAssessment.Status.DRAFT);
+        recomputeGrade(sa);
+        return repo.save(sa);
+    }
+
     @Transactional
     public StudentAssessment saveIndustrySupervisorScores(
             Long studentId,
@@ -117,10 +155,13 @@ public class StudentAssessmentService {
                         .add(nz(sa.getVlLogbook5()))
                         .add(nz(sa.getVlFinalReport40())); // max 60
 
-        BigDecimal ind =
-                nz(sa.getIsSkills20())
-                        .add(nz(sa.getIsCommunication10()))
-                        .add(nz(sa.getIsTeamwork10())); // max 40
+        // Industry Supervisor (40): prefer official rubric fields, fallback to legacy buckets
+        BigDecimal ind = nz(sa.getIsAttributes30()).add(nz(sa.getIsOverall10()));
+        if (ind.compareTo(BigDecimal.ZERO) == 0) {
+            ind = nz(sa.getIsSkills20())
+                    .add(nz(sa.getIsCommunication10()))
+                    .add(nz(sa.getIsTeamwork10()));
+        }
 
         BigDecimal total = vl.add(ind); // max 100
 

@@ -219,7 +219,7 @@
                         <th:block th:with="sa=${assessmentByStudentId[s.id]}">
               <span th:if="${sa != null}"
                     class="badge-pill badge-ok"
-                    th:text="${(sa.isSkills20 + sa.isCommunication10 + sa.isTeamwork10) + ' / 40'}">
+                    th:text="${((sa.isAttributes30 != null ? sa.isAttributes30 : 0) + (sa.isOverall10 != null ? sa.isOverall10 : 0)) + ' / 40'}">
                 0 / 40
               </span>
                             <span th:if="${sa == null}" class="badge-pill badge-na">NO DATA</span>
@@ -230,7 +230,7 @@
                     <td>
                         <th:block th:with="sa=${assessmentByStudentId[s.id]}">
               <span th:if="${sa != null}" class="fw-semibold"
-                    th:text="${sa.total100 != null ? sa.total100 : (sa.vlEvaluation10 + sa.vlAttendance5 + sa.vlLogbook5 + sa.vlFinalReport40 + sa.isSkills20 + sa.isCommunication10 + sa.isTeamwork10)}">
+                    th:text="${sa.total100 != null ? sa.total100 : (sa.vlEvaluation10 + sa.vlAttendance5 + sa.vlLogbook5 + sa.vlFinalReport40 + (sa.isAttributes30 != null ? sa.isAttributes30 : 0) + (sa.isOverall10 != null ? sa.isOverall10 : 0))}">
                 0
               </span>
                             <span th:if="${sa == null}" class="text-muted">-</span>

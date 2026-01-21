@@ -100,21 +100,25 @@ public class StudentController {
             sa = studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(user.getId()).orElse(null);
         }
 
-        // ====== Industry Supervisor (40) 继续从 StudentAssessment 拿 ======
-        int isSkill20 = sa != null && sa.getIsSkills20()        != null ? sa.getIsSkills20().intValue()        : 0;
-        int isComm10  = sa != null && sa.getIsCommunication10() != null ? sa.getIsCommunication10().intValue() : 0;
-        int isTeam10  = sa != null && sa.getIsTeamwork10()      != null ? sa.getIsTeamwork10().intValue()      : 0;
+        // ====== Industry Supervisor (40) OFFICIAL rubric: Section B (30) + Section C (10) ======
+        int isAttr30 = sa != null && sa.getIsAttributes30() != null ? sa.getIsAttributes30().intValue() : 0;
+        int isOverall10 = sa != null && sa.getIsOverall10() != null ? sa.getIsOverall10().intValue() : 0;
 
-        int isSum = isSkill20 + isComm10 + isTeam10;
-        boolean hasIS = sa != null && (
-                sa.getIsSkills20() != null ||
-                        sa.getIsCommunication10() != null ||
-                        sa.getIsTeamwork10() != null
-        );
+        // Fallback to legacy buckets if official fields are empty (older data)
+        if (isAttr30 == 0 && isOverall10 == 0 && sa != null) {
+            int legacy = 0;
+            if (sa.getIsSkills20() != null) legacy += sa.getIsSkills20().intValue();
+            if (sa.getIsCommunication10() != null) legacy += sa.getIsCommunication10().intValue();
+            if (sa.getIsTeamwork10() != null) legacy += sa.getIsTeamwork10().intValue();
+            isAttr30 = Math.min(30, legacy); // best-effort display
+            isOverall10 = Math.max(0, legacy - isAttr30);
+        }
 
-        model.addAttribute("isSkill20", isSkill20);
-        model.addAttribute("isComm10", isComm10);
-        model.addAttribute("isTeam10", isTeam10);
+        int isSum = isAttr30 + isOverall10;
+        boolean hasIS = sa != null && (isSum > 0);
+
+        model.addAttribute("isAttr30", isAttr30);
+        model.addAttribute("isOverall10", isOverall10);
         model.addAttribute("isSum", isSum);
         model.addAttribute("hasIS", hasIS);
 

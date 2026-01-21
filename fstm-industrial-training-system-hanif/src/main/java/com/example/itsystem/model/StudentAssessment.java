@@ -33,9 +33,17 @@ public class StudentAssessment {
     @Column(name="vl_logbook_5")       private BigDecimal vlLogbook5      = BigDecimal.ZERO;
     @Column(name="vl_final_report_40") private BigDecimal vlFinalReport40 = BigDecimal.ZERO;
 
-    // Industry Supervisor (满分 40) —— 先保留，后续会用
+    // Industry Supervisor (40)
+    // ✅ OFFICIAL RUBRIC (2026): Section B (30) + Section C (10) = 40
+    @Column(name="is_attributes_30")      private BigDecimal isAttributes30     = BigDecimal.ZERO;
+    @Column(name="is_overall_10")         private BigDecimal isOverall10        = BigDecimal.ZERO;
+
+    // Legacy buckets (kept for backward compatibility / older rows)
+    @Deprecated
     @Column(name="is_skills_20")         private BigDecimal isSkills20        = BigDecimal.ZERO;
+    @Deprecated
     @Column(name="is_communication_10")  private BigDecimal isCommunication10 = BigDecimal.ZERO;
+    @Deprecated
     @Column(name="is_teamwork_10")       private BigDecimal isTeamwork10      = BigDecimal.ZERO;
 
     @Column(name="total_100", insertable = false, updatable = false)
@@ -81,6 +89,12 @@ public class StudentAssessment {
 
     public BigDecimal getVlFinalReport40() { return vlFinalReport40; }
     public void setVlFinalReport40(BigDecimal vlFinalReport40) { this.vlFinalReport40 = vlFinalReport40; }
+
+    public BigDecimal getIsAttributes30() { return isAttributes30; }
+    public void setIsAttributes30(BigDecimal isAttributes30) { this.isAttributes30 = isAttributes30; }
+
+    public BigDecimal getIsOverall10() { return isOverall10; }
+    public void setIsOverall10(BigDecimal isOverall10) { this.isOverall10 = isOverall10; }
 
     public BigDecimal getIsSkills20() { return isSkills20; }
     public void setIsSkills20(BigDecimal isSkills20) { this.isSkills20 = isSkills20; }

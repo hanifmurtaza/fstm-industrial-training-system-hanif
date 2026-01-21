@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import static org.springframework.format.annotation.DateTimeFormat.ISO;
 
@@ -616,7 +617,12 @@ public class IndustrySupervisorController {
                     return x;
                 });
 
+        // HARD LOCK FLAG: submitted already?
+        boolean alreadySubmitted = evalRepo.findByPlacementId(placementId).isPresent();
+        // (or: boolean alreadySubmitted = evalRepo.existsByPlacementId(placementId); if you add that method)
+
         model.addAttribute("placement", placement);
+        model.addAttribute("alreadySubmitted", alreadySubmitted);
 
         if (placement.getStudentId() != null) {
             userRepository.findById(placement.getStudentId()).ifPresent(u ->
@@ -632,10 +638,12 @@ public class IndustrySupervisorController {
         return "eval_form";
     }
 
+
     @PostMapping("/evaluations/{placementId}")
     public String submitEvaluation(@PathVariable Long placementId,
                                    @ModelAttribute("form") @Valid SupervisorEvaluation form,
-                                   HttpSession session) {
+                                   HttpSession session,
+                                   RedirectAttributes ra) {
 
         if (notIndustry(session)) return "redirect:/login";
         String who = currentDisplayName(session);
@@ -650,12 +658,19 @@ public class IndustrySupervisorController {
             return "redirect:/industry/evaluations";
         }
 
+        // ✅ HARD LOCK: if already submitted, do NOT allow re-submit
+        if (evalRepo.findByPlacementId(placementId).isPresent()) {
+            ra.addFlashAttribute("toast", "Evaluation already submitted. Editing is not allowed.");
+            return "redirect:/industry/evaluations/" + placementId;
+        }
+
+        // Persist (first submission only)
         form.setPlacementId(placementId);
         form.setSubmittedAt(LocalDateTime.now());
         form.setSubmittedBy(who);
         evalRepo.save(form);
 
-        // Sync to StudentAssessment
+        // ✅ Sync to StudentAssessment using OFFICIAL rubric:
         try {
             Long studentId = placement.getStudentId();
             if (studentId != null) {
@@ -664,25 +679,22 @@ public class IndustrySupervisorController {
                         ? student.getSession().trim()
                         : fallbackSession();
 
-                int skills20 = 0;
-                if (form.getDiscipline() != null && form.getKnowledge() != null
-                        && form.getInitiative() != null && form.getGrooming() != null) {
-                    int avg = (int) Math.round(
-                            (form.getDiscipline() + form.getKnowledge() + form.getInitiative() + form.getGrooming()) / 4.0
-                    );
-                    skills20 = scaleFrom5To(avg, 20);
-                }
+                int b30 = 0;
+                b30 += clamp(Optional.ofNullable(form.getDisciplineAttendance()).orElse(1), 1, 5);
+                b30 += clamp(Optional.ofNullable(form.getKnowledgeSkills()).orElse(1), 1, 5);
+                b30 += clamp(Optional.ofNullable(form.getAttitudeInitiative()).orElse(1), 1, 5);
+                b30 += clamp(Optional.ofNullable(form.getInterestResponsibility()).orElse(1), 1, 5);
+                b30 += clamp(Optional.ofNullable(form.getCommunicationCooperation()).orElse(1), 1, 5);
+                b30 += clamp(Optional.ofNullable(form.getProfessionalAppearance()).orElse(1), 1, 5);
 
-                int comm10 = (form.getCommunication() != null) ? scaleFrom5To(form.getCommunication(), 10) : 0;
-                int team10 = (form.getTeamwork() != null) ? scaleFrom5To(form.getTeamwork(), 10) : 0;
+                int c10 = clamp(Optional.ofNullable(form.getOverallMark10()).orElse(0), 0, 10);
 
-                studentAssessmentService.saveIndustrySupervisorScores(
+                studentAssessmentService.saveIndustrySupervisorOfficialScores(
                         studentId,
                         sessionStr,
                         me,
-                        BigDecimal.valueOf(skills20),
-                        BigDecimal.valueOf(comm10),
-                        BigDecimal.valueOf(team10),
+                        BigDecimal.valueOf(b30),
+                        BigDecimal.valueOf(c10),
                         true
                 );
             }
@@ -695,8 +707,10 @@ public class IndustrySupervisorController {
         log.setTimestamp(LocalDateTime.now());
         auditLogRepo.save(log);
 
+        ra.addFlashAttribute("toast", "Evaluation submitted successfully.");
         return "redirect:/industry/evaluations";
     }
+
 
     // Backward-compatible edit URL: /industry/companies/{id}/edit
     @GetMapping("/companies/{companyId}/edit")

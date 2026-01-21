@@ -80,13 +80,12 @@
                     <div class="col-md-6">
                         <div class="p-3 border rounded bg-white">
                             <div class="fw-semibold mb-2">Industry Supervisor (40)</div>
-                            <div>Skills: <span th:text="${sa.isSkills20}">0</span> / 20</div>
-                            <div>Communication: <span th:text="${sa.isCommunication10}">0</span> / 10</div>
-                            <div>Teamwork: <span th:text="${sa.isTeamwork10}">0</span> / 10</div>
+                            <div>Attributes (30): <span th:text="${sa.isAttributes30 != null ? sa.isAttributes30 : 0}">0</span> / 30</div>
+                            <div>Overall (10): <span th:text="${sa.isOverall10 != null ? sa.isOverall10 : 0}">0</span> / 10</div>
                             <hr>
                             <div class="fw-semibold">
                                 Total:
-                                <span th:text="${sa.isSkills20 + sa.isCommunication10 + sa.isTeamwork10}">0</span> / 40
+                                <span th:text="${(sa.isAttributes30 != null ? sa.isAttributes30 : 0) + (sa.isOverall10 != null ? sa.isOverall10 : 0)}">0</span> / 40
                             </div>
                         </div>
                     </div>
@@ -98,7 +97,7 @@
                     <div class="p-3 border rounded bg-white">
                         <div class="text-muted small">Overall Total</div>
                         <div class="h5 mb-0"
-                             th:text="${sa.total100 != null ? sa.total100 : (sa.vlEvaluation10 + sa.vlAttendance5 + sa.vlLogbook5 + sa.vlFinalReport40 + sa.isSkills20 + sa.isCommunication10 + sa.isTeamwork10)}">
+                             th:text="${sa.total100 != null ? sa.total100 : (sa.vlEvaluation10 + sa.vlAttendance5 + sa.vlLogbook5 + sa.vlFinalReport40 + (sa.isAttributes30 != null ? sa.isAttributes30 : 0) + (sa.isOverall10 != null ? sa.isOverall10 : 0))}">
                             0
                         </div>
                     </div>

@@ -14,8 +14,7 @@
   <link th:href="@{/app.css}" rel="stylesheet">
 
   <style>
-    /* Page-specific only (keep global theme in app.css) */
-    .shell-wide{ max-width:1240px; }          /* match other pages */
+    .shell-wide{ max-width:1240px; }
     .card-form{
       border-radius:18px;
       box-shadow:0 12px 30px rgba(15,23,42,.10);
@@ -31,13 +30,19 @@
     }
     .card-body-pad{ padding:22px; }
 
-    .hint{
-      border-radius:14px;
-      border:1px dashed rgba(148,163,184,.65);
+    .section-title{
+      font-weight:700;
+      color:#0f172a;
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+      margin:6px 0 10px;
+    }
+    .section-box{
+      border:1px solid rgba(148,163,184,.25);
+      border-radius:16px;
+      padding:14px;
       background:#fff;
-      padding:12px 14px;
-      color:#334155;
-      font-size:.9rem;
     }
 
     .actions{
@@ -47,18 +52,10 @@
       justify-content:space-between;
       padding-top:12px;
       border-top:1px solid rgba(148,163,184,.25);
-      margin-top:10px;
+      margin-top:14px;
       flex-wrap:wrap;
     }
 
-    /* Inputs: slightly tighter on desktop so form doesn't look oversized */
-    .form-control, .form-select{ padding:.6rem .8rem; }
-    textarea.form-control{ min-height:120px; }
-
-    /* Make number inputs look consistent */
-    input[type="number"]{ appearance:auto; }
-
-    /* On small screens, make header/context stack nicely */
     .context-box{ text-align:end; }
     @media (max-width: 767.98px){
       .card-body-pad{ padding:16px; }
@@ -112,7 +109,7 @@
       </div>
       <h1 class="h4 page-title mb-0">End-of-Internship Evaluation</h1>
       <div class="muted mt-1">
-        Please complete the assessment for the assigned student placement.
+        Official rubric: Section B (30 marks) + Section C (10 marks) = 40.
       </div>
     </div>
 
@@ -135,9 +132,7 @@
       <div class="d-flex align-items-center justify-content-between">
         <div>
           <div class="fw-semibold">Evaluation Form</div>
-          <div class="muted small">
-            Scores follow the project rubric (1–5) and will be mapped to the student dashboard.
-          </div>
+          <div class="muted small">Please fill in all items based on your observation during the internship.</div>
         </div>
         <div class="text-end">
           <span class="badge rounded-pill bg-primary">40%</span>
@@ -153,88 +148,247 @@
         <!-- CSRF -->
         <input type="hidden" name="_csrf" th:if="${_csrf != null}" th:value="${_csrf.token}" />
 
-        <div class="row g-3">
+        <div th:if="${alreadySubmitted}" class="alert alert-info mb-3">
+          <i class="bi bi-lock-fill"></i>
+          Evaluation already submitted. This form is locked (view-only).
+        </div>
 
-          <div class="col-md-4">
-            <label class="form-label">Discipline (1–5)</label>
-            <input type="number" class="form-control" th:field="*{discipline}" min="1" max="5" required />
-            <div class="small-note mt-1">Attendance, punctuality, responsibility.</div>
+
+
+        <!-- SECTION A -->
+        <div class="section-title">
+          <i class="bi bi-1-circle"></i> Section A: Nature of Internship
+        </div>
+
+        <div class="section-box mb-4">
+          <div class="small text-muted mb-2">
+            Select one (record only; no marks).
           </div>
 
-          <div class="col-md-4">
-            <label class="form-label">Knowledge (1–5)</label>
-            <input type="number" class="form-control" th:field="*{knowledge}" min="1" max="5" required />
-            <div class="small-note mt-1">Understands tasks and applies learning.</div>
+          <div class="form-check mb-2">
+            <input class="form-check-input"
+                   type="radio"
+                   th:field="*{internshipNature}"
+                   id="natStructured"
+                   value="STRUCTURED"
+                   th:disabled="${alreadySubmitted}"
+                   required>
+            <label class="form-check-label" for="natStructured">
+              <strong>Structured</strong>
+              <div class="small text-muted">
+                Mengikut tugasan / jadual latihan
+              </div>
+            </label>
           </div>
 
-          <div class="col-md-4">
-            <label class="form-label">Communication (1–5)</label>
-            <input type="number" class="form-control" th:field="*{communication}" min="1" max="5" required />
-            <div class="small-note mt-1">Clarity, reporting, professional interaction.</div>
+          <div class="form-check">
+            <input class="form-check-input"
+                   type="radio"
+                   th:field="*{internshipNature}"
+                   id="natFlexible"
+                   value="FLEXIBLE"
+                   th:disabled="${alreadySubmitted}"
+                   required>
+            <label class="form-check-label" for="natFlexible">
+              <strong>Flexible</strong>
+              <div class="small text-muted">
+                Tugasan harian bergantung kepada keperluan jabatan
+              </div>
+            </label>
           </div>
 
-          <div class="col-md-4">
-            <label class="form-label">Initiative (1–5)</label>
-            <input type="number" class="form-control" th:field="*{initiative}" min="1" max="5" required />
-            <div class="small-note mt-1">Proactive, problem solving, self-driven.</div>
-          </div>
+          <hr class="my-3">
 
-          <div class="col-md-4">
-            <label class="form-label">Grooming (1–5)</label>
-            <input type="number" class="form-control" th:field="*{grooming}" min="1" max="5" required />
-            <div class="small-note mt-1">Professional appearance and conduct.</div>
-          </div>
+          <label class="form-label fw-semibold">
+            1) Is training conducted within the framework planned from the beginning of the training?
+          </label>
+          <textarea class="form-control" th:field="*{sectionAAnswer1}" rows="4"
+                    th:readonly="${alreadySubmitted}" required
+                    placeholder="Please note if any changes / additional work / visit to other departments, etc."></textarea>
 
-          <div class="col-md-4">
-            <label class="form-label">Teamwork (1–5)</label>
-            <input type="number" class="form-control" th:field="*{teamwork}" min="1" max="5" required />
-            <div class="small-note mt-1">Collaboration and workplace attitude.</div>
-          </div>
+          <div class="mt-3"></div>
 
-          <div class="col-md-4">
-            <label class="form-label">Overall Score (0–100)</label>
-            <input type="number" class="form-control" th:field="*{overallScore}" min="0" max="100" required />
-            <div class="small-note mt-1">Overall performance impression.</div>
-          </div>
+          <label class="form-label fw-semibold">
+            2) In your opinion, do students have sufficient background to enable them to benefit from this training?
+          </label>
+          <textarea class="form-control" th:field="*{sectionAAnswer2}" rows="4"
+                    th:readonly="${alreadySubmitted}" required
+                    placeholder="Your opinion..."></textarea>
 
-          <div class="col-md-8 d-flex align-items-end">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" th:field="*{hireRecommendation}" id="hireRec" />
-              <label class="form-check-label fw-semibold" for="hireRec">
-                Recommend for hire
-              </label>
-              <div class="small-note mt-1">Tick if you would recommend this student for future hiring.</div>
+        </div>
+
+
+        <!-- SECTION B -->
+        <div class="section-title"><i class="bi bi-2-circle"></i> Section B: Student Attribute Evaluation <span class="text-muted">(30 marks)</span></div>
+        <div class="section-box mb-4">
+          <div class="small text-muted mb-3">Give a score from 1 (lowest) to 5 (highest) for each attribute.</div>
+
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+              <tr>
+                <th style="width:65%">Attribute</th>
+                <th style="width:35%" class="text-end">Score (1–5)</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><b>Discipline & Attendance</b><div class="small text-muted">Disiplin & Kehadiran</div></td>
+                <td class="text-end">
+                  <select class="form-select" th:field="*{disciplineAttendance}"
+                          th:disabled="${alreadySubmitted}"
+                          required>
+                    <option value="" disabled selected>Select</option>
+                    <option th:each="i : ${#numbers.sequence(1,5)}" th:value="${i}" th:text="${i}"></option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Knowledge & Skills</b><div class="small text-muted">Pengetahuan & Kemahiran</div></td>
+                <td class="text-end">
+                  <select class="form-select" th:field="*{knowledgeSkills}"
+                          th:disabled="${alreadySubmitted}"
+                          required>
+                    <option value="" disabled selected>Select</option>
+                    <option th:each="i : ${#numbers.sequence(1,5)}" th:value="${i}" th:text="${i}"></option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Attitude & Initiative</b><div class="small text-muted">Sikap & Inisiatif</div></td>
+                <td class="text-end">
+                  <select class="form-select" th:field="*{attitudeInitiative}"
+                          th:disabled="${alreadySubmitted}"
+                          required>
+                    <option value="" disabled selected>Select</option>
+                    <option th:each="i : ${#numbers.sequence(1,5)}" th:value="${i}" th:text="${i}"></option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Interest & Responsibility</b><div class="small text-muted">Minat & Tanggungjawab</div></td>
+                <td class="text-end">
+                  <select class="form-select" th:field="*{interestResponsibility}"
+                          th:disabled="${alreadySubmitted}"
+                          required>
+                    <option value="" disabled selected>Select</option>
+                    <option th:each="i : ${#numbers.sequence(1,5)}" th:value="${i}" th:text="${i}"></option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Communication & Cooperation</b><div class="small text-muted">Komunikasi & Kerjasama</div></td>
+                <td class="text-end">
+                  <select class="form-select" th:field="*{communicationCooperation}"
+                          th:disabled="${alreadySubmitted}"
+                          required>
+                    <option value="" disabled selected>Select</option>
+                    <option th:each="i : ${#numbers.sequence(1,5)}" th:value="${i}" th:text="${i}"></option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Professional Appearance</b><div class="small text-muted">Penampilan Profesional</div></td>
+                <td class="text-end">
+                  <select class="form-select" th:field="*{professionalAppearance}"
+                          th:disabled="${alreadySubmitted}"
+                          required>
+                    <option value="" disabled selected>Select</option>
+                    <option th:each="i : ${#numbers.sequence(1,5)}" th:value="${i}" th:text="${i}"></option>
+                  </select>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION C -->
+        <div class="section-title"><i class="bi bi-3-circle"></i> Section C: Overall Student Performance <span class="text-muted">(10 marks)</span></div>
+        <div class="section-box">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Overall Mark (/10)</label>
+              <input type="number" class="form-control" th:field="*{overallMark10}" min="0" max="10" required />
+              <div class="small text-muted mt-1">Enter a number from 0 to 10.</div>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Overall Comment</label>
+              <textarea class="form-control" th:field="*{overallComment}" rows="4" required
+                        placeholder="Write general comments about the student’s performance..."></textarea>
             </div>
           </div>
 
-          <div class="col-12">
-            <label class="form-label">Comments</label>
-            <textarea class="form-control" th:field="*{comments}" rows="4"
-                      placeholder="Write brief comments on strengths, improvement points, or any remark..."></textarea>
+          <div class="section-title mt-4">
+            <i class="bi bi-patch-check"></i> Validation: Career Opportunity
           </div>
+
+          <div class="section-box mb-4">
+            <div class="small text-muted mb-2">Select one:</div>
+
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio"
+                     th:field="*{careerOpportunityStatus}"
+                     id="co1" value="WILL_OFFER"
+                     th:disabled="${alreadySubmitted}"
+                     required>
+
+              <label class="form-check-label" for="co1">
+                We will be offering career opportunities to students after they have completed their industrial training.
+              </label>
+            </div>
+
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio"
+                     th:field="*{careerOpportunityStatus}"
+                     id="co2" value="NO_VACANCY_NOW"
+                     th:disabled="${alreadySubmitted}"
+                     required>
+              <label class="form-check-label" for="co2">
+                We are interested in offering career opportunities; however, there are currently no vacancies available.
+              </label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio"
+                     th:field="*{careerOpportunityStatus}"
+                     id="co3" value="FUTURE_OPPORTUNITY"
+                     th:disabled="${alreadySubmitted}"
+                     required>
+              <label class="form-check-label" for="co3">
+                We are interested in offering career opportunities to students in the future.
+              </label>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label">Optional remarks</label>
+              <textarea class="form-control" th:field="*{careerOpportunityRemark}" rows="3"
+                        th:readonly="${alreadySubmitted}"
+                        placeholder="If any remarks..."></textarea>
+            </div>
+          </div>
+
         </div>
 
-        <div class="hint mt-4">
-          <div class="fw-semibold mb-1"><i class="bi bi-info-circle"></i> Score Mapping</div>
-          <div class="small">
-            Discipline + Knowledge + Initiative + Grooming → <b>Skills (20)</b>,
-            Communication → <b>Communication (10)</b>,
-            Teamwork → <b>Teamwork (10)</b> (shown in Student Dashboard).
-          </div>
-        </div>
-
-        <div class="actions mt-4">
-          <div class="small-note">
+        <div class="actions">
+          <div class="small-note" th:if="${!alreadySubmitted}">
             <i class="bi bi-shield-check"></i>
-            Your submission will be saved and can be edited later.
+            Your submission will be saved.
           </div>
+          <div class="small-note" th:if="${alreadySubmitted}">
+            <i class="bi bi-lock-fill"></i>
+            Locked after submission.
+          </div>
+
           <div class="d-flex gap-2">
-            <a th:href="@{/industry/evaluations}" class="btn btn-soft btn-rounded">
-              Cancel
-            </a>
-            <button class="btn btn-primary btn-rounded" type="submit">
+            <a th:href="@{/industry/evaluations}" class="btn btn-soft btn-rounded">Cancel</a>
+            <button th:if="${!alreadySubmitted}" class="btn btn-primary btn-rounded" type="submit">
               <i class="bi bi-check2-circle"></i> Submit Evaluation
             </button>
+
+            <a th:if="${alreadySubmitted}" th:href="@{/industry/evaluations}" class="btn btn-soft btn-rounded">
+              Back
+            </a>
           </div>
         </div>
 

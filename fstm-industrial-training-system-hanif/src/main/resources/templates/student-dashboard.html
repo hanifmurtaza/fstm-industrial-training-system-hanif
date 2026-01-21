@@ -76,9 +76,8 @@
            vlOverall10Safe=(${vlOverall10} == null ? 0 : ${vlOverall10}),
 
            isSumSafe=(${isSum} == null ? 0 : ${isSum}),
-           isSkill20Safe=(${isSkill20} == null ? 0 : ${isSkill20}),
-           isComm10Safe=(${isComm10} == null ? 0 : ${isComm10}),
-           isTeam10Safe=(${isTeam10} == null ? 0 : ${isTeam10})">
+           isAttr30Safe=(${isAttr30} == null ? 0 : ${isAttr30}),
+           isOverall10Safe=(${isOverall10} == null ? 0 : ${isOverall10})">
 
       <!-- 顶部总分徽章 -->
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -151,7 +150,7 @@
           </div>
         </div>
 
-        <!-- Industry Supervisor (40) - 保持你原来的结构 -->
+        <!-- Industry Supervisor (40) - Official Rubric: Section B (30) + Section C (10) -->
         <div class="col-md-6">
           <div class="card h-100" th:classappend="${hasIS} ? '' : ' opacity-50'">
             <div class="card-body">
@@ -169,24 +168,17 @@
               </div>
 
               <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Skills (20)</span><span th:text="|${isSkill20Safe} / 20|">0 / 20</span>
+                <span>Attributes (30)</span><span th:text="|${isAttr30Safe} / 30|">0 / 30</span>
               </div>
               <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-warning" th:style="|width: ${isSkill20Safe * 5}%;|"></div>
+                <div class="progress-bar bg-warning" th:style="|width: ${isAttr30Safe * 100 / 30}%;|"></div>
               </div>
 
               <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Communication (10)</span><span th:text="|${isComm10Safe} / 10|">0 / 10</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-warning" th:style="|width: ${isComm10Safe * 10}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Teamwork (10)</span><span th:text="|${isTeam10Safe} / 10|">0 / 10</span>
+                <span>Overall (10)</span><span th:text="|${isOverall10Safe} / 10|">0 / 10</span>
               </div>
               <div class="progress" style="height:6px;">
-                <div class="progress-bar bg-warning" th:style="|width: ${isTeam10Safe * 10}%;|"></div>
+                <div class="progress-bar bg-warning" th:style="|width: ${isOverall10Safe * 10}%;|"></div>
               </div>
 
             </div>
