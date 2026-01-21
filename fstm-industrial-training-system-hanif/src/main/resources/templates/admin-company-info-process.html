@@ -268,10 +268,10 @@
                     </div>
 
 
-                    <div class="col-12" th:if="${info.jobScope != null and !#strings.isEmpty(info.jobScope)}">
-                        <div class="section-title">Job Scope (submitted)</div>
-                        <div class="hint" th:text="${info.jobScope}">Job scope</div>
+                    <div class="col-12" th:if="${placement != null and placement.adminNotes != null and !#strings.isEmpty(placement.adminNotes)}">
+                        <div class="hint" th:text="${placement.adminNotes}">Admin notes</div>
                     </div>
+                </div>
                 </div>
             </div>
         </section>
@@ -593,8 +593,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Placement Notes / Job Scope (optional)</label>
                             <textarea class="form-control" name="placementNotes" rows="3"
-                                      placeholder="Short description of job scope or notes for supervisor"
-                                      th:text="${info.jobScope}"></textarea>
+                                      th:text="${placement != null ? placement.adminNotes : ''}"></textarea>
                         </div>
                     </div>
 

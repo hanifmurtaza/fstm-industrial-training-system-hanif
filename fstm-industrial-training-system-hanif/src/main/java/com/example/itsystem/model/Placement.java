@@ -33,6 +33,11 @@ public class Placement {
     @Column(nullable = true)
     private Long companyInfoId;
 
+    @Lob
+    @Column
+    private String adminNotes;   // NEW: admin notes/instructions for supervisor
+
+
     private LocalDate startDate;
     private LocalDate endDate;
 
@@ -119,4 +124,8 @@ public class Placement {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getAdminNotes() { return adminNotes; }
+    public void setAdminNotes(String adminNotes) { this.adminNotes = adminNotes; }
+
 }

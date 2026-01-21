@@ -1381,7 +1381,7 @@ public class AdminController {
         placement.setEndDate(info.getInternshipEndDate());
         placement.setStatus(PlacementStatus.AWAITING_SUPERVISOR);
         if (placementNotes != null && !placementNotes.isBlank()) {
-            placement.setJobScope(placementNotes.trim());
+            placement.setAdminNotes(placementNotes.trim());
         }
         placementRepository.save(placement);
 
@@ -1401,7 +1401,7 @@ public class AdminController {
             info.setSupervisorPhone(supervisorPhone.trim());
         }
         if (placementNotes != null && !placementNotes.isBlank()) {
-            info.setJobScope(placementNotes.trim());
+            placement.setAdminNotes(placementNotes.trim());
         }
         if (sector != null && !sector.isBlank()) {
             try {
