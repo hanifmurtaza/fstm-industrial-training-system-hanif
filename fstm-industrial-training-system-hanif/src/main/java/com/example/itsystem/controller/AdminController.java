@@ -58,6 +58,11 @@ public class AdminController {
     @Autowired private StudentAssessmentRepository studentAssessmentRepository;
     @Autowired(required = false) private VisitScheduleRepository visitScheduleRepository;
 
+    @Autowired(required = false) private VisitEvaluationRepository visitEvaluationRepository;
+    @Autowired private SupervisorEvaluationRepository supervisorEvaluationRepository;
+
+
+
 
 
     // ----- Services -----
@@ -564,30 +569,44 @@ public class AdminController {
     @GetMapping("/evaluations")
     public String manageEvaluations(@RequestParam(value = "search", required = false) String search,
                                     @RequestParam(value = "session", required = false) String session,
+                                    @RequestParam(value = "department", required = false) String department,
                                     @RequestParam(value = "page", defaultValue = "0") int page,
                                     @RequestParam(value = "size", defaultValue = "25") int size,
                                     Model model) {
 
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
-        Page<User> students;
+        // ✅ normalize empty to null (critical)
+        String searchTerm = (search != null && !search.isBlank()) ? search.trim() : null;
+        String sessionTerm = (session != null && !session.isBlank()) ? session.trim() : null;
 
-        if ((search != null && !search.isBlank()) || (session != null && !session.isBlank())) {
-            students = userRepository.searchStudentsWithSession(
-                    "student",
-                    search != null ? search.trim() : null,
-                    session,
-                    pageable
-            );
-        } else {
-            students = userRepository.findAllByRole("student", pageable);
+        Department deptEnum = null;
+        if (department != null && !department.isBlank()) {
+            try {
+                deptEnum = Department.valueOf(department.trim());
+            } catch (Exception ignored) {
+                deptEnum = null;
+            }
         }
 
-        // Latest assessment per student (simple & reliable, same data student dashboard uses)
+        // ✅ Use ONE query path (no if/else), so behavior is consistent
+        Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
+                "student",
+                searchTerm,
+                sessionTerm,
+                deptEnum,
+                pageable
+        );
+
+
+        // Latest assessment per student (same data student dashboard uses)
         Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
         for (User s : students.getContent()) {
             studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(s.getId())
                     .ifPresent(sa -> {
+                        // keep existing grade logic untouched for DB rows if you want,
+                        // but list page will use the new gradeByStudentId anyway.
                         if (sa.getGrade() == null || sa.getGrade().isBlank()) {
                             sa.setGrade(computeGrade(sa));
                             studentAssessmentRepository.save(sa);
@@ -596,20 +615,89 @@ public class AdminController {
                     });
         }
 
+        // Visiting Lecturer score (40) derived from latest VisitEvaluation (official guideline)
+        Map<Long, BigDecimal> vlScoreByStudentId = new HashMap<>();
+        if (visitEvaluationRepository != null) {
+            for (User s : students.getContent()) {
+                VisitEvaluation ve = visitEvaluationRepository
+                        .findFirstByStudentIdOrderByCreatedAtDesc(s.getId())
+                        .orElse(null);
+                BigDecimal vl40 = computeVl40FromVisitEvaluation(ve);
+                if (vl40 != null) vlScoreByStudentId.put(s.getId(), vl40);
+            }
+        }
+
+        // Final Report (10) keyed-in by Admin (Written 5 + Video 5). Stored in StudentAssessment.
+        Map<Long, BigDecimal> reportScoreByStudentId = new HashMap<>();
+        for (User s : students.getContent()) {
+            StudentAssessment sa = assessmentByStudentId.get(s.getId());
+            if (sa != null) {
+                BigDecimal rep10 = nz(sa.getAdminReportWritten5()).add(nz(sa.getAdminReportVideo5()));
+                reportScoreByStudentId.put(s.getId(), rep10);
+            }
+        }
+
+        // Logbook (10) will be wired later after faculty confirms marking scheme.
+        // For now we only display a PENDING badge (no numeric backend yet).
+        Map<Long, BigDecimal> logbookScoreByStudentId = new HashMap<>();
+
+        // Total + Grade (temporary: logbook treated as 0 until marking is confirmed)
+        Map<Long, BigDecimal> totalByStudentId = new HashMap<>();
+        Map<Long, String> gradeByStudentId = new HashMap<>();
+
+        for (User s : students.getContent()) {
+            Long sid = s.getId();
+            StudentAssessment sa = assessmentByStudentId.get(sid);
+
+            boolean hasVl = vlScoreByStudentId.containsKey(sid);
+            boolean hasReport = reportScoreByStudentId.containsKey(sid);
+            boolean hasLogbook = logbookScoreByStudentId.containsKey(sid);
+
+            // If absolutely no data exists yet, show '-' like before.
+            if (!hasVl && sa == null && !hasReport && !hasLogbook) {
+                continue;
+            }
+
+            BigDecimal vl = hasVl ? vlScoreByStudentId.get(sid) : BigDecimal.ZERO;
+
+            BigDecimal ind = BigDecimal.ZERO;
+            if (sa != null) {
+                // Industry supervisor is already 40 in your StudentAssessment buckets:
+                ind = nz(sa.getIsAttributes30()).add(nz(sa.getIsOverall10()));
+            }
+
+            BigDecimal rep = hasReport ? reportScoreByStudentId.get(sid) : BigDecimal.ZERO;
+            BigDecimal log = hasLogbook ? logbookScoreByStudentId.get(sid) : BigDecimal.ZERO;
+
+            BigDecimal total = vl.add(ind).add(rep).add(log); // /100 (logbook currently 0)
+            totalByStudentId.put(sid, total);
+            gradeByStudentId.put(sid, UpmGradeUtil.gradeFromTotal(total.doubleValue()));
+        }
+
         model.addAttribute("students", students);
         model.addAttribute("assessmentByStudentId", assessmentByStudentId);
 
-        model.addAttribute("search", search);
+        // NEW columns
+        model.addAttribute("vlScoreByStudentId", vlScoreByStudentId);
+        model.addAttribute("reportScoreByStudentId", reportScoreByStudentId);
+        model.addAttribute("logbookScoreByStudentId", logbookScoreByStudentId);
+        model.addAttribute("totalByStudentId", totalByStudentId);
+        model.addAttribute("gradeByStudentId", gradeByStudentId);
+
+        model.addAttribute("search", searchTerm);
+        model.addAttribute("selectedSession", sessionTerm);
         model.addAttribute("currentPage", page);
         model.addAttribute("size", size);
+        model.addAttribute("departmentOptions", Department.values());
+        model.addAttribute("selectedDepartment", deptEnum != null ? deptEnum.name() : "");
+
 
         List<String> sessions = userRepository.findDistinctStudentSessions();
         model.addAttribute("sessions", sessions);
-        model.addAttribute("selectedSession", session);
-
 
         return "admin-evaluations";
     }
+
 
     @GetMapping("/evaluations/{studentId}")
     public String viewStudentEvaluation(@PathVariable Long studentId, Model model) {
@@ -645,12 +733,12 @@ public class AdminController {
         // Visiting Lecturer
         User visitingLecturer = null;
 
-// 1) Try from StudentAssessment first
+        // 1) Try from StudentAssessment first
         if (sa != null && sa.getVisitingLecturerId() != null) {
             visitingLecturer = userRepository.findById(sa.getVisitingLecturerId()).orElse(null);
         }
 
-// 2) Fallback: try from VisitSchedule (if repo available)
+        // 2) Fallback: try from VisitSchedule (if repo available)
         if (visitingLecturer == null && visitScheduleRepository != null) {
             VisitSchedule vs = visitScheduleRepository
                     .findTopByStudentIdOrderByIdDesc(studentId)
@@ -659,7 +747,7 @@ public class AdminController {
             if (vs != null && vs.getLecturerId() != null) {
                 visitingLecturer = userRepository.findById(vs.getLecturerId()).orElse(null);
 
-                // Optional backfill: store lecturerId into assessment for future pages
+                // Optional backfill
                 if (sa != null && sa.getVisitingLecturerId() == null) {
                     sa.setVisitingLecturerId(vs.getLecturerId());
                     studentAssessmentRepository.save(sa);
@@ -667,8 +755,47 @@ public class AdminController {
             }
         }
 
+        // ✅ NEW: Latest Visiting Lecturer evaluation (40%)
+        VisitEvaluation visitEval = visitEvaluationRepository
+                .findFirstByStudentIdOrderByCreatedAtDesc(studentId)
+                .orElse(null);
 
+        if (visitEval != null && visitEval.getTotalScore40() == null) {
+            visitEval.recalcTotalScore40();
+        }
 
+        // ✅ NEW: Latest Supervisor evaluation (comments live here)
+        SupervisorEvaluation supEval = null;
+        if (placement != null) {
+            supEval = supervisorEvaluationRepository.findByPlacementId(placement.getId()).orElse(null);
+        }
+
+        // ✅ NEW: Component scores
+        BigDecimal vl40 = (visitEval != null && visitEval.getTotalScore40() != null)
+                ? BigDecimal.valueOf(visitEval.getTotalScore40())
+                : BigDecimal.ZERO;
+
+        BigDecimal industry40 = BigDecimal.ZERO;
+        if (sa != null) {
+            BigDecimal a30 = sa.getIsAttributes30() != null ? sa.getIsAttributes30() : BigDecimal.ZERO;
+            BigDecimal o10 = sa.getIsOverall10() != null ? sa.getIsOverall10() : BigDecimal.ZERO;
+            industry40 = a30.add(o10);
+        }
+
+        // Final Report (10) keyed by admin: written 5 + video 5
+        BigDecimal report10 = BigDecimal.ZERO;
+        if (sa != null) {
+            BigDecimal w5 = sa.getAdminReportWritten5() != null ? sa.getAdminReportWritten5() : BigDecimal.ZERO;
+            BigDecimal v5 = sa.getAdminReportVideo5() != null ? sa.getAdminReportVideo5() : BigDecimal.ZERO;
+            report10 = w5.add(v5);
+        }
+
+        // Logbook (10) -> pending for now
+        BigDecimal logbook10 = null; // null means show "PENDING"
+
+        // Total out of 100 (logbook treated as 0 until confirmed)
+        BigDecimal total100 = vl40.add(industry40).add(report10);
+        String grade = UpmGradeUtil.gradeFromTotal(total100.doubleValue());
 
         model.addAttribute("student", student);
         model.addAttribute("sa", sa);
@@ -676,8 +803,20 @@ public class AdminController {
         model.addAttribute("company", company);
         model.addAttribute("visitingLecturer", visitingLecturer);
 
+        // ✅ NEW: pass eval objects + computed scores
+        model.addAttribute("visitEval", visitEval);
+        model.addAttribute("supEval", supEval);
+
+        model.addAttribute("vl40", vl40);
+        model.addAttribute("industry40", industry40);
+        model.addAttribute("report10", report10);
+        model.addAttribute("logbook10", logbook10); // null => pending
+        model.addAttribute("total100New", total100);
+        model.addAttribute("gradeNew", grade);
+
         return "admin-evaluation-detail";
     }
+
 
 
 
@@ -1933,54 +2072,57 @@ public class AdminController {
 // Final Reports (Admin)
 // ============================
     @GetMapping("/final-reports")
-    public String adminFinalReports(@RequestParam(value = "search", required = false) String search,
-                                    @RequestParam(value = "session", required = false) String session,
-                                    @RequestParam(value = "page", defaultValue = "0") int page,
-                                    @RequestParam(value = "size", defaultValue = "25") int size,
-                                    Model model) {
+    public String finalReports(@RequestParam(value = "search", required = false) String search,
+                               @RequestParam(value = "session", required = false) String session,
+                               @RequestParam(value = "department", required = false) String department,
+                               @RequestParam(value = "page", defaultValue = "0") int page,
+                               @RequestParam(value = "size", defaultValue = "25") int size,
+                               Model model) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
-        Page<User> students;
+        // ✅ normalize empty -> null (fix search bug)
+        String searchTerm = (search != null && !search.isBlank()) ? search.trim() : null;
+        String sessionTerm = (session != null && !session.isBlank()) ? session.trim() : null;
 
-        if ((search != null && !search.isBlank()) || (session != null && !session.isBlank())) {
-            students = userRepository.searchStudentsWithSession(
-                    "student",
-                    search != null ? search.trim() : null,
-                    session,
-                    pageable
-            );
-        } else {
-            students = userRepository.findAllByRole("student", pageable);
+        Department deptEnum = null;
+        if (department != null && !department.isBlank()) {
+            try {
+                deptEnum = Department.valueOf(department.trim());
+            } catch (Exception ignored) {}
         }
 
+        // ✅ use same search method you used for evaluations (stable)
+        Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
+                "student",
+                searchTerm,
+                sessionTerm,
+                deptEnum,
+                pageable
+        );
+
+        // Pull latest assessment for report marks
         Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
-
-        for (User stu : students.getContent()) {
-            String sess = (session != null && !session.isBlank())
-                    ? session
-                    : (stu.getSession() == null || stu.getSession().isBlank() ? "DEFAULT" : stu.getSession());
-
-            StudentAssessment sa = studentAssessmentRepository
-                    .findByStudentUserIdAndSession(stu.getId(), sess)
-                    .orElse(null);
-
-            assessmentByStudentId.put(stu.getId(), sa);
+        for (User s : students.getContent()) {
+            studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(s.getId())
+                    .ifPresent(sa -> assessmentByStudentId.put(s.getId(), sa));
         }
 
-        model.addAttribute("assessmentByStudentId", assessmentByStudentId);
         model.addAttribute("students", students);
-        model.addAttribute("search", search);
+        model.addAttribute("assessmentByStudentId", assessmentByStudentId);
+
+        model.addAttribute("search", searchTerm);
+        model.addAttribute("selectedSession", sessionTerm);
+
         model.addAttribute("currentPage", page);
         model.addAttribute("size", size);
 
-
-
         List<String> sessions = userRepository.findDistinctStudentSessions();
         model.addAttribute("sessions", sessions);
-        model.addAttribute("selectedSession", session);
 
-
+        // ✅ department filter UI
+        model.addAttribute("departmentOptions", Department.values());
+        model.addAttribute("selectedDepartment", deptEnum != null ? deptEnum.name() : "");
 
         return "admin-final-reports";
     }
@@ -2134,5 +2276,28 @@ public class AdminController {
         double total = vl.add(ind).doubleValue(); // max 100
         return UpmGradeUtil.gradeFromTotal(total);
     }
+
+    private int safeLikert(Integer v) {
+        if (v == null) return 0;
+        return Math.max(0, Math.min(5, v));
+    }
+
+    /**
+     * Official guideline: Visiting Lecturer contributes 40%.
+     * We derive it from VisitEvaluation Likert fields (same logic as student dashboard).
+     */
+    private BigDecimal computeVl40FromVisitEvaluation(VisitEvaluation ve) {
+        if (ve == null) return null;
+
+        int ref10 = safeLikert(ve.getReflectionLikert()) * 2;            // /10
+        int eng10 = safeLikert(ve.getEngagementLikert()) * 2;            // /10
+        int suit5 = safeLikert(ve.getPlacementSuitabilityLikert());      // /5
+        int log5  = safeLikert(ve.getLogbookLikert());                   // /5
+        int overall10 = safeLikert(ve.getLecturerOverallLikert()) * 2;   // /10
+
+        int sum40 = ref10 + eng10 + suit5 + log5 + overall10;            // /40
+        return BigDecimal.valueOf(sum40);
+    }
+
 
 }

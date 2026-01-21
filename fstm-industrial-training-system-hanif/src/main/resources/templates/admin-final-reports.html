@@ -68,6 +68,76 @@
 
     .col-narrow{ width:1%; white-space:nowrap; }
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    /* ===== Filter bar (clean, aligned) ===== */
+    .filter-card{
+      border-radius:18px;
+      background:#fff;
+      border:1px solid rgba(148,163,184,.25);
+      box-shadow:0 12px 30px rgba(15,23,42,.10);
+    }
+
+    .filter-grid{
+      display:grid;
+      grid-template-columns: 1.6fr 1fr 1fr auto; /* Search, Session, Dept, Button */
+      gap:12px;
+      align-items:end;
+    }
+
+    @media (max-width: 992px){
+      .filter-grid{ grid-template-columns: 1fr; }
+    }
+
+    .small-label{
+      font-size:.82rem;
+      font-weight:800;
+      color:#334155;
+      margin-bottom:6px;
+    }
+
+    .input-shell .form-control,
+    .input-shell .form-select{
+      height:44px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.28);
+    }
+
+    .input-shell .input-group-text{
+      height:44px;
+      border-radius:14px 0 0 14px;
+      border:1px solid rgba(148,163,184,.28);
+      background:#fff;
+    }
+
+    .btn-filter{
+      height:44px;
+      border-radius:14px;
+      padding:0 18px;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+
+    .meta-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px dashed rgba(148,163,184,.30);
+      color:#64748b;
+      font-size:.9rem;
+    }
+
+    /* ===== One-line utilities ===== */
+    .nowrap{ white-space:nowrap; }
+
+    /* Compact table a bit (optional but helps fit) */
+    .table-compact{ font-size:.88rem; }
+    .table-compact th, .table-compact td{ padding:.45rem .6rem; }
+
   </style>
 </head>
 
@@ -118,20 +188,24 @@
   </div>
 
   <!-- Filters -->
-  <form method="get" th:action="@{/admin/final-reports}" class="card-soft p-3 p-md-4 mb-3">
-    <div class="row g-2 align-items-end">
-      <div class="col-12 col-md-6">
-        <label class="form-label mb-1">Search</label>
+  <form method="get" th:action="@{/admin/final-reports}" class="filter-card p-3 p-md-4 mb-3">
+
+    <div class="filter-grid">
+
+      <!-- Search -->
+      <div class="input-shell">
+        <label class="small-label">Search</label>
         <div class="input-group">
-          <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
           <input type="text" name="search" class="form-control"
                  placeholder="Search by student name or matric"
                  th:value="${search}">
         </div>
       </div>
 
-      <div class="col-12 col-md-4">
-        <label class="form-label mb-1">Session</label>
+      <!-- Session -->
+      <div class="input-shell">
+        <label class="small-label">Session</label>
         <select name="session" class="form-select">
           <option value="" th:selected="${selectedSession == null || selectedSession == ''}">All Sessions</option>
           <option th:each="s : ${sessions}"
@@ -142,33 +216,60 @@
         </select>
       </div>
 
-      <input type="hidden" name="size" th:value="${size}"/>
+      <!-- Department -->
+      <div class="input-shell">
+        <label class="small-label">Department</label>
+        <select name="department" class="form-select">
+          <option value="" th:selected="${selectedDepartment == null || selectedDepartment == ''}">All Departments</option>
+          <option th:each="d : ${departmentOptions}"
+                  th:value="${d.name()}"
+                  th:text="${#strings.replace(d.name(),'_',' ')}"
+                  th:selected="${d.name() == selectedDepartment}">
+          </option>
+        </select>
+      </div>
 
-      <div class="col-12 col-md-2 d-grid">
-        <button class="btn btn-primary btn-rounded" type="submit">
-          <i class="bi bi-funnel me-1"></i> Filter
+      <!-- Buttons -->
+      <div class="d-grid">
+        <button class="btn btn-primary btn-filter" type="submit">
+          <i class="bi bi-funnel"></i> Filter
         </button>
       </div>
 
-      <div class="col-12">
-        <div class="muted small mt-1">
-          Total Students:
-          <span class="fw-semibold" th:text="${students != null ? students.totalElements : 0}">0</span>
-        </div>
+
+    </div>
+
+    <input type="hidden" name="size" th:value="${size}"/>
+
+    <div class="meta-row">
+      <div>
+        Total Students:
+        <span class="fw-semibold" th:text="${students != null ? students.totalElements : 0}">0</span>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary btn-sm btn-rounded"
+           th:href="@{/admin/final-reports}">
+          Clear
+        </a>
       </div>
     </div>
+
+
   </form>
+
 
   <!-- Table -->
   <div class="card-soft overflow-hidden">
     <div class="table-responsive">
-      <table class="table table-hover table-bordered mb-0 align-middle bg-white">
-        <thead>
+      <table class="table table-hover table-bordered mb-0 align-middle bg-white table-compact">
+      <thead>
         <tr>
           <th class="col-narrow">No</th>
           <th style="min-width:220px;">Student</th>
           <th class="col-narrow">Matric</th>
-          <th class="col-narrow">Session</th>
+          <th class="nowrap">Department</th>
+          <th class="nowrap">Session</th>
 
           <th class="col-narrow">Report PDF</th>
           <th class="col-narrow">Video Link</th>
@@ -201,7 +302,11 @@
           </td>
 
           <td class="mono" th:text="${stu.studentId != null ? stu.studentId : '-'}">-</td>
-          <td th:text="${stu.session != null ? stu.session : '-'}">-</td>
+          <td class="nowrap small"
+              th:text="${stu.department != null ? #strings.replace(stu.department,'_',' ') : '-'}">-</td>
+          <td class="nowrap" th:text="${stu.session}">2026/2027-1</td>
+
+
 
           <!-- PDF -->
           <td>
@@ -266,29 +371,35 @@
   <!-- Pagination -->
   <nav class="mt-3" th:if="${students != null && students.totalPages > 1}">
     <ul class="pagination pagination-sm mb-0">
+
+      <!-- Previous -->
       <li class="page-item" th:classappend="${students.first} ? 'disabled'">
         <a class="page-link"
-           th:href="@{/admin/final-reports(page=${currentPage-1}, size=${size}, search=${search}, session=${selectedSession})}">
+           th:href="@{/admin/final-reports(page=${currentPage-1}, size=${size}, search=${search}, session=${selectedSession}, department=${selectedDepartment})}">
           Previous
         </a>
       </li>
 
+      <!-- Pages -->
       <li class="page-item"
           th:each="i : ${#numbers.sequence(0, students.totalPages - 1)}"
           th:classappend="${i == currentPage} ? 'active'">
         <a class="page-link"
-           th:href="@{/admin/final-reports(page=${i}, size=${size}, search=${search}, session=${selectedSession})}"
+           th:href="@{/admin/final-reports(page=${i}, size=${size}, search=${search}, session=${selectedSession}, department=${selectedDepartment})}"
            th:text="${i + 1}">1</a>
       </li>
 
+      <!-- Next -->
       <li class="page-item" th:classappend="${students.last} ? 'disabled'">
         <a class="page-link"
-           th:href="@{/admin/final-reports(page=${currentPage+1}, size=${size}, search=${search}, session=${selectedSession})}">
+           th:href="@{/admin/final-reports(page=${currentPage+1}, size=${size}, search=${search}, session=${selectedSession}, department=${selectedDepartment})}">
           Next
         </a>
       </li>
+
     </ul>
   </nav>
+
 
 </main>
 
