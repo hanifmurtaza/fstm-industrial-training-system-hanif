@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Final Report Marking • UPM Industrial Training</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap + Icons + Font -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- your global css -->
+  <link th:href="@{/app.css}" rel="stylesheet">
+
+  <style>
+    :root{
+      --border: rgba(148,163,184,.25);
+      --muted:#64748b;
+      --ink:#0f172a;
+      --bg:#f5f7fa;
+    }
+    body{ font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+    .container-narrow{ max-width:1240px; }
+
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:6px 12px; border-radius:999px;
+      background:#eef2ff; color:#1e40af;
+      font-size:.85rem; font-weight:800;
+    }
+    .page-title{ letter-spacing:-0.2px; }
+    .muted{ color:var(--muted); }
+
+    .card-soft{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:0 12px 30px rgba(15,23,42,.10);
+    }
+
+    .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+    .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+
+    .badge-pill{
+      border-radius:999px;
+      padding:.45rem .7rem;
+      font-weight:900;
+      font-size:.72rem;
+      letter-spacing:.04em;
+      border:1px solid transparent;
+      white-space:nowrap;
+      display:inline-block;
+    }
+    .badge-ok{ background:#E6F4EA; color:#1F7A39; border-color:rgba(31,122,57,.15); }
+    .badge-na{ background:#EEF2F7; color:#475569; border-color:rgba(71,85,105,.18); }
+    .badge-warn{ background:#FFF7ED; color:#9A3412; border-color:rgba(154,52,18,.18); }
+
+    .table thead th{
+      background:#fff;
+      border-bottom:1px solid var(--border);
+      font-weight:800;
+      color:#334155;
+      font-size:.9rem;
+      white-space:nowrap;
+    }
+    .table tbody td{ vertical-align:middle; }
+
+    .col-narrow{ width:1%; white-space:nowrap; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+
+<!-- Navbar (match dashboard) -->
+<nav class="navbar navbar-expand-lg appbar">
+  <div class="container container-narrow">
+    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
+      <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+      <span>Admin Panel • UPM Industrial Training</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminFR">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="navAdminFR" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
+        <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+        <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+        <li class="nav-item"><a th:href="@{/admin/final-reports}" class="nav-link active">Final Report</a></li>
+        <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+        <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+        <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+        <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<main class="container container-narrow py-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <span class="pill"><i class="bi bi-file-earmark-text"></i> Final Report (10%)</span>
+      <h1 class="h4 page-title mb-0 mt-2">Final Report & Video Marking</h1>
+      <div class="muted mt-1">Search by student name/matric and filter by session. Mark Written (5) + Video (5).</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary btn-rounded" th:href="@{/admin/dashboard}">
+        <i class="bi bi-arrow-left me-1"></i> Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" th:action="@{/admin/final-reports}" class="card-soft p-3 p-md-4 mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-6">
+        <label class="form-label mb-1">Search</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+          <input type="text" name="search" class="form-control"
+                 placeholder="Search by student name or matric"
+                 th:value="${search}">
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <label class="form-label mb-1">Session</label>
+        <select name="session" class="form-select">
+          <option value="" th:selected="${selectedSession == null || selectedSession == ''}">All Sessions</option>
+          <option th:each="s : ${sessions}"
+                  th:value="${s}"
+                  th:text="${s}"
+                  th:selected="${s == selectedSession}">
+          </option>
+        </select>
+      </div>
+
+      <input type="hidden" name="size" th:value="${size}"/>
+
+      <div class="col-12 col-md-2 d-grid">
+        <button class="btn btn-primary btn-rounded" type="submit">
+          <i class="bi bi-funnel me-1"></i> Filter
+        </button>
+      </div>
+
+      <div class="col-12">
+        <div class="muted small mt-1">
+          Total Students:
+          <span class="fw-semibold" th:text="${students != null ? students.totalElements : 0}">0</span>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Table -->
+  <div class="card-soft overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered mb-0 align-middle bg-white">
+        <thead>
+        <tr>
+          <th class="col-narrow">No</th>
+          <th style="min-width:220px;">Student</th>
+          <th class="col-narrow">Matric</th>
+          <th class="col-narrow">Session</th>
+
+          <th class="col-narrow">Report PDF</th>
+          <th class="col-narrow">Video Link</th>
+
+          <th class="col-narrow">Written (5)</th>
+          <th class="col-narrow">Video (5)</th>
+          <th class="col-narrow">Total (10)</th>
+
+          <th class="col-narrow text-end">Action</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:if="${students == null || students.totalElements == 0}">
+          <td colspan="10" class="text-center text-muted py-5">
+            <i class="bi bi-file-earmark-x fs-3 d-block mb-2"></i>
+            No students found.
+          </td>
+        </tr>
+
+        <tr th:each="stu, st : ${students.content}">
+          <td th:text="${st.index + 1}">1</td>
+
+          <td>
+            <div class="fw-semibold"
+                 th:text="${stu.name != null && !#strings.isEmpty(stu.name) ? stu.name : stu.username}">
+              Student Name
+            </div>
+            <div class="muted small mono" th:text="${stu.username}">username</div>
+          </td>
+
+          <td class="mono" th:text="${stu.studentId != null ? stu.studentId : '-'}">-</td>
+          <td th:text="${stu.session != null ? stu.session : '-'}">-</td>
+
+          <!-- PDF -->
+          <td>
+                        <span th:if="${stu.finalReportPdfPath != null && !#strings.isEmpty(stu.finalReportPdfPath)}"
+                              class="badge-pill badge-ok">SUBMITTED</span>
+            <span th:if="${stu.finalReportPdfPath == null || #strings.isEmpty(stu.finalReportPdfPath)}"
+                  class="badge-pill badge-na">NO</span>
+          </td>
+
+          <!-- Video -->
+          <td>
+                        <span th:if="${stu.finalReportVideoPath != null && !#strings.isEmpty(stu.finalReportVideoPath)}"
+                              class="badge-pill badge-ok">SUBMITTED</span>
+            <span th:if="${stu.finalReportVideoPath == null || #strings.isEmpty(stu.finalReportVideoPath)}"
+                  class="badge-pill badge-na">NO</span>
+          </td>
+
+          <!-- Marks (safe via .get + th:with) -->
+          <td>
+            <th:block th:with="sa=${assessmentByStudentId.get(stu.id)}">
+              <span th:if="${sa != null && sa.adminReportWritten5 != null}"
+                    th:text="${sa.adminReportWritten5}">0</span>
+              <span th:if="${sa == null || sa.adminReportWritten5 == null}" class="text-muted">-</span>
+            </th:block>
+
+          </td>
+
+          <td>
+            <th:block th:with="sa=${assessmentByStudentId.get(stu.id)}">
+              <span th:if="${sa != null && sa.adminReportVideo5 != null}"
+                    th:text="${sa.adminReportVideo5}">0</span>
+              <span th:if="${sa == null || sa.adminReportVideo5 == null}" class="text-muted">-</span>
+            </th:block>
+
+          </td>
+
+          <td>
+            <th:block th:with="sa=${assessmentByStudentId.get(stu.id)},
+                   w=${sa != null ? sa.adminReportWritten5 : null},
+                   v=${sa != null ? sa.adminReportVideo5 : null},
+                   showTotal=${(w != null) || (v != null)},
+                   total=${(w != null ? w : 0) + (v != null ? v : 0)}">
+              <span th:if="${showTotal}" class="fw-semibold" th:text="${total}">0</span>
+              <span th:if="${!showTotal}" class="text-muted">-</span>
+            </th:block>
+
+          </td>
+
+          <td class="text-end">
+            <a class="btn btn-sm btn-primary btn-rounded"
+               th:href="@{/admin/final-reports/mark/{id}(id=${stu.id}, session=${selectedSession})}">
+            <i class="bi bi-pencil-square me-1"></i> Mark
+            </a>
+          </td>
+        </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <nav class="mt-3" th:if="${students != null && students.totalPages > 1}">
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item" th:classappend="${students.first} ? 'disabled'">
+        <a class="page-link"
+           th:href="@{/admin/final-reports(page=${currentPage-1}, size=${size}, search=${search}, session=${selectedSession})}">
+          Previous
+        </a>
+      </li>
+
+      <li class="page-item"
+          th:each="i : ${#numbers.sequence(0, students.totalPages - 1)}"
+          th:classappend="${i == currentPage} ? 'active'">
+        <a class="page-link"
+           th:href="@{/admin/final-reports(page=${i}, size=${size}, search=${search}, session=${selectedSession})}"
+           th:text="${i + 1}">1</a>
+      </li>
+
+      <li class="page-item" th:classappend="${students.last} ? 'disabled'">
+        <a class="page-link"
+           th:href="@{/admin/final-reports(page=${currentPage+1}, size=${size}, search=${search}, session=${selectedSession})}">
+          Next
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+</main>
+
+<footer class="text-center text-muted py-4 small">
+  © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>, Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

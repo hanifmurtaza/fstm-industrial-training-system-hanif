@@ -62,6 +62,14 @@ public class StudentAssessment {
             columnDefinition="timestamp default current_timestamp on update current_timestamp")
     private Instant updatedAt;
 
+    // Admin / Coordinator (Final Report 10%) => Written 5 + Video 5
+    @Column(name="admin_report_written_5")
+    private BigDecimal adminReportWritten5 = BigDecimal.ZERO;
+
+    @Column(name="admin_report_video_5")
+    private BigDecimal adminReportVideo5 = BigDecimal.ZERO;
+
+
     // ===== Getters / Setters =====
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -119,4 +127,11 @@ public class StudentAssessment {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public BigDecimal getAdminReportWritten5() { return adminReportWritten5; }
+    public void setAdminReportWritten5(BigDecimal adminReportWritten5) { this.adminReportWritten5 = adminReportWritten5; }
+
+    public BigDecimal getAdminReportVideo5() { return adminReportVideo5; }
+    public void setAdminReportVideo5(BigDecimal adminReportVideo5) { this.adminReportVideo5 = adminReportVideo5; }
+
 }

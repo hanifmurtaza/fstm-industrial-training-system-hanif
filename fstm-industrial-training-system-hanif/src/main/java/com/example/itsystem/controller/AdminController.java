@@ -1929,6 +1929,133 @@ public class AdminController {
                         + ", session=" + (session == null ? "" : session)
                         + ", exportAll=" + exportAll);
     }
+    // ============================
+// Final Reports (Admin)
+// ============================
+    @GetMapping("/final-reports")
+    public String adminFinalReports(@RequestParam(value = "search", required = false) String search,
+                                    @RequestParam(value = "session", required = false) String session,
+                                    @RequestParam(value = "page", defaultValue = "0") int page,
+                                    @RequestParam(value = "size", defaultValue = "25") int size,
+                                    Model model) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+
+        Page<User> students;
+
+        if ((search != null && !search.isBlank()) || (session != null && !session.isBlank())) {
+            students = userRepository.searchStudentsWithSession(
+                    "student",
+                    search != null ? search.trim() : null,
+                    session,
+                    pageable
+            );
+        } else {
+            students = userRepository.findAllByRole("student", pageable);
+        }
+
+        Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
+
+        for (User stu : students.getContent()) {
+            String sess = (session != null && !session.isBlank())
+                    ? session
+                    : (stu.getSession() == null || stu.getSession().isBlank() ? "DEFAULT" : stu.getSession());
+
+            StudentAssessment sa = studentAssessmentRepository
+                    .findByStudentUserIdAndSession(stu.getId(), sess)
+                    .orElse(null);
+
+            assessmentByStudentId.put(stu.getId(), sa);
+        }
+
+        model.addAttribute("assessmentByStudentId", assessmentByStudentId);
+        model.addAttribute("students", students);
+        model.addAttribute("search", search);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("size", size);
+
+
+
+        List<String> sessions = userRepository.findDistinctStudentSessions();
+        model.addAttribute("sessions", sessions);
+        model.addAttribute("selectedSession", session);
+
+
+
+        return "admin-final-reports";
+    }
+
+    @GetMapping("/final-reports/mark/{studentId}")
+    public String adminMarkFinalReport(
+            @PathVariable Long studentId,
+            @RequestParam(value = "session", required = false) String sessionStr,
+            HttpSession session,
+            Model model
+    ) {
+        User admin = (User) session.getAttribute("user");
+        if (admin == null) return "redirect:/login";
+        if (!"admin".equalsIgnoreCase(admin.getRole())) return "redirect:/login";
+
+        User stu = userRepository.findById(studentId).orElse(null);
+        if (stu == null || !"student".equalsIgnoreCase(stu.getRole())) return "redirect:/admin/final-reports";
+
+        String sess = (sessionStr != null && !sessionStr.isBlank())
+                ? sessionStr
+                : (stu.getSession() == null || stu.getSession().isBlank() ? "DEFAULT" : stu.getSession());
+
+        StudentAssessment sa = studentAssessmentRepository
+                .findByStudentUserIdAndSession(stu.getId(), sess)
+                .orElseGet(() -> {
+                    StudentAssessment x = new StudentAssessment();
+                    x.setStudentUserId(stu.getId());
+                    x.setSession(sess);
+                    return x;
+                });
+
+        model.addAttribute("student", stu);
+        model.addAttribute("sa", sa);
+        model.addAttribute("sessionStr", sess);   // IMPORTANT for hidden field
+
+        return "admin-final-report-mark";
+    }
+
+
+    @PostMapping("/final-reports/mark")
+    public String adminSaveFinalReportMark(
+            @RequestParam Long studentId,
+            @RequestParam String sessionStr,
+            @RequestParam BigDecimal written5,
+            @RequestParam BigDecimal video5,
+            HttpSession session,
+            RedirectAttributes ra
+    ) {
+        User admin = (User) session.getAttribute("user");
+        if (admin == null) return "redirect:/login";
+        if (!"admin".equalsIgnoreCase(admin.getRole())) return "redirect:/login";
+
+        // clamp [0..5]
+        written5 = written5.max(BigDecimal.ZERO).min(new BigDecimal("5"));
+        video5   = video5.max(BigDecimal.ZERO).min(new BigDecimal("5"));
+
+        StudentAssessment sa = studentAssessmentRepository
+                .findByStudentUserIdAndSession(studentId, sessionStr)
+                .orElseGet(() -> {
+                    StudentAssessment x = new StudentAssessment();
+                    x.setStudentUserId(studentId);
+                    x.setSession(sessionStr);
+                    return x;
+                });
+
+        sa.setAdminReportWritten5(written5);
+        sa.setAdminReportVideo5(video5);
+
+        studentAssessmentRepository.save(sa);
+
+        ra.addFlashAttribute("toast", "Final report marks saved (Written: " + written5 + "/5, Video: " + video5 + "/5)");
+        return "redirect:/admin/final-reports/mark/" + studentId + "?session=" + sessionStr;
+
+    }
+
 
     // helper for formatting (put near your other helpers)
     private String fmt2(BigDecimal v) {

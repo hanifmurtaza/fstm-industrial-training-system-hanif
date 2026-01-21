@@ -11,4 +11,6 @@ public interface StudentAssessmentRepository extends JpaRepository<StudentAssess
 
     // ✅ 让 StudentController 用的“取最新一条记录”能编译通过
     Optional<StudentAssessment> findTopByStudentUserIdOrderByIdDesc(Long studentUserId);
+
+
 }
