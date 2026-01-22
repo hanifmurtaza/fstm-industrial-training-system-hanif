@@ -56,14 +56,36 @@
         .table thead th{
             background:#fff;
             border-bottom:1px solid var(--border);
-            position:sticky; top:0; z-index:2;
             font-weight:800;
             color:#334155;
             font-size:.9rem;
-            letter-spacing:-0.1px;
+            white-space:nowrap;
         }
-        .table tbody td{ vertical-align:middle; }
-        .table-responsive{ max-height:64vh; overflow:auto; }
+
+
+        .table{
+            width: max-content;
+            min-width: 100%;
+        }
+
+        /* Box scroll for table */
+        .table-scroll{
+            max-height: 65vh;
+            overflow: auto; /* enables BOTH vertical + horizontal scroll inside box */
+        }
+
+        /* Sticky header inside scroll box */
+        .table-scroll thead th{
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 2;
+        }
+
+
+
+
+
 
         .col-narrow{ width:1%; white-space:nowrap; }
 
@@ -124,6 +146,95 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* ===== Compact Bulk Bar ===== */
+        .bulk-bar{
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #fff;
+            padding: .6rem .9rem !important;
+            border-bottom: 1px solid var(--border) !important;
+        }
+
+        .bulk-top{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-bottom:.45rem;
+        }
+
+        .bulk-left{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            flex-wrap:wrap;
+        }
+
+        .bulk-left .form-check{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            margin:0;
+        }
+
+        .bulk-left .form-check-label{
+            font-weight:700;
+            font-size:.86rem;
+            color:#0f172a;
+        }
+
+        .selected-badge{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:4px 10px;
+            border-radius:999px;
+            border:1px solid var(--border);
+            background:#fff;
+            font-weight:800;
+            font-size:.82rem;
+            color:#334155;
+        }
+
+        .bulk-controls{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+        }
+
+        .bulk-controls .input-group-sm .form-control,
+        .bulk-controls .input-group-sm .input-group-text{
+            height:34px;
+            font-size:.85rem;
+        }
+
+        .bulk-right .btn-group .btn{
+            padding:.35rem .7rem;
+            font-size:.84rem;
+            font-weight:800;
+            border-radius:10px !important;
+        }
+
+        .bulk-tip{
+            font-size:.82rem;
+            color:var(--muted);
+            margin-top:.35rem;
+            line-height:1.2;
+        }
+
+        /* On small screens: stack nicely */
+        @media (max-width: 768px){
+            .bulk-top, .bulk-controls{ align-items:stretch; }
+            .bulk-right{ width:100%; }
+            .bulk-right .btn-group{ width:100%; display:flex; }
+            .bulk-right .btn-group .btn{ flex:1; }
+        }
+
 
 
     </style>
@@ -247,80 +358,69 @@
     </div>
 
     <!-- Table Card -->
-    <div class="card-soft table-card">
+    <div class="card-soft">
 
-        <!-- Bulk actions (sticky) -->
+
+    <!-- Bulk actions (sticky) -->
         <form th:action="@{/admin/students/bulk}" method="post" id="bulkForm"
               class="p-3 border-bottom bulk-bar"
               style="border-bottom:1px solid var(--border)!important;">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-
-                <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="bulk-top">
+                <div class="bulk-left">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="selectAll">
-                        <label class="form-check-label fw-semibold" for="selectAll">
-                            Select all on this page
-                        </label>
+                        <label class="form-check-label" for="selectAll">Select page</label>
                     </div>
 
-                    <!-- ✅ NEW: Apply to all filtered (all pages) -->
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="applyAllFiltered">
-                        <label class="form-check-label fw-semibold" for="applyAllFiltered">
-                            Apply to ALL students in this filter (all pages)
-                        </label>
+                        <label class="form-check-label" for="applyAllFiltered">Apply all (filter)</label>
                     </div>
 
-                    <span class="badge text-bg-light border" style="font-weight:700;">
-                        Selected: <span id="selectedCount">0</span>
-                    </span>
+                    <span class="selected-badge">
+      Selected: <span id="selectedCount">0</span>
+    </span>
                 </div>
 
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <div class="input-group input-group-sm w-auto">
-                        <span class="input-group-text">Start</span>
-                        <input type="date" class="form-control" name="start" id="bulkStart">
-                        <span class="input-group-text">End</span>
-                        <input type="date" class="form-control" name="end" id="bulkEnd">
-                    </div>
-
+                <div class="bulk-right">
                     <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-success" data-bulk-btn="true" onclick="submitBulk('status', true)">
-                            Enable
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" data-bulk-btn="true" onclick="submitBulk('status', false)">
-                            Disable
-                        </button>
-                        <button type="button" class="btn btn-primary" data-bulk-btn="true" onclick="submitBulk('window', null)">
-                            Set Access Window
-                        </button>
+                        <button type="button" class="btn btn-outline-success" data-bulk-btn="true"
+                                onclick="submitBulk('status', true)">Enable</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bulk-btn="true"
+                                onclick="submitBulk('status', false)">Disable</button>
+                        <button type="button" class="btn btn-primary" data-bulk-btn="true"
+                                onclick="submitBulk('window', null)">Set Window</button>
                     </div>
-
-                    <input type="hidden" name="enabled" id="bulkEnabled">
-                    <input type="hidden" name="mode" id="bulkMode">
-
-                    <!-- ✅ NEW: filters + applyAll -->
-                    <input type="hidden" name="session" th:value="${selectedSession}">
-                    <input type="hidden" name="department" th:value="${department}">
-                    <input type="hidden" name="search" th:value="${search}">
-                    <input type="hidden" name="applyAll" id="applyAllHidden" value="false">
-
-                    <!-- ids injected by JS -->
                 </div>
             </div>
 
-            <!-- ✅ Optional: small hint for admin -->
-            <div class="mt-2 d-flex flex-wrap gap-2">
-                <span class="chip">
-                    <i class="bi bi-info-circle"></i>
-                    Tip: Filter by session first, then tick “Apply to ALL…” to update everyone.
-                </span>
+            <div class="bulk-controls">
+                <div class="input-group input-group-sm w-auto">
+                    <span class="input-group-text">Start</span>
+                    <input type="date" class="form-control" name="start" id="bulkStart">
+                    <span class="input-group-text">End</span>
+                    <input type="date" class="form-control" name="end" id="bulkEnd">
+                </div>
+
+                <!-- hidden fields (keep exactly as before) -->
+                <input type="hidden" name="enabled" id="bulkEnabled">
+                <input type="hidden" name="mode" id="bulkMode">
+                <input type="hidden" name="session" th:value="${selectedSession}">
+                <input type="hidden" name="department" th:value="${department}">
+                <input type="hidden" name="search" th:value="${search}">
+                <input type="hidden" name="applyAll" id="applyAllHidden" value="false">
             </div>
+
+            <div class="bulk-tip">
+                Tip: Filter by session first, then use “Apply all (filter)” if you want to update everyone.
+            </div>
+
+
         </form>
 
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead>
+        <div class="table-responsive table-scroll">
+            <table class="table table-hover align-middle table-compact mb-0">
+            <thead>
                 <tr>
                     <th class="col-narrow">No</th>
                     <th>Name</th>
@@ -356,7 +456,7 @@
 
                     <td class="font-monospace" th:text="${student.studentId}">213844</td>
                     <td th:text="${student.department != null ? student.department.label : '-'}">-</td>
-                    <td th:text="${student.session}">2024/2025-2</td>
+                    <td class="session-cell" th:text="${student.session}">2024/2025-2</td>
                     <td th:text="${studentCompanyMap[student.id]}">-</td>
 
                     <!-- Status -->

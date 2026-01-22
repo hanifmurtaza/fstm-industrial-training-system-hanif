@@ -289,6 +289,7 @@ public class AdminController {
                 if (incoming.getEnabled() == null) incoming.setEnabled(current.getEnabled());
                 if (incoming.getAccessStart() == null) incoming.setAccessStart(current.getAccessStart());
                 if (incoming.getAccessEnd() == null) incoming.setAccessEnd(current.getAccessEnd());
+                if (incoming.getRemarks() == null) incoming.setRemarks(current.getRemarks());
             }
         } else {
             if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
