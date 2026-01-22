@@ -94,6 +94,18 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label">Remarks (Admin only)</label>
+                    <textarea class="form-control"
+                              rows="3"
+                              th:field="*{remarks}"
+                              placeholder="Internal notes about this student (not visible to student)"></textarea>
+                    <div class="form-text">
+                        For internal administrative reference only.
+                    </div>
+                </div>
+
+
+                <div class="mb-3">
                     <label class="form-label">Internship Company</label>
                     <input type="text" class="form-control" th:value="${currentPlacementCompany}" disabled>
                     <div class="form-text">

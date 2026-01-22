@@ -404,8 +404,12 @@ public class IndustrySupervisorController {
                                   @RequestParam String jobScope,
                                   @RequestParam(required = false) String allowance,
                                   @RequestParam(defaultValue = "false") boolean accommodation,
+                                  @RequestParam(defaultValue = "false") boolean followJobScopeAgreement,
+                                  @RequestParam(required = false) String workingHours,
+                                  @RequestParam(required = false) String benefits,
                                   @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate reportDutyDate,
                                   @RequestParam(required = false) String sector,
+                                  org.springframework.web.servlet.mvc.support.RedirectAttributes ra,
                                   HttpSession session) {
 
         if (notIndustry(session)) return "redirect:/login";
@@ -423,10 +427,23 @@ public class IndustrySupervisorController {
             return "redirect:/industry/placements";
         }
 
+        // Faculty requirement: supervisor must explicitly agree to follow the job scope declared in the system.
+        if (!followJobScopeAgreement) {
+            ra.addFlashAttribute("error",
+                    "Please tick the agreement to confirm you will provide tasks aligned with the job scope for the duration of the placement.");
+            return "redirect:/industry/placements/" + id;
+        }
+
         p.setDepartment(department);
         p.setJobScope(jobScope);
         p.setAllowance(allowance);
         p.setAccommodation(accommodation);
+
+        // new fields
+        p.setFollowJobScopeAgreement(true);
+        p.setWorkingHours(workingHours);
+        p.setBenefits(benefits);
+
         p.setReportDutyDate(reportDutyDate);
 
         // ✅ main behavior: verified -> go to admin
@@ -440,21 +457,19 @@ public class IndustrySupervisorController {
         log.setTimestamp(LocalDateTime.now());
         auditLogRepo.save(log);
 
-
         if (p.getCompanyInfoId() != null && sector != null && !sector.isBlank()) {
             CompanyInfo info = companyInfoRepo.findById(p.getCompanyInfoId()).orElse(null);
             if (info != null) {
                 try {
                     info.setSector(CompanySector.valueOf(sector.trim()));
                     companyInfoRepo.save(info);
-                } catch (IllegalArgumentException ignored) {
-                    // invalid sector submitted; ignore or add flash error
-                }
+                } catch (IllegalArgumentException ignored) {}
             }
         }
 
         return "redirect:/industry/placements";
     }
+
 
     // =========================
     // Companies

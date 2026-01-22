@@ -43,6 +43,7 @@ public class User {
     @Column(length = 120)
     private String company;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lecturer_id")
     private User lecturer;
@@ -65,6 +66,11 @@ public class User {
 
     @Column(length = 255)
     private String finalReportVideoPath;
+
+    @Lob
+    @Column
+    private String remarks;
+
 
     // ================= Getters & Setters =================
 
@@ -116,4 +122,13 @@ public class User {
     public void setFinalReportVideoPath(String finalReportVideoPath) {
         this.finalReportVideoPath = finalReportVideoPath;
     }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+    }
+
 }

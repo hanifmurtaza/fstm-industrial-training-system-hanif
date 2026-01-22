@@ -117,6 +117,15 @@
             font-size:.85rem;
             color:#334155;
         }
+        /* Remarks column: keep table tidy */
+        .remarks-cell{
+            max-width: 260px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+
     </style>
 </head>
 
@@ -321,6 +330,7 @@
                     <th>Company</th>
                     <th class="col-narrow">Status</th>
                     <th style="min-width:360px;">Access Window</th>
+                    <th style="min-width:220px;">Remarks</th>
                     <th class="col-narrow text-center">Actions</th>
                 </tr>
                 </thead>
@@ -403,6 +413,14 @@
                         </div>
                     </td>
 
+                    <!-- Remarks -->
+                    <td class="remarks-cell text-muted small"
+                        th:title="${student.remarks}"
+                        th:text="${student.remarks != null and !#strings.isEmpty(student.remarks) ? student.remarks : '-'}">
+                        -
+                    </td>
+
+
                     <!-- Actions -->
                     <td class="text-center">
                         <div class="action-group d-inline-flex gap-1">
@@ -425,7 +443,7 @@
 
                 <!-- Empty -->
                 <tr th:if="${#lists.isEmpty(students.content)}">
-                    <td colspan="9" class="text-center py-5 text-muted">
+                    <td colspan="10" class="text-center py-5 text-muted">
                         <i class="bi bi-people fs-3 d-block mb-2"></i>
                         No students found. Try adjusting your search.
                     </td>

@@ -79,6 +79,29 @@ public class Placement {
         updatedAt = Instant.now();
     }
 
+    // ---------- Faculty-required acknowledgement & extra info ----------
+    /**
+     * Supervisor must acknowledge they will provide tasks aligned with the job scope.
+     * (Guideline: placement verification step)
+     */
+    @Column(nullable = false)
+    private boolean followJobScopeAgreement = false;
+
+    /**
+     * Working hours for the trainee (e.g., Mon–Fri 9am–6pm).
+     */
+    @Column(length = 120)
+    private String workingHours;
+
+    /**
+     * Additional benefits provided to the trainee (allow multiple lines).
+     */
+    @Lob
+    @Column
+    private String benefits;
+// ------------------------------------------------------------------
+
+
     // -------- Getters & Setters --------
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -127,5 +150,15 @@ public class Placement {
 
     public String getAdminNotes() { return adminNotes; }
     public void setAdminNotes(String adminNotes) { this.adminNotes = adminNotes; }
+
+    public boolean isFollowJobScopeAgreement() { return followJobScopeAgreement; }
+    public void setFollowJobScopeAgreement(boolean followJobScopeAgreement) { this.followJobScopeAgreement = followJobScopeAgreement; }
+
+    public String getWorkingHours() { return workingHours; }
+    public void setWorkingHours(String workingHours) { this.workingHours = workingHours; }
+
+    public String getBenefits() { return benefits; }
+    public void setBenefits(String benefits) { this.benefits = benefits; }
+
 
 }

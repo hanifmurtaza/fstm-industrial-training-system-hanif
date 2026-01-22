@@ -307,6 +307,28 @@
                                                 <dt class="col-sm-4">Job Scope</dt>
                                                 <dd class="col-sm-8" th:text="${p.jobScope != null ? p.jobScope : '-'}">-</dd>
 
+
+                                                <dt class="col-sm-4">Working Hours</dt>
+                                                <dd class="col-sm-8"
+                                                    th:text="${p.workingHours != null and !#strings.isEmpty(p.workingHours) ? p.workingHours : '-'}">-</dd>
+
+
+                                                <dt class="col-sm-4">Benefits</dt>
+                                                <dd class="col-sm-8"
+                                                    th:text="${p.benefits != null and !#strings.isEmpty(p.benefits) ? p.benefits : '-'}"
+                                                    style="white-space: pre-line;">-</dd>
+
+
+                                                <dt class="col-sm-4">Job Scope Agreement</dt>
+                                                <dd class="col-sm-8">
+            <span th:if="${p.followJobScopeAgreement}" class="badge text-bg-success">
+                <i class="bi bi-check-circle me-1"></i>Agreed
+            </span>
+                                                    <span th:unless="${p.followJobScopeAgreement}" class="badge text-bg-secondary">
+                <i class="bi bi-dash-circle me-1"></i>Not provided
+            </span>
+                                                </dd>
+
                                                 <dt class="col-sm-4">Allowance</dt>
                                                 <dd class="col-sm-8" th:text="${p.allowance != null ? p.allowance : '-'}">-</dd>
 
