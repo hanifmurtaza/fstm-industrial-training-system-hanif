@@ -55,18 +55,30 @@ public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long
                                          Pageable pageable);
 
 
-    @Query("""
-   select
-     l.studentId as studentId,
-     count(l.id) as total,
-     sum(case when l.endorsed = false then 1 else 0 end) as supPending,
-     sum(case when l.endorsed = true and l.endorsedByLecturer = false then 1 else 0 end) as lecPending,
-     max(l.weekStartDate) as latestWeek
-   from LogbookEntry l
-   where l.studentId in :studentIds
-   group by l.studentId
-""")
-    List<StudentLogbookSummary> summarizeByStudentIds(@Param("studentIds") List<Long> studentIds);
+    @Query(value = """
+SELECT
+  student_id AS studentId,
+  COUNT(id) AS total,
+  SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS supPending,
+  SUM(CASE WHEN status <> 'REJECTED'
+            AND (endorsed_by_lecturer = b'0' OR endorsed_by_lecturer IS NULL)
+       THEN 1 ELSE 0 END) AS lecPending,
+  MAX(week_start_date) AS latestWeek
+FROM logbook_entries
+WHERE student_id IN (:studentIds)
+GROUP BY student_id
+""", nativeQuery = true)
+    List<StudentLogbookSummaryNative> summarizeNativeByStudentIds(@Param("studentIds") List<Long> studentIds);
+
+
+
+    @Query(value = """
+SELECT COUNT(*)
+FROM logbook_entries
+WHERE status <> 'REJECTED'
+  AND (endorsed_by_lecturer = b'0' OR endorsed_by_lecturer IS NULL)
+""", nativeQuery = true)
+    long countAwaitingLecturer();
 
     long countByStudentIdInAndStatus(List<Long> studentIds, ReviewStatus status);
 

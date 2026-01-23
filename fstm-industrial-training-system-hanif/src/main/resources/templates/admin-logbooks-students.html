@@ -2,108 +2,278 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Logbooks • Students</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Logbook Marking • UPM Industrial Training</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap + Icons + Font -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- global css -->
+    <link th:href="@{/app.css}" rel="stylesheet">
+
     <style>
-        :root{ --border:#e5e7eb; --muted:#6b7280; }
-        body{ background:#f5f7fa; }
+        :root{
+            --border: rgba(148,163,184,.25);
+            --muted:#64748b;
+            --ink:#0f172a;
+            --bg:#f5f7fa;
+        }
+        body{ font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
         .container-narrow{ max-width:1240px; }
-        .appbar{ background:#0d6efd; color:#fff; }
-        .appbar a{ color:#fff; text-decoration:none; }
-        .table-card{ border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.06); }
-        .table thead th{ background:#fff; position:sticky; top:0; z-index:2; border-bottom:1px solid var(--border); }
-        .table tbody td{ vertical-align:middle; }
-        .table-responsive{ max-height:64vh; overflow:auto; }
+
+        .pill{
+            display:inline-flex; gap:8px; align-items:center;
+            padding:6px 12px; border-radius:999px;
+            background:#eef2ff; color:#1e40af;
+            font-size:.85rem; font-weight:800;
+        }
+        .page-title{ letter-spacing:-0.2px; }
         .muted{ color:var(--muted); }
-        .pill{ font-weight:700; padding:.25rem .5rem; border-radius:999px; font-size:.85rem; display:inline-block; }
-        .pill-ok{ background:#E6F4EA; color:#1F7A39; }
-        .pill-warn{ background:#FFF4E5; color:#9A6700; }
-        .pill-bad{ background:#FDECEC; color:#B42318; }
+
+        .card-soft{
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:18px;
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+        }
+
+        .btn-rounded{ border-radius:12px; padding:.6rem .95rem; }
+        .btn-sm.btn-rounded{ padding:.45rem .7rem; border-radius:10px; }
+
+        .badge-pill{
+            border-radius:999px;
+            padding:.45rem .7rem;
+            font-weight:900;
+            font-size:.72rem;
+            letter-spacing:.04em;
+            border:1px solid transparent;
+            white-space:nowrap;
+            display:inline-block;
+        }
+        .badge-ok{ background:#E6F4EA; color:#1F7A39; border-color:rgba(31,122,57,.15); }
+        .badge-na{ background:#EEF2F7; color:#475569; border-color:rgba(71,85,105,.18); }
+        .badge-warn{ background:#FFF7ED; color:#9A3412; border-color:rgba(154,52,18,.18); }
+        .badge-bad{ background:#FDECEC; color:#B42318; border-color:rgba(180,35,24,.18); }
+
+        .table thead th{
+            background:#fff;
+            border-bottom:1px solid var(--border);
+            font-weight:800;
+            color:#334155;
+            font-size:.9rem;
+            white-space:nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .table tbody td{ vertical-align:middle; }
+
+        .col-narrow{ width:1%; white-space:nowrap; }
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .nowrap{ white-space:nowrap; }
+
+        /* Filter bar (same style as final reports) */
+        .filter-card{
+            border-radius:18px;
+            background:#fff;
+            border:1px solid rgba(148,163,184,.25);
+            box-shadow:0 12px 30px rgba(15,23,42,.10);
+        }
+        .filter-grid{
+            display:grid;
+            grid-template-columns: 1.6fr 1fr 1fr auto; /* Search, Session, Dept, Button */
+            gap:12px;
+            align-items:end;
+        }
+        @media (max-width: 992px){
+            .filter-grid{ grid-template-columns: 1fr; }
+        }
+        .small-label{
+            font-size:.82rem;
+            font-weight:800;
+            color:#334155;
+            margin-bottom:6px;
+        }
+        .input-shell .form-control,
+        .input-shell .form-select{
+            height:44px;
+            border-radius:14px;
+            border:1px solid rgba(148,163,184,.28);
+        }
+        .input-shell .input-group-text{
+            height:44px;
+            border-radius:14px 0 0 14px;
+            border:1px solid rgba(148,163,184,.28);
+            background:#fff;
+        }
+        .btn-filter{
+            height:44px;
+            border-radius:14px;
+            padding:0 18px;
+            font-weight:800;
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            white-space:nowrap;
+        }
+        .meta-row{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-top:10px;
+            padding-top:10px;
+            border-top:1px dashed rgba(148,163,184,.30);
+            color:#64748b;
+            font-size:.9rem;
+        }
+
+        /* Compact table */
+        .table-compact{ font-size:.88rem; }
+        .table-compact th, .table-compact td{ padding:.45rem .6rem; }
     </style>
 </head>
+
 <body>
 
+<!-- Navbar: match your system navbar style -->
 <nav class="navbar navbar-expand-lg appbar">
     <div class="container container-narrow">
         <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
-            <img th:src="@{/Picture1.png}" alt="UPM" style="height:26px">
-            <span>Admin • Logbooks (Students)</span>
+            <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
+            <span>Admin Panel • UPM Industrial Training</span>
         </a>
-        <div class="ms-auto d-flex gap-2">
-            <a th:href="@{/admin/logbooks}" class="btn btn-outline-light btn-sm">
-                Audit View
-            </a>
-            <a th:href="@{/admin/dashboard}" class="btn btn-outline-light btn-sm">
-                Dashboard
-            </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdminLB">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navAdminLB" class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
+                <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
+                <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
+                <li class="nav-item"><a th:href="@{/admin/logbooks/students}" class="nav-link active">Logbooks</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+                <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
+                <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+            </ul>
         </div>
     </div>
 </nav>
 
 <main class="container container-narrow py-4">
 
-    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
-        <h1 class="h4 m-0">Students</h1>
-        <div class="text-muted">Click a student to view their weekly logbook timeline.</div>
-    </div>
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <span class="pill"><i class="bi bi-journal-text"></i> Logbook (10%)</span>
+            <h1 class="h4 page-title mb-0 mt-2">Logbook Marking (Students)</h1>
+            <div class="muted mt-1">Search by student name/matric and filter by session. Click <b>Mark</b> to open the student’s weekly timeline.</div>
+        </div>
 
-    <!-- filters -->
-    <div class="row g-2 align-items-end mb-3">
-        <div class="col-12 col-md-10">
-            <form class="row g-2 align-items-end" method="get" th:action="@{/admin/logbooks/students}">
-                <div class="col-12 col-md-4">
-                    <label class="form-label mb-1">Session</label>
-                    <select class="form-select" name="session">
-                        <option value=""
-                                th:selected="${selectedSession == null or selectedSession == ''}">
-                            All sessions
-                        </option>
-                        <option th:each="s : ${sessionOptions}"
-                                th:value="${s}"
-                                th:text="${s}"
-                                th:selected="${s == selectedSession}"></option>
-                    </select>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label class="form-label mb-1">Search</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" class="form-control"
-                               placeholder="Search by name or matric..." th:value="${search}">
-                    </div>
-                </div>
-
-                <input type="hidden" name="size" th:value="${size}"/>
-
-                <div class="col-6 col-md-2">
-                    <button class="btn btn-primary w-100" type="submit">Filter</button>
-                </div>
-            </form>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary btn-rounded" th:href="@{/admin/dashboard}">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
         </div>
     </div>
 
-    <div class="table-card">
+    <!-- Filters -->
+    <form method="get" th:action="@{/admin/logbooks/students}" class="filter-card p-3 p-md-4 mb-3">
+
+        <div class="filter-grid">
+
+            <!-- Search -->
+            <div class="input-shell">
+                <label class="small-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Search by name or matric..."
+                           th:value="${search}">
+                </div>
+            </div>
+
+            <!-- Department -->
+            <div class="input-shell">
+                <label class="small-label">Department</label>
+                <select name="department" class="form-select">
+                    <option value="" th:selected="${selectedDepartment == null || selectedDepartment == ''}">All Departments</option>
+                    <option th:each="d : ${departmentOptions}"
+                            th:value="${d.name()}"
+                            th:text="${#strings.replace(d.name(),'_',' ')}"
+                            th:selected="${d.name() == selectedDepartment}">
+                    </option>
+                </select>
+            </div>
+
+
+            <!-- Session -->
+            <div class="input-shell">
+                <label class="small-label">Session</label>
+                <select name="session" class="form-select">
+                    <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
+                    <option th:each="s : ${sessionOptions}"
+                            th:value="${s}"
+                            th:text="${s}"
+                            th:selected="${s == selectedSession}">
+                    </option>
+                </select>
+            </div>
+
+            <!-- Button -->
+            <div class="d-grid">
+                <button class="btn btn-primary btn-filter" type="submit">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+            </div>
+
+        </div>
+
+        <input type="hidden" name="size" th:value="${size}"/>
+
+        <div class="meta-row">
+            <div>
+                Total Students:
+                <span class="fw-semibold" th:text="${students != null ? students.totalElements : 0}">0</span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary btn-sm btn-rounded"
+                   th:href="@{/admin/logbooks/students}">
+                    Clear
+                </a>
+            </div>
+        </div>
+
+    </form>
+
+    <!-- Table -->
+    <div class="card-soft overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+        <table class="table table-hover table-bordered mb-0 align-middle bg-white table-compact">
                 <thead>
                 <tr>
-                    <th style="width:60px;">#</th>
-                    <th>Student</th>
-                    <th style="width:160px;">Session</th>
-                    <th style="width:220px;">Visiting Lecturer</th>
-                    <th style="width:120px;">Submitted</th>
-                    <th style="width:140px;">Sup Pending</th>
-                    <th style="width:140px;">Lec Pending</th>
-                    <th style="width:160px;">Latest Week</th>
-                    <th style="width:120px;">Action</th>
+                    <th class="col-narrow">No</th>
+                    <th style="min-width:240px;">Student</th>
+                    <th class="nowrap">Department</th>
+                    <th class="col-narrow">Session</th>
+                    <th style="min-width:220px;">Visiting Lecturer</th>
+                    <th class="col-narrow text-center">Submitted</th>
+                    <th class="col-narrow text-center">Sup Pending</th>
+                    <th class="col-narrow text-center">Lec Pending</th>
+                    <th class="col-narrow text-center">Score (10%)</th>
+                    <th class="col-narrow text-end">Action</th>
                 </tr>
                 </thead>
+
                 <tbody>
-                <tr th:if="${#lists.isEmpty(students.content)}">
-                    <td colspan="9" class="text-center text-muted py-4">
+                <tr th:if="${students == null || #lists.isEmpty(students.content)}">
+                    <td colspan="9" class="text-center text-muted py-5">
+                        <i class="bi bi-journal-x fs-3 d-block mb-2"></i>
                         No students found for this filter.
                     </td>
                 </tr>
@@ -113,74 +283,106 @@
 
                     <td>
                         <div class="fw-semibold" th:text="${s.name}">Student Name</div>
-                        <div class="muted" th:text="${s.studentId}">Matric</div>
+                        <div class="muted small mono" th:text="${s.studentId}">Matric</div>
                     </td>
 
-                    <td th:text="${s.session}">2025/2026</td>
+                    <td class="nowrap small"
+                        th:text="${s.department != null ? #strings.replace(s.department.name(),'_',' ') : '-'}">-</td>
+
+
+
+                    <td class="nowrap" th:text="${s.session}">2026/2027-1</td>
 
                     <td>
                         <span th:if="${s.lecturer != null}" th:text="${s.lecturer.name}">Lecturer</span>
                         <span th:if="${s.lecturer == null}" class="muted">Not assigned</span>
                     </td>
 
-                    <!-- summary -->
-                    <td>
+                    <!-- Submitted -->
+                    <td class="text-center">
             <span th:if="${summaryByStudentId[s.id] != null}"
-                  class="pill pill-ok"
+                  class="badge-pill badge-ok"
                   th:text="${summaryByStudentId[s.id].total}">0</span>
-                        <span th:if="${summaryByStudentId[s.id] == null}" class="pill pill-warn">0</span>
+                        <span th:if="${summaryByStudentId[s.id] == null}" class="badge-pill badge-na">0</span>
                     </td>
 
-                    <td>
+                    <!-- Sup Pending -->
+                    <td class="text-center">
             <span th:if="${summaryByStudentId[s.id] != null}"
-                  th:class="${summaryByStudentId[s.id].supPending > 0} ? 'pill pill-bad' : 'pill pill-ok'"
+                  th:class="${summaryByStudentId[s.id].supPending > 0} ? 'badge-pill badge-bad' : 'badge-pill badge-ok'"
                   th:text="${summaryByStudentId[s.id].supPending}">0</span>
-                        <span th:if="${summaryByStudentId[s.id] == null}" class="pill pill-ok">0</span>
+                        <span th:if="${summaryByStudentId[s.id] == null}" class="badge-pill badge-ok">0</span>
                     </td>
 
-                    <td>
+                    <!-- Lec Pending -->
+                    <td class="text-center">
             <span th:if="${summaryByStudentId[s.id] != null}"
-                  th:class="${summaryByStudentId[s.id].lecPending > 0} ? 'pill pill-warn' : 'pill pill-ok'"
+                  th:class="${summaryByStudentId[s.id].lecPending > 0} ? 'badge-pill badge-warn' : 'badge-pill badge-ok'"
                   th:text="${summaryByStudentId[s.id].lecPending}">0</span>
-                        <span th:if="${summaryByStudentId[s.id] == null}" class="pill pill-ok">0</span>
+                        <span th:if="${summaryByStudentId[s.id] == null}" class="badge-pill badge-ok">0</span>
                     </td>
 
-                    <td>
-            <span th:if="${summaryByStudentId[s.id] != null and summaryByStudentId[s.id].latestWeek != null}"
-                  th:text="${summaryByStudentId[s.id].latestWeek}">-</span>
-                        <span th:if="${summaryByStudentId[s.id] == null or summaryByStudentId[s.id].latestWeek == null}" class="muted">-</span>
+
+
+                    <!-- Score -->
+                    <td class="text-center">
+                        <th:block th:with="sa=${assessmentByStudentId.get(s.id)}">
+    <span th:if="${sa != null && sa.adminLogbook10 != null}"
+          class="badge-pill badge-ok"
+          th:text="${sa.adminLogbook10}">0</span>
+                            <span th:if="${sa == null || sa.adminLogbook10 == null}" class="badge-pill badge-na">-</span>
+                        </th:block>
                     </td>
 
-                    <td>
-                        <a class="btn btn-sm btn-outline-primary"
-                           th:href="@{'/admin/logbooks/student/' + ${s.id}}">
-                            View
+                    <!-- Action -->
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-primary btn-rounded"
+                           th:href="@{/admin/logbooks/student/{id}(id=${s.id}, session=${selectedSession})}">
+                            <i class="bi bi-pencil-square me-1"></i> Mark
                         </a>
                     </td>
                 </tr>
+
                 </tbody>
             </table>
         </div>
+    </div>
 
-        <div class="p-3 d-flex justify-content-between align-items-center border-top">
-            <div class="text-muted">
-                Page <span th:text="${currentPage + 1}">1</span> / <span th:text="${totalPages}">1</span>
-            </div>
-            <div class="btn-group">
-                <a class="btn btn-outline-secondary btn-sm"
-                   th:if="${currentPage > 0}"
+    <!-- Pagination -->
+    <nav class="mt-3" th:if="${totalPages != null && totalPages > 1}">
+        <ul class="pagination pagination-sm mb-0">
+
+            <li class="page-item" th:classappend="${currentPage <= 0} ? 'disabled'">
+                <a class="page-link"
                    th:href="@{/admin/logbooks/students(session=${selectedSession},search=${search},page=${currentPage-1},size=${size})}">
-                    Prev
+                    Previous
                 </a>
-                <a class="btn btn-outline-secondary btn-sm"
-                   th:if="${currentPage + 1 < totalPages}"
+            </li>
+
+            <li class="page-item"
+                th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                th:classappend="${i == currentPage} ? 'active'">
+                <a class="page-link"
+                   th:href="@{/admin/logbooks/students(session=${selectedSession},search=${search},page=${i},size=${size})}"
+                   th:text="${i + 1}">1</a>
+            </li>
+
+            <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                <a class="page-link"
                    th:href="@{/admin/logbooks/students(session=${selectedSession},search=${search},page=${currentPage+1},size=${size})}">
                     Next
                 </a>
-            </div>
-        </div>
-    </div>
+            </li>
+
+        </ul>
+    </nav>
 
 </main>
+
+<footer class="text-center text-muted py-4 small">
+    © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span>, Faculty of Food Science and Technology, UPM
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

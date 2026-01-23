@@ -69,6 +69,12 @@ public class StudentAssessment {
     @Column(name="admin_report_video_5")
     private BigDecimal adminReportVideo5 = BigDecimal.ZERO;
 
+    // Admin marks Logbook (10%)
+    @Column(name="admin_logbook_10")
+    private BigDecimal adminLogbook10 = BigDecimal.ZERO;
+
+
+
 
     // ===== Getters / Setters =====
     public Long getId() { return id; }
@@ -133,5 +139,8 @@ public class StudentAssessment {
 
     public BigDecimal getAdminReportVideo5() { return adminReportVideo5; }
     public void setAdminReportVideo5(BigDecimal adminReportVideo5) { this.adminReportVideo5 = adminReportVideo5; }
+
+    public BigDecimal getAdminLogbook10() { return adminLogbook10; }
+    public void setAdminLogbook10(BigDecimal adminLogbook10) { this.adminLogbook10 = adminLogbook10; }
 
 }

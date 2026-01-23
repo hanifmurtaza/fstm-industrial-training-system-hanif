@@ -2,7 +2,7 @@ package com.example.itsystem.repository;
 
 import com.example.itsystem.model.StudentAssessment;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.util.List;
 import java.util.Optional;
 
 public interface StudentAssessmentRepository extends JpaRepository<StudentAssessment, Long> {
@@ -11,6 +11,10 @@ public interface StudentAssessmentRepository extends JpaRepository<StudentAssess
 
     // ✅ 让 StudentController 用的“取最新一条记录”能编译通过
     Optional<StudentAssessment> findTopByStudentUserIdOrderByIdDesc(Long studentUserId);
+
+
+    List<StudentAssessment> findByStudentUserIdInAndSession(List<Long> studentUserIds, String session);
+
 
 
 }

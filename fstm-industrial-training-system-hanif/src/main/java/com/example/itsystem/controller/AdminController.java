@@ -15,16 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import java.util.Set;
+
+import java.util.*;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.repository.StudentAssessmentRepository;
@@ -101,9 +98,9 @@ public class AdminController {
 
         if (logbookEntryRepository != null) {
             long awaitingSup = logbookEntryRepository.countByStatusAndEndorsedFalse(ReviewStatus.PENDING);
-            long awaitingLec = logbookEntryRepository.countByEndorsedTrueAndEndorsedByLecturerFalse();
+            long pendingLecturer = logbookEntryRepository.countAwaitingLecturer();
             model.addAttribute("awaitingSupEndorse", awaitingSup);
-            model.addAttribute("awaitingLecEndorse", awaitingLec);
+            model.addAttribute("pendingLogbooksLecturer", pendingLecturer);
         }
 
         if (adminMetricsService != null) {
@@ -1225,50 +1222,83 @@ public class AdminController {
     @GetMapping("/logbooks/students")
     public String logbookStudents(@RequestParam(value="session", required=false) String session,
                                   @RequestParam(value="search", required=false) String search,
+                                  @RequestParam(value="department", required=false) String department,
                                   @RequestParam(value="page", defaultValue="0") int page,
                                   @RequestParam(value="size", defaultValue="10") int size,
                                   Model model) {
+
         requireBean(userRepository, "UserRepository");
         requireBean(logbookEntryRepository, "LogbookEntryRepository");
+        requireBean(studentAssessmentRepository, "StudentAssessmentRepository");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
-        Page<User> studentsPage;
-
         String q = (search == null) ? "" : search.trim();
 
-        if (session != null && !session.isBlank()) {
-            if (!q.isBlank()) {
-                studentsPage = userRepository.searchStudentsBySession("student", session, q, pageable);
-            } else {
-                studentsPage = userRepository.findAllByRoleAndSession("student", session, pageable);
-            }
-        } else {
-            if (!q.isBlank()) {
-                studentsPage = userRepository.searchStudents("student", q, pageable);
-            } else {
-                studentsPage = userRepository.findAllByRole("student", pageable);
+        // Parse Department enum safely
+        Department deptEnum = null;
+        if (department != null && !department.isBlank()) {
+            try {
+                deptEnum = Department.valueOf(department);
+            } catch (IllegalArgumentException ignored) {
+                deptEnum = null;
             }
         }
+
+        // Use your existing repository method that already supports session+department
+        Page<User> studentsPage = userRepository.searchStudentsWithSessionAndDepartment(
+                "student",
+                q,
+                session,
+                deptEnum,
+                pageable
+        );
 
         // build summary map for just the current page
         List<Long> studentIds = studentsPage.getContent().stream()
                 .map(User::getId)
                 .toList();
 
-        java.util.Map<Long, StudentLogbookSummary> summaryByStudentId = new java.util.HashMap<>();
+        Map<Long, StudentLogbookSummaryNative> summaryByStudentId = new HashMap<>();
         if (!studentIds.isEmpty()) {
-            logbookEntryRepository.summarizeByStudentIds(studentIds)
+            logbookEntryRepository.summarizeNativeByStudentIds(studentIds)
                     .forEach(s -> summaryByStudentId.put(s.getStudentId(), s));
+        }
+        model.addAttribute("summaryByStudentId", summaryByStudentId);
+
+
+        // ===== NEW: Assessment map (admin logbook score) =====
+        // Because StudentAssessment is UNIQUE by (student_user_id, session),
+        // we fetch by grouping by each student's session (works even when session filter is empty).
+        Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
+
+        if (!studentsPage.getContent().isEmpty()) {
+            Map<String, List<Long>> idsBySession = new HashMap<>();
+            for (User u : studentsPage.getContent()) {
+                if (u.getSession() == null || u.getSession().isBlank()) continue;
+                idsBySession.computeIfAbsent(u.getSession(), k -> new ArrayList<>()).add(u.getId());
+            }
+
+            for (Map.Entry<String, List<Long>> e : idsBySession.entrySet()) {
+                String ses = e.getKey();
+                List<Long> ids = e.getValue();
+                studentAssessmentRepository.findByStudentUserIdInAndSession(ids, ses)
+                        .forEach(sa -> assessmentByStudentId.put(sa.getStudentUserId(), sa));
+            }
         }
 
         model.addAttribute("students", studentsPage);
         model.addAttribute("summaryByStudentId", summaryByStudentId);
+        model.addAttribute("assessmentByStudentId", assessmentByStudentId);
 
-        // reuse your session dropdown helper (already exists in your AdminController)
+        // dropdowns
         model.addAttribute("sessionOptions", rollingSessions(3, 1));
         model.addAttribute("selectedSession", session);
         model.addAttribute("search", q);
+
+        // NEW department dropdown like final report
+        model.addAttribute("departmentOptions", Department.values());
+        model.addAttribute("selectedDepartment", department);
 
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", studentsPage.getTotalPages());
@@ -1280,14 +1310,35 @@ public class AdminController {
     @GetMapping("/logbooks/student/{studentId}")
     public String logbooksByStudent(@PathVariable Long studentId,
                                     @RequestParam(value="status", required=false) ReviewStatus status,
+                                    @RequestParam(value="session", required=false) String sessionStr,
                                     @RequestParam(value="page", defaultValue="0") int page,
                                     @RequestParam(value="size", defaultValue="10") int size,
+                                    HttpSession session,
                                     Model model) {
+
+        User admin = (User) session.getAttribute("user");
+        if (admin == null) return "redirect:/login";
+        if (!"admin".equalsIgnoreCase(admin.getRole())) return "redirect:/login";
+
         requireBean(logbookEntryRepository, "LogbookEntryRepository");
         requireBean(userRepository, "UserRepository");
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found: " + studentId));
+
+        String sess = (sessionStr != null && !sessionStr.isBlank())
+                ? sessionStr
+                : (student.getSession() == null || student.getSession().isBlank() ? "DEFAULT" : student.getSession());
+
+        // Load / create StudentAssessment row for storing logbook mark
+        StudentAssessment sa = studentAssessmentRepository
+                .findByStudentUserIdAndSession(student.getId(), sess)
+                .orElseGet(() -> {
+                    StudentAssessment x = new StudentAssessment();
+                    x.setStudentUserId(student.getId());
+                    x.setSession(sess);
+                    return x;
+                });
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "weekStartDate"));
 
@@ -1299,12 +1350,48 @@ public class AdminController {
         model.addAttribute("logbooks", data);
         model.addAttribute("status", status);
 
+        // NEW
+        model.addAttribute("sa", sa);
+        model.addAttribute("sessionStr", sess);
+
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
         model.addAttribute("size", size);
 
         return "admin-logbooks-student";
     }
+
+    @PostMapping("/logbooks/mark")
+    public String adminSaveLogbookMark(@RequestParam Long studentId,
+                                       @RequestParam String sessionStr,
+                                       @RequestParam BigDecimal logbook10,
+                                       HttpSession session,
+                                       RedirectAttributes ra) {
+
+        User admin = (User) session.getAttribute("user");
+        if (admin == null) return "redirect:/login";
+        if (!"admin".equalsIgnoreCase(admin.getRole())) return "redirect:/login";
+
+        // clamp [0..10]
+        logbook10 = logbook10.max(BigDecimal.ZERO).min(new BigDecimal("10"));
+
+        StudentAssessment sa = studentAssessmentRepository
+                .findByStudentUserIdAndSession(studentId, sessionStr)
+                .orElseGet(() -> {
+                    StudentAssessment x = new StudentAssessment();
+                    x.setStudentUserId(studentId);
+                    x.setSession(sessionStr);
+                    return x;
+                });
+
+        sa.setAdminLogbook10(logbook10);
+        studentAssessmentRepository.save(sa);
+
+        ra.addFlashAttribute("toast", "Logbook mark saved: " + logbook10 + "/10");
+        return "redirect:/admin/logbooks/student/" + studentId + "?session=" + sessionStr;
+    }
+
+
 
 
 

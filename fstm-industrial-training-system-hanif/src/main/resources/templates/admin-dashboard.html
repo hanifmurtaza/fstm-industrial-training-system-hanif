@@ -150,6 +150,33 @@
       flex:0 0 auto;
     }
 
+    /* ===== Highlighted marking modules (Logbook & Final Report) ===== */
+    .tile-primary {
+      border: 1.5px solid rgba(37, 99, 235, 0.25);
+      background: linear-gradient(
+              180deg,
+              #f8fbff 0%,
+              #ffffff 100%
+      );
+    }
+
+    .tile-primary .tile-title {
+      color: #1d4ed8; /* blue-700 */
+      font-weight: 700;
+    }
+
+    .tile-primary .tile-ico {
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563eb; /* blue-600 */
+    }
+
+    .tile-primary:hover {
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 10px 28px rgba(37, 99, 235, 0.12);
+      transform: translateY(-1px);
+    }
+
+
     /* spacing consistency */
     .section-gap{ margin-bottom:18px; }
   </style>
@@ -338,17 +365,18 @@
 
           <hr class="my-1" th:if="${awaitingSupEndorse != null}"/>
 
-          <div class="queue-row" th:if="${awaitingLecEndorse != null}">
-            <div class="queue-left">
+          <div class="queue-row">
+          <div class="queue-left">
               <span class="queue-dot"></span>
               <div>
                 <div class="queue-title">Logbooks: Awaiting Lecturer</div>
                 <div class="queue-desc">
-                  Pending: <span class="fw-bold text-dark" th:text="${awaitingLecEndorse} ?: 0">0</span>
+                  Pending: <span class="fw-bold text-dark" th:text="${pendingLogbooksLecturer}">0</span>
+
                 </div>
               </div>
             </div>
-            <a class="btn btn-soft btn-rounded" th:href="@{/admin/logbooks}">Review</a>
+            <a class="btn btn-soft btn-rounded" th:href="@{/admin/logbooks/students}">Review</a>
           </div>
 
           <div class="text-muted small mt-2"
@@ -450,32 +478,37 @@
       </div>
 
       <div class="col-12 col-lg-6">
-      <a class="tile" th:href="@{/admin/logbooks}" >
-        <div class="d-flex align-items-start gap-3">
-          <div class="tile-ico"><i class="bi bi-journal-text"><</i></div>
-        <div>
-        <p class="tile-title mb-1">Logbooks</p>
-        <p class="tile-desc">View and Monitor Student Logbooks Submissions</p>
-      </div>
-    </div>
-    <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
-    </a>
-        </div>
-
-
-      <div class="col-12 col-lg-6">
-        <a th:href="@{/admin/final-reports}" class="text-decoration-none">
-          <div class="card-soft p-3 h-100">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <div class="fw-bold">Final Report (10%)</div>
-                <div class="muted small">Mark report + video for students</div>
-              </div>
-              <div class="fs-3 text-primary"><i class="bi bi-file-earmark-text"></i></div>
+        <a class="tile tile-primary" th:href="@{/admin/logbooks}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="tile-ico">
+              <i class="bi bi-journal-text"></i>
+            </div>
+            <div>
+              <p class="tile-title mb-1">Logbook (10%)</p>
+              <p class="tile-desc">View and mark students logbook submissions</p>
             </div>
           </div>
+          <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
         </a>
       </div>
+
+      <div class="col-12 col-lg-6">
+        <a class="tile tile-primary" th:href="@{/admin/final-reports}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="tile-ico">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div>
+              <p class="tile-title mb-1">Final Report (10%)</p>
+              <p class="tile-desc">Mark students Final Report and Video</p>
+            </div>
+          </div>
+          <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
+        </a>
+      </div>
+
+
+
 
       <div class="col-12">
         <div class="tile" style="cursor:default;">
