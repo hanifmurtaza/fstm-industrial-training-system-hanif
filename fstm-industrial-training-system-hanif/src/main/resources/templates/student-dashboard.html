@@ -49,11 +49,24 @@
           <div class="col" th:each="entry : ${evaluationStatus}">
             <div class="card text-center h-100">
               <div class="card-body">
-                <h6 class="card-title text-capitalize" th:text="${entry.key}">VisitingLecturer</h6>
+
+                <!-- Clean labels instead of raw keys -->
+                <h6 class="card-title">
+                  <span th:switch="${entry.key}">
+                    <span th:case="'VisitingLecturer'">Visiting Lecturer</span>
+                    <span th:case="'IndustrySupervisor'">Industry Supervisor</span>
+                    <span th:case="'FinalReport'">Final Report (Admin)</span>
+                    <span th:case="'Logbook'">Logbook (Admin)</span>
+                    <span th:case="*"
+                          th:text="${entry.key}">Score</span>
+                  </span>
+                </h6>
+
                 <p class="card-text fw-bold fs-5"
-                   th:text="${entry.value} != null ? ${entry.value} + ' / ' + ${maxMap[entry.key]} : 'Pending'">
-                  Pending
+                   th:text="${entry.value} != null ? (${entry.value} + ' / ' + ${maxMap[entry.key]}) : 'PENDING'">
+                  PENDING
                 </p>
+
               </div>
             </div>
           </div>
@@ -62,7 +75,7 @@
       </div>
     </div>
 
-    <!-- ===== Detailed Scores: VL & Supervisor ===== -->
+    <!-- ===== Detailed Scores: VL / Supervisor / Admin ===== -->
     <div class="my-5"
          th:with="
            totalSafe=(${total100} == null ? 0 : ${total100}),
@@ -77,9 +90,13 @@
 
            isSumSafe=(${isSum} == null ? 0 : ${isSum}),
            isAttr30Safe=(${isAttr30} == null ? 0 : ${isAttr30}),
-           isOverall10Safe=(${isOverall10} == null ? 0 : ${isOverall10})">
+           isOverall10Safe=(${isOverall10} == null ? 0 : ${isOverall10}),
 
-      <!-- 顶部总分徽章 -->
+           reportSafe=(${report10} == null ? 0 : ${report10}),
+           logbookSafe=(${logbook10} == null ? 0 : ${logbook10})
+         ">
+
+      <!-- Top summary badges -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold m-0">📊 Detailed Scores</h5>
         <div>
@@ -93,13 +110,13 @@
       </div>
 
       <div class="row g-4">
+
         <!-- Visiting Lecturer (40) -->
         <div class="col-md-6">
           <div class="card h-100" th:classappend="${hasVL} ? '' : ' opacity-50'">
             <div class="card-body">
               <h6 class="mb-2">Visiting Lecturer <span class="text-muted">(40)</span></h6>
 
-              <!-- 总进度 -->
               <div class="mb-2 d-flex justify-content-between small">
                 <span>Total</span>
                 <strong th:text="|${vlSumSafe} / 40|">0 / 40</strong>
@@ -111,7 +128,6 @@
                      th:style="|width: ${vlSumSafe * 100 / 40}%;|"></div>
               </div>
 
-              <!-- 子项 -->
               <div class="small text-muted mb-1 d-flex justify-content-between">
                 <span>Reflection (10)</span><span th:text="|${vlRef10Safe} / 10|">0 / 10</span>
               </div>
@@ -134,7 +150,7 @@
               </div>
 
               <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Logbook (5)</span><span th:text="|${vlLog5Safe} / 5|">0 / 5</span>
+                <span>Logbook Review (5)</span><span th:text="|${vlLog5Safe} / 5|">0 / 5</span>
               </div>
               <div class="progress mb-2" style="height:6px;">
                 <div class="progress-bar bg-info" th:style="|width: ${vlLog5Safe * 20}%;|"></div>
@@ -146,11 +162,12 @@
               <div class="progress" style="height:6px;">
                 <div class="progress-bar bg-info" th:style="|width: ${vlOverall10Safe * 10}%;|"></div>
               </div>
+
             </div>
           </div>
         </div>
 
-        <!-- Industry Supervisor (40) - Official Rubric: Section B (30) + Section C (10) -->
+        <!-- Industry Supervisor (40) -->
         <div class="col-md-6">
           <div class="card h-100" th:classappend="${hasIS} ? '' : ' opacity-50'">
             <div class="card-body">
@@ -184,8 +201,68 @@
             </div>
           </div>
         </div>
+
+        <!-- Admin / Coordinator: Logbook (10) -->
+        <div class="col-md-6">
+          <div class="card h-100" th:classappend="${hasLogbook} ? '' : ' opacity-50'">
+            <div class="card-body">
+              <h6 class="mb-2">Logbook <span class="text-muted">(10)</span> <span class="text-muted small">• Admin</span></h6>
+
+              <div class="mb-2 d-flex justify-content-between small">
+                <span>Total</span>
+                <strong th:text="${hasLogbook} ? |${logbookSafe} / 10| : 'PENDING'">PENDING</strong>
+              </div>
+              <div class="progress" style="height:10px;">
+                <div class="progress-bar bg-success"
+                     role="progressbar" aria-valuemin="0" aria-valuemax="10"
+                     th:aria-valuenow="${logbookSafe}"
+                     th:style="|width: ${logbookSafe * 10}%;|"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin / Coordinator: Final Report (10) -->
+        <div class="col-md-6">
+          <div class="card h-100" th:classappend="${hasReport} ? '' : ' opacity-50'">
+            <div class="card-body">
+              <h6 class="mb-2">Final Report <span class="text-muted">(10)</span> <span class="text-muted small">• Admin</span></h6>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Written (5)</span>
+                <span th:text="|${sa != null && sa.adminReportWritten5 != null ? sa.adminReportWritten5 : 0} / 5|">0 / 5</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-success"
+                     th:style="|width: ${(sa != null && sa.adminReportWritten5 != null ? sa.adminReportWritten5 : 0) * 20}%;|"></div>
+              </div>
+
+              <div class="small text-muted mb-1 d-flex justify-content-between">
+                <span>Video (5)</span>
+                <span th:text="|${sa != null && sa.adminReportVideo5 != null ? sa.adminReportVideo5 : 0} / 5|">0 / 5</span>
+              </div>
+              <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-success"
+                     th:style="|width: ${(sa != null && sa.adminReportVideo5 != null ? sa.adminReportVideo5 : 0) * 20}%;|"></div>
+              </div>
+
+              <hr>
+              <div class="d-flex justify-content-between small">
+                <span>Total</span>
+                <strong th:text="${hasReport} ? |${reportSafe} / 10| : 'PENDING'">PENDING</strong>
+              </div>
+              <div class="progress" style="height:10px;">
+                <div class="progress-bar bg-success"
+                     th:style="|width: ${reportSafe * 10}%;|"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
       </div> <!-- /row -->
     </div> <!-- /my-5 -->
+
   </div> <!-- /row (outer) -->
 
 </div> <!-- /content -->

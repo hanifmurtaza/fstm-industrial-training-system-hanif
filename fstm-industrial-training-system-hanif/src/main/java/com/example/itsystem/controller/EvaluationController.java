@@ -6,6 +6,7 @@ import com.example.itsystem.model.VisitSchedule;
 import com.example.itsystem.repository.UserRepository;
 import com.example.itsystem.repository.VisitEvaluationRepository;
 import com.example.itsystem.service.VisitScheduleService;
+import com.example.itsystem.service.StudentAssessmentService;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -35,6 +36,9 @@ public class EvaluationController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private StudentAssessmentService studentAssessmentService;
 
     @GetMapping("/form/{visitId}")
     public String showEvaluationForm(@PathVariable Long visitId,
@@ -88,6 +92,27 @@ public class EvaluationController {
         evaluation.recalcTotalScore40();
 
         evaluationRepository.save(evaluation);
+
+        // ✅ Sync VL 40% into StudentAssessment (OFFICIAL 2026 grading)
+        try {
+            Long studentId = evaluation.getStudentId();
+            if (studentId != null) {
+                User student = userRepository.findById(studentId).orElse(null);
+                String sessionStr = (student != null && student.getSession() != null && !student.getSession().isBlank())
+                        ? student.getSession().trim()
+                        : "DEFAULT";
+
+                Integer score40 = evaluation.getTotalScore40() == null ? 0 : evaluation.getTotalScore40();
+                studentAssessmentService.saveVisitingLecturerScore40(
+                        studentId,
+                        sessionStr,
+                        lecturer.getId(),
+                        java.math.BigDecimal.valueOf(score40),
+                        true
+                );
+            }
+        } catch (Exception ignore) {}
+
 
         ra.addFlashAttribute("successMessage", "Evaluation submitted successfully.");
 

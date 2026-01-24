@@ -65,23 +65,36 @@ public class AdminEvaluationService {
         for (StudentAssessment a : list) {
             User student = studentById.get(a.getStudentUserId());
 
-            BigDecimal vlTotal = sum(
+            // ===== OFFICIAL 2026 totals =====
+// VL (40): new flow stores totalScore40 into vlFinalReport40 (other VL buckets 0).
+// Backward compatibility: legacy VL(60) buckets are scaled to /40.
+            BigDecimal legacyVl60 = sum(
                     a.getVlEvaluation10(),
                     a.getVlAttendance5(),
                     a.getVlLogbook5(),
                     a.getVlFinalReport40()
-            ); // /60
+            ); // legacy /60
 
-            BigDecimal indTotal = sum(
-                    a.getIsSkills20(),
-                    a.getIsCommunication10(),
-                    a.getIsTeamwork10()
-            ); // /40
+            boolean hasLegacyVlBuckets =
+                    !isZero(a.getVlEvaluation10()) || !isZero(a.getVlAttendance5()) || !isZero(a.getVlLogbook5());
 
-            BigDecimal overall = (vlTotal == null ? BigDecimal.ZERO : vlTotal)
-                    .add(indTotal == null ? BigDecimal.ZERO : indTotal); // /100
+            BigDecimal vlTotal = hasLegacyVlBuckets
+                    ? legacyVl60.multiply(new BigDecimal("40"))
+                    .divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP)
+                    : nz(a.getVlFinalReport40()); // new /40
 
-            // match your UI "No data" feeling:
+// Industry Supervisor (40): prefer official rubric, fallback to legacy buckets
+            BigDecimal indTotal = sum(a.getIsAttributes30(), a.getIsOverall10());
+            if (isZero(indTotal)) {
+                indTotal = sum(a.getIsSkills20(), a.getIsCommunication10(), a.getIsTeamwork10());
+            }
+
+            BigDecimal report10 = sum(a.getAdminReportWritten5(), a.getAdminReportVideo5()); // /10
+            BigDecimal logbook10 = nz(a.getAdminLogbook10()); // /10
+
+            BigDecimal overall = nz(vlTotal).add(nz(indTotal)).add(nz(report10)).add(nz(logbook10)); // /100
+
+// match your UI "No data" feeling:
             boolean vlNoData = isZero(vlTotal);
             boolean indNoData = isZero(indTotal);
 
@@ -95,11 +108,11 @@ public class AdminEvaluationService {
             r.matric = (student != null && student.getStudentId() != null) ? student.getStudentId() : "";
             r.session = (a.getSession() != null) ? a.getSession() : "";
 
-            r.vlText = vlNoData ? "No data" : fmt(vlTotal) + " / 60";
+            r.vlText = vlNoData ? "No data" : fmt(vlTotal) + " / 40";
             r.industryText = indNoData ? "No data" : fmt(indTotal) + " / 40";
 
             // if both missing, show "-"
-            r.total = (vlNoData && indNoData) ? "-" : fmt(overall);
+            r.total = (vlNoData && indNoData && isZero(report10) && isZero(logbook10)) ? "-" : fmt(overall);
 
             r.grade = (a.getGrade() == null || a.getGrade().isBlank()) ? "-" : a.getGrade();
             r.status = (a.getStatus() == null) ? "" : a.getStatus().name();
@@ -108,6 +121,10 @@ public class AdminEvaluationService {
         }
 
         return rows;
+    }
+
+    private BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     private BigDecimal sum(BigDecimal... vals) {

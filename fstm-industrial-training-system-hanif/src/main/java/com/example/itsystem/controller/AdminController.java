@@ -4,6 +4,7 @@ import com.example.itsystem.model.*;
 import com.example.itsystem.repository.*;
 import com.example.itsystem.service.AdminMetricsService;
 import com.example.itsystem.service.GradingService;
+import com.example.itsystem.service.StudentAssessmentService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -65,6 +66,7 @@ public class AdminController {
     // ----- Services -----
     @Autowired(required = false) private AdminMetricsService adminMetricsService;
     @Autowired(required = false) private GradingService gradingService;
+    @Autowired private StudentAssessmentService studentAssessmentService;
 
 
 
@@ -561,8 +563,9 @@ public class AdminController {
         });
     }
 
+
     // ============================
-// Evaluations (Admin overview: VL + Industry scores)
+// Evaluations (Admin overview: VL + Industry + Report + Logbook + Total)
 // ============================
     @GetMapping("/evaluations")
     public String manageEvaluations(@RequestParam(value = "search", required = false) String search,
@@ -571,7 +574,6 @@ public class AdminController {
                                     @RequestParam(value = "page", defaultValue = "0") int page,
                                     @RequestParam(value = "size", defaultValue = "25") int size,
                                     Model model) {
-
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
@@ -597,14 +599,11 @@ public class AdminController {
                 pageable
         );
 
-
         // Latest assessment per student (same data student dashboard uses)
         Map<Long, StudentAssessment> assessmentByStudentId = new HashMap<>();
         for (User s : students.getContent()) {
             studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(s.getId())
                     .ifPresent(sa -> {
-                        // keep existing grade logic untouched for DB rows if you want,
-                        // but list page will use the new gradeByStudentId anyway.
                         if (sa.getGrade() == null || sa.getGrade().isBlank()) {
                             sa.setGrade(computeGrade(sa));
                             studentAssessmentRepository.save(sa);
@@ -613,33 +612,80 @@ public class AdminController {
                     });
         }
 
-        // Visiting Lecturer score (40) derived from latest VisitEvaluation (official guideline)
+        // =========================
+        // VL (40) — show PENDING if not keyed
+        // =========================
         Map<Long, BigDecimal> vlScoreByStudentId = new HashMap<>();
-        if (visitEvaluationRepository != null) {
-            for (User s : students.getContent()) {
-                VisitEvaluation ve = visitEvaluationRepository
-                        .findFirstByStudentIdOrderByCreatedAtDesc(s.getId())
-                        .orElse(null);
-                BigDecimal vl40 = computeVl40FromVisitEvaluation(ve);
-                if (vl40 != null) vlScoreByStudentId.put(s.getId(), vl40);
+        for (User s : students.getContent()) {
+            StudentAssessment sa = assessmentByStudentId.get(s.getId());
+            if (sa == null) continue;
+
+            // New system: VL total /40 stored in vlFinalReport40
+            if (sa.getVlFinalReport40() != null && sa.getVlFinalReport40().compareTo(BigDecimal.ZERO) > 0) {
+                vlScoreByStudentId.put(s.getId(), sa.getVlFinalReport40());
+            }
+            // If you want legacy display, add scaling here.
+        }
+
+        // =========================
+        // Industry (40) — show PENDING if not keyed
+        // =========================
+        Map<Long, BigDecimal> industryScoreByStudentId = new HashMap<>();
+        for (User s : students.getContent()) {
+            StudentAssessment sa = assessmentByStudentId.get(s.getId());
+            if (sa == null) continue;
+
+            boolean hasIndustryAny =
+                    sa.getIsAttributes30() != null
+                            || sa.getIsOverall10() != null
+                            || sa.getIsSkills20() != null
+                            || sa.getIsCommunication10() != null
+                            || sa.getIsTeamwork10() != null;
+
+            if (!hasIndustryAny) continue;
+
+            // prefer official rubric, fallback legacy
+            BigDecimal official = nz(sa.getIsAttributes30()).add(nz(sa.getIsOverall10())); // /40
+            if (official.compareTo(BigDecimal.ZERO) > 0) {
+                industryScoreByStudentId.put(s.getId(), official);
+            } else {
+                BigDecimal legacy = nz(sa.getIsSkills20()).add(nz(sa.getIsCommunication10())).add(nz(sa.getIsTeamwork10()));
+                if (legacy.compareTo(BigDecimal.ZERO) > 0) {
+                    industryScoreByStudentId.put(s.getId(), legacy);
+                }
             }
         }
 
-        // Final Report (10) keyed-in by Admin (Written 5 + Video 5). Stored in StudentAssessment.
+        // =========================
+        // Final Report (10) — show PENDING if not keyed
+        // =========================
         Map<Long, BigDecimal> reportScoreByStudentId = new HashMap<>();
         for (User s : students.getContent()) {
             StudentAssessment sa = assessmentByStudentId.get(s.getId());
-            if (sa != null) {
-                BigDecimal rep10 = nz(sa.getAdminReportWritten5()).add(nz(sa.getAdminReportVideo5()));
-                reportScoreByStudentId.put(s.getId(), rep10);
+            if (sa == null) continue;
+
+            boolean hasReportAny = (sa.getAdminReportWritten5() != null) || (sa.getAdminReportVideo5() != null);
+            if (!hasReportAny) continue;
+
+            BigDecimal rep10 = nz(sa.getAdminReportWritten5()).add(nz(sa.getAdminReportVideo5()));
+            reportScoreByStudentId.put(s.getId(), rep10);
+        }
+
+        // =========================
+        // Logbook (10) — show PENDING if not keyed
+        // =========================
+        Map<Long, BigDecimal> logbookScoreByStudentId = new HashMap<>();
+        for (User s : students.getContent()) {
+            StudentAssessment sa = assessmentByStudentId.get(s.getId());
+            if (sa != null && sa.getAdminLogbook10() != null) {
+                logbookScoreByStudentId.put(s.getId(), sa.getAdminLogbook10());
             }
         }
 
-        // Logbook (10) will be wired later after faculty confirms marking scheme.
-        // For now we only display a PENDING badge (no numeric backend yet).
-        Map<Long, BigDecimal> logbookScoreByStudentId = new HashMap<>();
-
-        // Total + Grade (temporary: logbook treated as 0 until marking is confirmed)
+        // =========================
+        // Total + Grade
+        // (Pending components treated as 0 for total, but UI can still show PENDING per column)
+        // =========================
         Map<Long, BigDecimal> totalByStudentId = new HashMap<>();
         Map<Long, String> gradeByStudentId = new HashMap<>();
 
@@ -648,26 +694,21 @@ public class AdminController {
             StudentAssessment sa = assessmentByStudentId.get(sid);
 
             boolean hasVl = vlScoreByStudentId.containsKey(sid);
+            boolean hasInd = industryScoreByStudentId.containsKey(sid);
             boolean hasReport = reportScoreByStudentId.containsKey(sid);
             boolean hasLogbook = logbookScoreByStudentId.containsKey(sid);
 
             // If absolutely no data exists yet, show '-' like before.
-            if (!hasVl && sa == null && !hasReport && !hasLogbook) {
+            if (sa == null && !hasVl && !hasInd && !hasReport && !hasLogbook) {
                 continue;
             }
 
             BigDecimal vl = hasVl ? vlScoreByStudentId.get(sid) : BigDecimal.ZERO;
-
-            BigDecimal ind = BigDecimal.ZERO;
-            if (sa != null) {
-                // Industry supervisor is already 40 in your StudentAssessment buckets:
-                ind = nz(sa.getIsAttributes30()).add(nz(sa.getIsOverall10()));
-            }
-
+            BigDecimal ind = hasInd ? industryScoreByStudentId.get(sid) : BigDecimal.ZERO;
             BigDecimal rep = hasReport ? reportScoreByStudentId.get(sid) : BigDecimal.ZERO;
             BigDecimal log = hasLogbook ? logbookScoreByStudentId.get(sid) : BigDecimal.ZERO;
 
-            BigDecimal total = vl.add(ind).add(rep).add(log); // /100 (logbook currently 0)
+            BigDecimal total = vl.add(ind).add(rep).add(log); // /100
             totalByStudentId.put(sid, total);
             gradeByStudentId.put(sid, UpmGradeUtil.gradeFromTotal(total.doubleValue()));
         }
@@ -675,10 +716,11 @@ public class AdminController {
         model.addAttribute("students", students);
         model.addAttribute("assessmentByStudentId", assessmentByStudentId);
 
-        // NEW columns
         model.addAttribute("vlScoreByStudentId", vlScoreByStudentId);
+        model.addAttribute("industryScoreByStudentId", industryScoreByStudentId);
         model.addAttribute("reportScoreByStudentId", reportScoreByStudentId);
         model.addAttribute("logbookScoreByStudentId", logbookScoreByStudentId);
+
         model.addAttribute("totalByStudentId", totalByStudentId);
         model.addAttribute("gradeByStudentId", gradeByStudentId);
 
@@ -688,7 +730,6 @@ public class AdminController {
         model.addAttribute("size", size);
         model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("selectedDepartment", deptEnum != null ? deptEnum.name() : "");
-
 
         List<String> sessions = userRepository.findDistinctStudentSessions();
         model.addAttribute("sessions", sessions);
@@ -789,10 +830,12 @@ public class AdminController {
         }
 
         // Logbook (10) -> pending for now
-        BigDecimal logbook10 = null; // null means show "PENDING"
+        // Logbook (10) keyed-in by admin (null => PENDING in UI)
+        BigDecimal logbook10 = (sa != null) ? sa.getAdminLogbook10() : null;
 
-        // Total out of 100 (logbook treated as 0 until confirmed)
-        BigDecimal total100 = vl40.add(industry40).add(report10);
+
+        // Total out of 100 (treat pending logbook as 0 for total)
+        BigDecimal total100 = vl40.add(industry40).add(report10).add(logbook10 != null ? logbook10 : BigDecimal.ZERO);
         String grade = UpmGradeUtil.gradeFromTotal(total100.doubleValue());
 
         model.addAttribute("student", student);
@@ -2091,7 +2134,7 @@ public class AdminController {
             headerFont.setBold(true);
             headerStyle.setFont(headerFont);
 
-            String[] headers = {"No", "Student", "Matric", "Session", "VL (60)", "Industry (40)", "Total", "Grade"};
+            String[] headers = {"No", "Student", "Matric", "Session", "VL (40)", "Industry (40)", "Admin Report (10)", "Admin Logbook (10)", "Total", "Grade"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 Cell c = headerRow.createCell(i);
@@ -2109,29 +2152,54 @@ public class AdminController {
                 String studentName = (stu.getName() != null && !stu.getName().isBlank()) ? stu.getName() : stu.getUsername();
                 String matric = (stu.getStudentId() != null) ? stu.getStudentId() : "";
 
-                // VL 60
+                // OFFICIAL 2026 totals
                 BigDecimal vl = BigDecimal.ZERO;
                 BigDecimal ind = BigDecimal.ZERO;
+                BigDecimal report10 = BigDecimal.ZERO;
+                BigDecimal logbook10 = BigDecimal.ZERO;
 
                 if (sa != null) {
-                    vl = nz(sa.getVlEvaluation10())
+                    // VL: if legacy buckets exist, scale 60 -> 40; otherwise treat vlFinalReport40 as /40
+                    boolean hasLegacyVlBuckets =
+                            nz(sa.getVlEvaluation10()).compareTo(BigDecimal.ZERO) > 0
+                                    || nz(sa.getVlAttendance5()).compareTo(BigDecimal.ZERO) > 0
+                                    || nz(sa.getVlLogbook5()).compareTo(BigDecimal.ZERO) > 0;
+
+                    BigDecimal legacyVl60 = nz(sa.getVlEvaluation10())
                             .add(nz(sa.getVlAttendance5()))
                             .add(nz(sa.getVlLogbook5()))
                             .add(nz(sa.getVlFinalReport40()));
 
-                    ind = nz(sa.getIsSkills20())
-                            .add(nz(sa.getIsCommunication10()))
-                            .add(nz(sa.getIsTeamwork10()));
+                    vl = hasLegacyVlBuckets
+                            ? legacyVl60.multiply(new BigDecimal("40"))
+                            .divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP)
+                            : nz(sa.getVlFinalReport40()); // new /40
+
+                    // Industry: prefer official rubric
+                    ind = nz(sa.getIsAttributes30()).add(nz(sa.getIsOverall10()));
+                    if (ind.compareTo(BigDecimal.ZERO) == 0) {
+                        ind = nz(sa.getIsSkills20())
+                                .add(nz(sa.getIsCommunication10()))
+                                .add(nz(sa.getIsTeamwork10()));
+                    }
+
+                    report10 = nz(sa.getAdminReportWritten5()).add(nz(sa.getAdminReportVideo5()));
+                    logbook10 = nz(sa.getAdminLogbook10());
                 }
 
                 boolean vlNoData = (sa == null) || vl.compareTo(BigDecimal.ZERO) == 0;
                 boolean indNoData = (sa == null) || ind.compareTo(BigDecimal.ZERO) == 0;
+                boolean reportNoData = (sa == null) || report10.compareTo(BigDecimal.ZERO) == 0;
+                boolean logbookNoData = (sa == null) || logbook10.compareTo(BigDecimal.ZERO) == 0;
 
-                BigDecimal total = vl.add(ind);
+                BigDecimal total = vl.add(ind).add(report10).add(logbook10);
 
-                String vlText = vlNoData ? "No data" : fmt2(vl) + " / 60";
+                String vlText = vlNoData ? "No data" : fmt2(vl) + " / 40";
                 String indText = indNoData ? "No data" : fmt2(ind) + " / 40";
-                String totalText = (vlNoData && indNoData) ? "-" : fmt2(total);
+                String reportText = reportNoData ? "No data" : fmt2(report10) + " / 10";
+                String logbookText = logbookNoData ? "No data" : fmt2(logbook10) + " / 10";
+
+                String totalText = (vlNoData && indNoData && reportNoData && logbookNoData) ? "-" : fmt2(total);
                 String grade = (sa != null && sa.getGrade() != null && !sa.getGrade().isBlank()) ? sa.getGrade() : "-";
 
                 Row r = sheet.createRow(rowIdx++);
@@ -2141,8 +2209,10 @@ public class AdminController {
                 r.createCell(3).setCellValue(sessionText);
                 r.createCell(4).setCellValue(vlText);
                 r.createCell(5).setCellValue(indText);
-                r.createCell(6).setCellValue(totalText);
-                r.createCell(7).setCellValue(grade);
+                r.createCell(6).setCellValue(reportText);
+                r.createCell(7).setCellValue(logbookText);
+                r.createCell(8).setCellValue(totalText);
+                r.createCell(9).setCellValue(grade);
             }
 
             for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
@@ -2276,10 +2346,7 @@ public class AdminController {
                     return x;
                 });
 
-        sa.setAdminReportWritten5(written5);
-        sa.setAdminReportVideo5(video5);
-
-        studentAssessmentRepository.save(sa);
+        studentAssessmentService.saveAdminFinalReportMarks(studentId, sessionStr, written5, video5);
 
         ra.addFlashAttribute("toast", "Final report marks saved (Written: " + written5 + "/5, Video: " + video5 + "/5)");
         return "redirect:/admin/final-reports/mark/" + studentId + "?session=" + sessionStr;
@@ -2352,17 +2419,38 @@ public class AdminController {
     }
 
     private String computeGrade(StudentAssessment sa) {
-        BigDecimal vl = nz(sa.getVlEvaluation10())
+
+        // VL: if legacy VL(60) buckets exist, scale 60 -> 40; otherwise treat vlFinalReport40 as /40
+        boolean hasLegacyVlBuckets =
+                nz(sa.getVlEvaluation10()).compareTo(BigDecimal.ZERO) > 0
+                        || nz(sa.getVlAttendance5()).compareTo(BigDecimal.ZERO) > 0
+                        || nz(sa.getVlLogbook5()).compareTo(BigDecimal.ZERO) > 0;
+
+        BigDecimal legacyVl60 = nz(sa.getVlEvaluation10())
                 .add(nz(sa.getVlAttendance5()))
                 .add(nz(sa.getVlLogbook5()))
-                .add(nz(sa.getVlFinalReport40())); // max 60
+                .add(nz(sa.getVlFinalReport40())); // legacy max 60
 
-        BigDecimal ind = nz(sa.getIsSkills20())
-                .add(nz(sa.getIsCommunication10()))
-                .add(nz(sa.getIsTeamwork10())); // max 40
+        BigDecimal vl40 = hasLegacyVlBuckets
+                ? legacyVl60.multiply(new BigDecimal("40"))
+                .divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP)
+                : nz(sa.getVlFinalReport40()); // new /40
 
-        double total = vl.add(ind).doubleValue(); // max 100
-        return UpmGradeUtil.gradeFromTotal(total);
+        // Industry (40): prefer official rubric fields, fallback to legacy
+        BigDecimal ind40 = nz(sa.getIsAttributes30()).add(nz(sa.getIsOverall10()));
+        if (ind40.compareTo(BigDecimal.ZERO) == 0) {
+            ind40 = nz(sa.getIsSkills20())
+                    .add(nz(sa.getIsCommunication10()))
+                    .add(nz(sa.getIsTeamwork10()));
+        }
+
+        // Admin: report (10) + logbook (10)
+        BigDecimal report10 = nz(sa.getAdminReportWritten5()).add(nz(sa.getAdminReportVideo5()));
+        BigDecimal logbook10 = nz(sa.getAdminLogbook10());
+
+        BigDecimal total100 = vl40.add(ind40).add(report10).add(logbook10);
+
+        return UpmGradeUtil.gradeFromTotal(total100.doubleValue());
     }
 
     private int safeLikert(Integer v) {

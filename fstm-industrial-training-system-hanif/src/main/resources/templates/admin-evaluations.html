@@ -339,20 +339,19 @@
                         <th:block th:with="vl=${vlScoreByStudentId[s.id]}">
                             <span th:if="${vl != null}" class="badge-pill badge-ok"
                                   th:text="${vl + ' / 40'}">0 / 40</span>
-                            <span th:if="${vl == null}" class="badge-pill badge-na">NO DATA</span>
+                            <span th:if="${vl == null}" class="badge-pill badge-na">PENDING</span>
                         </th:block>
                     </td>
 
                     <!-- Industry (40) -->
                     <td>
-                        <th:block th:with="sa=${assessmentByStudentId[s.id]}">
-                            <span th:if="${sa != null}" class="badge-pill badge-ok"
-                                  th:text="${((sa.isAttributes30 != null ? sa.isAttributes30 : 0) + (sa.isOverall10 != null ? sa.isOverall10 : 0)) + ' / 40'}">
-                                0 / 40
-                            </span>
-                            <span th:if="${sa == null}" class="badge-pill badge-na">NO DATA</span>
+                        <th:block th:with="ind=${industryScoreByStudentId[s.id]}">
+    <span th:if="${ind != null}" class="badge-pill badge-ok"
+          th:text="${#numbers.formatDecimal(ind,1,2) + ' / 40'}">0 / 40</span>
+                            <span th:if="${ind == null}" class="badge-pill badge-na">PENDING</span>
                         </th:block>
                     </td>
+
 
                     <!-- Logbook (10) -->
                     <td>
@@ -368,7 +367,7 @@
                         <th:block th:with="rep=${reportScoreByStudentId[s.id]}">
                             <span th:if="${rep != null}" class="badge-pill badge-ok"
                                   th:text="${rep + ' / 10'}">0 / 10</span>
-                            <span th:if="${rep == null}" class="badge-pill badge-na">NO DATA</span>
+                            <span th:if="${rep == null}" class="badge-pill badge-na">PENDING</span>
                         </th:block>
                     </td>
 

@@ -7,6 +7,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import com.example.itsystem.repository.*;
+import com.example.itsystem.util.UpmGradeUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
@@ -69,9 +70,7 @@ public class StudentController {
         return "2024/2025-2";
     }
 
-    // ==========================
-    //         Dashboard
-    // ==========================
+//DASHBOARD
     @GetMapping("/student-dashboard")
     public String studentDashboard(Model model, HttpSession session) {
         User user = (User) session.getAttribute("user");
@@ -82,7 +81,7 @@ public class StudentController {
         VisitSchedule visit = visitScheduleService.findUpcomingForStudent(user.getId());
         model.addAttribute("visitSchedule", visit);
 
-        // ====== 还是保留你原来 StudentAssessment 的读取逻辑（Industry Supervisor / total / grade 继续用） ======
+        // ====== Keep your original StudentAssessment lookup logic ======
         String byUser = (user.getSession() != null && !user.getSession().isBlank()) ? user.getSession() : null;
         String fallbackDefault = "2024/2025-2";
 
@@ -100,35 +99,37 @@ public class StudentController {
             sa = studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(user.getId()).orElse(null);
         }
 
-        // ====== Industry Supervisor (40) OFFICIAL rubric: Section B (30) + Section C (10) ======
+        model.addAttribute("sa", sa);
+
+
+        // ====== Industry Supervisor (40) OFFICIAL: Attributes30 + Overall10 ======
         int isAttr30 = sa != null && sa.getIsAttributes30() != null ? sa.getIsAttributes30().intValue() : 0;
         int isOverall10 = sa != null && sa.getIsOverall10() != null ? sa.getIsOverall10().intValue() : 0;
 
-        // Fallback to legacy buckets if official fields are empty (older data)
+        // Legacy fallback if official fields are empty (older data)
         if (isAttr30 == 0 && isOverall10 == 0 && sa != null) {
             int legacy = 0;
             if (sa.getIsSkills20() != null) legacy += sa.getIsSkills20().intValue();
             if (sa.getIsCommunication10() != null) legacy += sa.getIsCommunication10().intValue();
             if (sa.getIsTeamwork10() != null) legacy += sa.getIsTeamwork10().intValue();
-            isAttr30 = Math.min(30, legacy); // best-effort display
+
+            // best-effort split for display
+            isAttr30 = Math.min(30, legacy);
             isOverall10 = Math.max(0, legacy - isAttr30);
         }
 
-        int isSum = isAttr30 + isOverall10;
-        boolean hasIS = sa != null && (isSum > 0);
+        int isSum40 = isAttr30 + isOverall10;
+        boolean hasIS = (sa != null) && (
+                sa.getIsAttributes30() != null || sa.getIsOverall10() != null ||
+                        sa.getIsSkills20() != null || sa.getIsCommunication10() != null || sa.getIsTeamwork10() != null
+        );
 
         model.addAttribute("isAttr30", isAttr30);
         model.addAttribute("isOverall10", isOverall10);
-        model.addAttribute("isSum", isSum);
+        model.addAttribute("isSum", isSum40);
         model.addAttribute("hasIS", hasIS);
 
-        Integer total100 = sa != null && sa.getTotal100() != null ? sa.getTotal100().intValue() : null;
-        String grade = sa != null ? sa.getGrade() : null;
-        model.addAttribute("grade", grade);
-
-        // ====== ✅ Visiting Lecturer (40) 新逻辑：从 visit_evaluation 拿（新结构） ======
-        // 你 repo 里需要有这个方法：
-        // Optional<VisitEvaluation> findFirstByStudentIdOrderByCreatedAtDesc(Long studentId);
+        // ====== Visiting Lecturer (40) from visit_evaluation ======
         VisitEvaluation ve = visitEvaluationRepository
                 .findFirstByStudentIdOrderByCreatedAtDesc(user.getId())
                 .orElse(null);
@@ -141,7 +142,7 @@ public class StudentController {
         if (hasVL) {
             vlRef10 = safeLikert(ve.getReflectionLikert()) * 2;
             vlEng10 = safeLikert(ve.getEngagementLikert()) * 2;
-            vlSuit5 = safeLikert(ve.getPlacementSuitabilityLikert()); // ✅ Suitability
+            vlSuit5 = safeLikert(ve.getPlacementSuitabilityLikert());
             vlLog5 = safeLikert(ve.getLogbookLikert());
             vlOverall10 = safeLikert(ve.getLecturerOverallLikert()) * 2;
 
@@ -158,40 +159,63 @@ public class StudentController {
         model.addAttribute("vlOverall10", vlOverall10);
         model.addAttribute("vlSum", vlSum40);
 
+        // ============================================================
+        // Admin/Coordinator (OFFICIAL 2026)
+        // Final Report (10): Written5 + Video5
+        // Logbook (10): adminLogbook10
+        // ============================================================
 
-        // ====== Evaluation Status cards ======
-        // FinalReport / Logbook 的旧字段你现在是拿 VL 的旧结构分数（vlFinalReport40 / vlLogbook5）
-        // 为了不破坏你现有逻辑：我们保持从 StudentAssessment 拿（你之后再统一改也行）
-        boolean hasLogbook = sa != null && sa.getVlLogbook5() != null;
-        boolean hasFinal   = sa != null && sa.getVlFinalReport40() != null;
+        boolean hasReport = sa != null && (sa.getAdminReportWritten5() != null || sa.getAdminReportVideo5() != null);
+        int report10 = hasReport
+                ? ((sa.getAdminReportWritten5() != null ? sa.getAdminReportWritten5().intValue() : 0)
+                + (sa.getAdminReportVideo5() != null ? sa.getAdminReportVideo5().intValue() : 0))
+                : 0;
 
-        Integer logShown = hasLogbook ? (sa.getVlLogbook5() != null ? sa.getVlLogbook5().intValue() : 0) : null;
-        Integer frShown  = hasFinal ? (sa.getVlFinalReport40() != null ? sa.getVlFinalReport40().intValue() : 0) : null;
+        boolean hasLogbook = sa != null && sa.getAdminLogbook10() != null;
+        int logbook10 = hasLogbook ? sa.getAdminLogbook10().intValue() : 0;
 
-        Integer isShown  = hasIS ? isSum : null;
-        Integer vlShown  = hasVL ? vlSum40 : null;
+        // keep these for HTML detailed section (if needed)
+        model.addAttribute("hasReport", hasReport);
+        model.addAttribute("report10", report10);
+        model.addAttribute("hasLogbook", hasLogbook);
+        model.addAttribute("logbook10", logbook10);
+
+        // ====== Evaluation Status cards (UPDATED) ======
+        // Keep your keys so student-dashboard.html doesn't break
+        Integer frShown  = hasReport ? report10 : null;    // /10
+        Integer isShown  = hasIS ? isSum40 : null;         // /40
+        Integer lbShown  = hasLogbook ? logbook10 : null;  // /10
+        Integer vlShown  = hasVL ? vlSum40 : null;         // /40
 
         Map<String, Integer> evaluationStatus = new LinkedHashMap<>();
         evaluationStatus.put("FinalReport", frShown);
         evaluationStatus.put("IndustrySupervisor", isShown);
-        evaluationStatus.put("Logbook", logShown);
+        evaluationStatus.put("Logbook", lbShown);
         evaluationStatus.put("VisitingLecturer", vlShown);
         model.addAttribute("evaluationStatus", evaluationStatus);
 
         Map<String, Integer> maxMap = new HashMap<>();
-        maxMap.put("FinalReport", 40);
+        maxMap.put("FinalReport", 10);          // ✅ was 40
         maxMap.put("IndustrySupervisor", 40);
-        maxMap.put("Logbook", 5);
-        maxMap.put("VisitingLecturer", 40); // ✅ 改成 40
+        maxMap.put("Logbook", 10);             // ✅ was 5
+        maxMap.put("VisitingLecturer", 40);
         model.addAttribute("maxMap", maxMap);
 
-        model.addAttribute("hasLogbook", hasLogbook);
-        model.addAttribute("hasFinal", hasFinal);
 
-        // ====== Total ======
-        // 你现在 total100 可能是数据库算好的，也可能 null。
-        // 我们保持你的做法：如果 null，就用 (vlSum40 + isSum) 先顶着
-        model.addAttribute("total100", total100 != null ? total100 : (vlSum40 + isSum));
+        model.addAttribute("hasFinal", hasReport);
+        model.addAttribute("hasLogbookOld", hasLogbook);
+
+        // ====== Total + Grade (OFFICIAL 40+40+10+10) ======
+        int total100 = (hasVL ? vlSum40 : 0)
+                + (hasIS ? isSum40 : 0)
+                + (hasReport ? report10 : 0)
+                + (hasLogbook ? logbook10 : 0);
+
+        model.addAttribute("total100", total100);
+
+        String grade = UpmGradeUtil.gradeFromTotal((double) total100);
+        model.addAttribute("grade", grade);
+
 
         return "student-dashboard";
     }
