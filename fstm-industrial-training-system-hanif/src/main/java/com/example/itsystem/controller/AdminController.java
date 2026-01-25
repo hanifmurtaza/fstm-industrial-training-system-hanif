@@ -221,7 +221,7 @@ public class AdminController {
                                  @RequestParam String password,
                                  @RequestParam String studentId,
                                  @RequestParam String session,
-                                 @RequestParam String company,
+                                 @RequestParam(required = false) String company,
                                  @RequestParam(required = false) Department department) {
 
         User user = new User();
@@ -229,7 +229,14 @@ public class AdminController {
         user.setUsername(username);
         user.setStudentId(studentId);
         user.setSession(session);
-        user.setCompany(company);
+
+        // ✅ company should be empty at this stage (placement comes later)
+        if (company != null && !company.isBlank()) {
+            user.setCompany(company);
+        } else {
+            user.setCompany(null);
+        }
+
         user.setDepartment(department);
         user.setRole("student");
 
@@ -246,6 +253,7 @@ public class AdminController {
         logAction("ADD_STUDENT", "Added student: " + name);
         return "redirect:/admin/students";
     }
+
 
     @GetMapping("/students/edit/{id}")
     public String showEditStudentForm(@PathVariable Long id, Model model) {
@@ -1793,6 +1801,7 @@ public class AdminController {
                                 @RequestParam(required = false) String contactPhone,
                                 @RequestParam(required = false) String website,
                                 @RequestParam(required = false) String notes) {
+
         requireBean(companyRepository, "CompanyRepository");
 
         Company c = (id == null)
@@ -1801,7 +1810,18 @@ public class AdminController {
 
         c.setName(name);
         c.setAddress(address);
-        c.setSector(sector);
+
+        // ✅ Normalize sector into enum name (string)
+        if (sector == null || sector.isBlank()) {
+            c.setSector(null);
+        } else {
+            try {
+                c.setSector(CompanySector.valueOf(sector.trim()).name());
+            } catch (Exception ex) {
+                c.setSector(CompanySector.OTHERS.name());
+            }
+        }
+
         c.setDefaultJobScope(defaultJobScope);
         c.setTypicalAllowance(typicalAllowance);
         c.setAccommodation(accommodation);
@@ -1816,6 +1836,7 @@ public class AdminController {
         logAction("UPSERT_COMPANY_MASTER", (id == null ? "Created" : "Updated") + " company: " + name);
         return "redirect:/admin/company-master";
     }
+
 
     @PostMapping("/company-master/{id}/delete")
     public String deleteCompany(@PathVariable Long id, RedirectAttributes ra) {
@@ -2049,6 +2070,17 @@ public class AdminController {
         userRepository.deleteById(id);
         return "redirect:/admin/industry-supervisors";
     }
+
+
+    @GetMapping("/company-master/new")
+    public String companyMasterCreate(Model model) {
+        requireBean(companyRepository, "CompanyRepository");
+        model.addAttribute("company", new Company());
+        model.addAttribute("sectorOptions", CompanySector.values());
+        return "admin-company-master-create";
+    }
+
+
 
 
 

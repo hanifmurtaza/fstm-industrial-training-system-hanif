@@ -41,6 +41,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.example.itsystem.model.VisitEvaluation;
+import java.util.Locale;
+
 
 @Controller
 public class StudentController {
@@ -70,7 +72,7 @@ public class StudentController {
         return "2024/2025-2";
     }
 
-//DASHBOARD
+    //DASHBOARD
     @GetMapping("/student-dashboard")
     public String studentDashboard(Model model, HttpSession session) {
         User user = (User) session.getAttribute("user");
@@ -515,27 +517,48 @@ public class StudentController {
 
         User dbStudent = userRepository.findById(student.getId()).orElse(student);
 
-        // 1) 保存 PDF（保持原逻辑）
-        if (fileStorageService != null) {
-            if (reportFile != null && !reportFile.isEmpty()) {
-                String pdfUrl = fileStorageService.storeFinalReportPdf(reportFile, dbStudent.getId());
-                dbStudent.setFinalReportPdfPath(pdfUrl);
-            }
-        }
-
-        // 2) 保存 Video Link（不再上传视频）
+        // ✅ 0) video link 必填（保持你原逻辑）
         if (videoLink == null || videoLink.trim().isEmpty()) {
-            // 你也可以选择不强制 required，这里我按“必须提交链接”处理
             ra.addFlashAttribute("errorMessage", "Please paste your video presentation link.");
             return "redirect:/student/final-report";
         }
-        dbStudent.setFinalReportVideoPath(videoLink.trim()); // ✅ 复用原字段存链接
+
+        // ✅ 1) Word 文件必填（如果你要允许只更新 video link，把这里改成不必填即可）
+        if (reportFile == null || reportFile.isEmpty()) {
+            ra.addFlashAttribute("errorMessage", "Please upload your report in Word format (.doc or .docx).");
+            return "redirect:/student/final-report";
+        }
+
+        // ✅ 2) 校验扩展名：只允许 doc/docx
+        String originalName = reportFile.getOriginalFilename();
+        String lower = (originalName == null) ? "" : originalName.toLowerCase(Locale.ROOT);
+
+        if (!(lower.endsWith(".doc") || lower.endsWith(".docx"))) {
+            ra.addFlashAttribute("errorMessage", "Only Word files (.doc, .docx) are allowed.");
+            return "redirect:/student/final-report";
+        }
+
+        // ✅ 3) 保存 Word 文件（调用 FileStorageService）
+        if (fileStorageService == null) {
+            ra.addFlashAttribute("errorMessage", "File storage service is not available. Please contact admin.");
+            return "redirect:/student/final-report";
+        }
+
+        // 推荐：新增一个 storeFinalReportWord() 方法（下面我也给你代码）
+        String wordUrl = fileStorageService.storeFinalReportWord(reportFile, dbStudent.getId());
+
+        // ✅ 4) 存储路径：为了不改数据库字段，先复用 finalReportPdfPath 字段存 Word 链接（最少改动最稳）
+        dbStudent.setFinalReportPdfPath(wordUrl);
+
+        // ✅ 5) 保存 video link
+        dbStudent.setFinalReportVideoPath(videoLink.trim());
 
         userRepository.save(dbStudent);
         session.setAttribute("user", dbStudent);
 
         return "redirect:/student/final-report?success=true";
     }
+
 
 
     @GetMapping("/logout")

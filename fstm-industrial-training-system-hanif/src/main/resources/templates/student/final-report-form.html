@@ -14,10 +14,13 @@
                 <div class="card shadow p-4">
                     <h3 class="text-center mb-4">📤 Final Report Submission</h3>
 
-                    <!-- success alert -->
+                    <!-- alerts -->
                     <div th:if="${param.success}" class="alert alert-success">
                         ✅ Final report uploaded successfully!
                     </div>
+
+                    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
                     <!-- existing uploaded files -->
                     <div class="mb-4">
@@ -25,7 +28,10 @@
 
                         <div class="d-flex flex-column gap-2">
                             <div>
-                                <span class="fw-semibold">Report (PDF): </span>
+                                <span class="fw-semibold">Report (Word): </span>
+
+                                <!-- ⚠️ 这里你目前用的是 user.finalReportPdfPath
+                                     如果你暂时不改数据库字段名，就先继续用它（只是文字改为 Word） -->
                                 <span th:if="${user.finalReportPdfPath == null}" class="text-muted">Not uploaded</span>
 
                                 <span th:if="${user.finalReportPdfPath != null}" class="d-inline-flex gap-2">
@@ -36,6 +42,10 @@
                                         <i class="bi bi-download"></i> Download
                                     </a>
                                 </span>
+
+                                <div class="text-muted small mt-1">
+                                    Allowed: .doc / .docx
+                                </div>
                             </div>
 
                             <div>
@@ -46,7 +56,6 @@
                                     <a th:href="${user.finalReportVideoPath}" target="_blank" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> View
                                     </a>
-
                                 </span>
                             </div>
                         </div>
@@ -55,8 +64,14 @@
                     <!-- upload form -->
                     <form th:action="@{/student/final-report/submit}" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Upload Report (PDF)</label>
-                            <input type="file" name="reportFile" class="form-control" accept="application/pdf">
+                            <label class="form-label fw-bold">Upload Report (Word)</label>
+
+                            <!-- ✅ 改这里：只允许 doc/docx -->
+                            <input type="file"
+                                   name="reportFile"
+                                   class="form-control"
+                                   accept=".doc,.docx"
+                                   required>
                         </div>
 
                         <div class="mb-3">
@@ -68,7 +83,6 @@
                                 Upload your video to Google Drive / OneDrive / YouTube, then paste the link here.
                             </div>
                         </div>
-
 
                         <div class="text-center">
                             <button type="submit" class="btn btn-primary px-4">

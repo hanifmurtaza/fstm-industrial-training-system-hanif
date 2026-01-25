@@ -167,4 +167,46 @@ public class FileStorageService {
                 ? filename.substring(dot + 1).toLowerCase()
                 : null;
     }
+
+    // =========================================================
+// (3b) Final Report Word (DOC/DOCX)
+// -> /uploads/final-report/{studentId}/report/{file}.docx OR .doc
+// =========================================================
+    public String storeFinalReportWord(MultipartFile file, Long studentId) {
+        if (file == null || file.isEmpty()) return null;
+
+        String contentType = file.getContentType();
+        String ext = getExt(file.getOriginalFilename());
+
+        // Allow Word (doc/docx) - validate by ext (best) + contentType (optional)
+        boolean isDoc = "doc".equalsIgnoreCase(ext);
+        boolean isDocx = "docx".equalsIgnoreCase(ext);
+
+        boolean isWordByType =
+                "application/msword".equalsIgnoreCase(contentType) ||
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equalsIgnoreCase(contentType);
+
+        // Some browsers may send application/octet-stream, so extension is the main guard
+        if (!(isDoc || isDocx) && !isWordByType) {
+            throw new RuntimeException("Only Word (.doc, .docx) is allowed for Final Report.");
+        }
+
+        String safeExt = (isDoc ? "doc" : "docx"); // default to docx if uncertain
+        String name = UUID.randomUUID().toString().replace("-", "") + "." + safeExt;
+
+        Path dir = finalReportRoot
+                .resolve(String.valueOf(studentId))
+                .resolve("report");
+
+        try {
+            Files.createDirectories(dir);
+            Files.copy(file.getInputStream(), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store final report Word file", e);
+        }
+
+        return "/uploads/final-report/" + studentId + "/report/" + name;
+    }
+
+
 }

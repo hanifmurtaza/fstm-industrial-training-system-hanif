@@ -182,7 +182,7 @@
             <!-- Existing: Chart -->
             <div class="card p-3 mb-4">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h3 class="card-title fs-5">Student Placement by Organisation Type (Session 2024/2025-2)</h3>
+                    <h3 class="card-title fs-5">Student Placement by Organisation Type </h3>
                     <span class="subtle small">Summary</span>
                 </div>
                 <div class="chart-wrap mt-2">
@@ -192,8 +192,8 @@
 
             <!-- Existing: Table -->
             <div class="card p-3">
-                <h3 class="card-title fs-5 mb-2">Organisation Name & Student Count (Session 2024/2025-2)</h3>
-                <input type="text" class="form-control mb-2" placeholder="Search organisation" />
+                <h3 class="card-title fs-5 mb-2">Registered Organisation Name & Student Count </h3>
+                <input id="orgSearch" type="text" class="form-control mb-2" placeholder="Search organisation" />
                 <div class="table-wrap">
                     <table class="table align-middle mb-0">
                         <thead>
@@ -203,17 +203,16 @@
                             <th style="width:100px">Total</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        <tr><td>1</td><td>ANT INTERNATIONAL SERVICES (ASIA) SDN. BHD.</td><td>2</td></tr>
-                        <tr><td>2</td><td>ANT INTERNET SDN BHD</td><td>10</td></tr>
-                        <tr><td>3</td><td>CREATIVE SYSTEM CONSULTANT SDN BHD</td><td>8</td></tr>
-                        <tr><td>4</td><td>FMZ NET SOLUTIONS (KELANTAN)</td><td>1</td></tr>
-                        <tr><td>5</td><td>JABATAN PENERANGAN NEGERI KELANTAN</td><td>1</td></tr>
-                        <tr><td>6</td><td>KELANTAN ICT GATEWAY SDN BHD</td><td>1</td></tr>
-                        <tr><td>7</td><td>PETRONAS LUBRICANTS INTERNATIONAL (PLI) SDN BHD</td><td>2</td></tr>
-                        <tr><td>8</td><td>PIHAK BERKUASA PERANTI PERUBATAN</td><td>1</td></tr>
-                        <tr><td>9</td><td>PRESTIGE ATLANTIC SDN BHD</td><td>5</td></tr>
-                        <tr><td>10</td><td>PUSAT KOMPUTERAN DAN INFORMATIK, UNIVERSITI MALAYSIA KELANTAN (UMK)</td><td>6</td></tr>
+                        <tbody id="orgTableBody">
+                        <tr th:if="${#lists.isEmpty(companyCounts)}">
+                            <td colspan="3" class="text-center text-muted py-4">No company records found.</td>
+                        </tr>
+
+                        <tr th:each="r, stat : ${companyCounts}">
+                            <td th:text="${stat.count}">1</td>
+                            <td th:text="${r.companyName}">Company Name</td>
+                            <td th:text="${r.totalStudents}">0</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -339,19 +338,18 @@
 </script>
 
 
-<!-- Chart.js init -->
-<script>
+<script th:inline="javascript">
+    const labels = /*[[${sectorLabels}]]*/ [];
+    const values = /*[[${sectorData}]]*/ [];
+
     const ctx = document.getElementById('orgChart');
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: [
-                'Government Agency','Government Linked Agency','Public Listed Company',
-                'Multinational Company','Small & Medium Enterprise','Non-Governmental Organisation'
-            ],
+            labels: labels,
             datasets: [{
-                label: 'Students',
-                data: [2, 5, 7, 15, 18, 1],
+                label: 'Companies',
+                data: values,
                 backgroundColor: 'rgba(13, 110, 253, 0.7)'
             }]
         },
@@ -363,5 +361,25 @@
         }
     });
 </script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('orgSearch');
+        const tbody = document.getElementById('orgTableBody');
+        if (!input || !tbody) return;
+
+        input.addEventListener('input', () => {
+            const q = input.value.toLowerCase().trim();
+            [...tbody.querySelectorAll('tr')].forEach(tr => {
+                const nameCell = tr.children[1];
+                if (!nameCell) return;
+                const txt = nameCell.textContent.toLowerCase();
+                tr.style.display = txt.includes(q) ? '' : 'none';
+            });
+        });
+    });
+</script>
+
 </body>
 </html>

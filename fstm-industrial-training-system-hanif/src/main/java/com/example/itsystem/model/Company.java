@@ -153,4 +153,36 @@ public class Company {
     public void setRatingCount(Integer ratingCount) {
         this.ratingCount = ratingCount;
     }
+
+    // ==============================
+// Derived helpers (no DB impact)
+// ==============================
+
+    @Transient
+    public CompanySector getSectorEnum() {
+        if (sector == null || sector.isBlank()) return null;
+        try {
+            return CompanySector.valueOf(sector.trim());
+        } catch (Exception e) {
+            return CompanySector.OTHERS;
+        }
+    }
+
+    @Transient
+    public String getSectorDisplay() {
+        CompanySector s = getSectorEnum();
+        if (s == null) return "-";
+        // Title-case: FOOD_MANUFACTURING_PROCESSING -> Food Manufacturing Processing
+        String raw = s.name().toLowerCase().replace('_', ' ');
+        String[] parts = raw.split(" ");
+        StringBuilder out = new StringBuilder();
+        for (String p : parts) {
+            if (p.isBlank()) continue;
+            out.append(Character.toUpperCase(p.charAt(0)))
+                    .append(p.length() > 1 ? p.substring(1) : "")
+                    .append(' ');
+        }
+        return out.toString().trim();
+    }
+
 }

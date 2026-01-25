@@ -53,7 +53,7 @@
           <th>Preview</th>
           <th>File</th>
           <th>Endorsed</th>
-          <th>Export</th>
+          <!-- <th>Export</th> -->
         </tr>
         </thead>
 
@@ -156,12 +156,15 @@
           </td>
 
           <!-- Export -->
-          <td>
-            <a th:href="@{'/lecturer/logbook/export/' + ${entry.key.id}}"
-               class="btn btn-sm btn-outline-danger">
-              <i class="bi bi-file-earmark-arrow-down"></i> Export
-            </a>
-          </td>
+          <!--
+<td>
+    <a th:href="@{/lecturer/logbook/export/{id}(id=${entry.id})}"
+       class="btn btn-sm btn-outline-danger">
+        Export
+    </a>
+</td>
+-->
+
 
         </tr>
         </tbody>

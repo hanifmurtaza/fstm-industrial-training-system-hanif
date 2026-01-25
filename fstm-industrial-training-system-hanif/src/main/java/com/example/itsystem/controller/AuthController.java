@@ -7,6 +7,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
+import com.example.itsystem.model.Company;
+import com.example.itsystem.model.CompanySector;
+import com.example.itsystem.model.PlacementStatus;
+import com.example.itsystem.repository.CompanyRepository;
+import com.example.itsystem.repository.CompanyStudentCountRow;
+import org.springframework.ui.Model;
+
+import java.util.*;
+import org.springframework.data.domain.Sort;
+
 
 
 import java.util.Map;
@@ -16,10 +26,14 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CompanyRepository companyRepository;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthController(UserRepository userRepository,
+                          PasswordEncoder passwordEncoder,
+                          CompanyRepository companyRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.companyRepository = companyRepository;
     }
 
     // Root -> login
@@ -28,20 +42,66 @@ public class AuthController {
 
     // ---- Login view ----
     @GetMapping("/login")
-    public String loginPage(HttpSession session) {
+    public String loginPage(HttpSession session, Model model) {
+
         Object auth = session.getAttribute("auth");
         if (auth instanceof Map<?, ?> m) {
             String role = String.valueOf(m.get("role")).toLowerCase();
             return switch (role) {
-                case "student"  -> "redirect:/student-dashboard";   // your StudentController
-                case "teacher"  -> "redirect:/lecturer/home";                // your teacher landing
-                case "admin"    -> "redirect:/admin/dashboard";     // your AdminController
-                case "industry" -> "redirect:/industry/dashboard";  // your industry page
+                case "student"  -> "redirect:/student-dashboard";
+                case "teacher"  -> "redirect:/lecturer/home";
+                case "admin"    -> "redirect:/admin/dashboard";
+                case "industry" -> "redirect:/industry/dashboard";
                 default         -> "login";
             };
         }
-        return "login"; // templates/login.html
+
+        // ==============================
+        // ✅ PUBLIC LOGIN PAGE STATISTICS
+        // ==============================
+
+        // 1) Chart: number of companies per sector (enum)
+        List<Company> companies = companyRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+
+        Map<CompanySector, Long> sectorCounts = new EnumMap<>(CompanySector.class);
+        for (CompanySector s : CompanySector.values()) sectorCounts.put(s, 0L);
+
+        for (Company c : companies) {
+            CompanySector s = null;
+            try {
+                if (c.getSector() != null && !c.getSector().isBlank()) {
+                    s = CompanySector.valueOf(c.getSector().trim());
+                }
+            } catch (Exception ignore) { /* legacy free text */ }
+
+            if (s == null) s = CompanySector.OTHERS;
+            sectorCounts.put(s, sectorCounts.get(s) + 1);
+        }
+
+        // Keep only non-zero sectors to avoid clutter
+        List<String> sectorLabels = new ArrayList<>();
+        List<Long> sectorData = new ArrayList<>();
+        for (var e : sectorCounts.entrySet()) {
+            if (e.getValue() != null && e.getValue() > 0) {
+                sectorLabels.add(e.getKey().name().replace("_", " "));
+                sectorData.add(e.getValue());
+            }
+        }
+
+        model.addAttribute("sectorLabels", sectorLabels);
+        model.addAttribute("sectorData", sectorData);
+
+        // 2) Table: all companies + total students with APPROVED placement in that company
+        List<CompanyStudentCountRow> companyCounts =
+                companyRepository.findCompanyStudentCounts(PlacementStatus.APPROVED);
+
+        model.addAttribute("companyCounts", companyCounts);
+
+        return "login";
     }
+
+
+
 
     // ---- Login submit ----
     // ---- Login submit ----

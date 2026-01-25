@@ -257,4 +257,73 @@ html,body{
 
 }
 
+/* ===========================
+   Modern notification dots (VL red dots)
+   =========================== */
 
+/* helper: parent becomes anchor for absolute dot */
+.has-notify{ position:relative; }
+
+/* Modern notification dot */
+.notify-dot{
+    --dot: 10px;
+    --ring: rgba(239,68,68,.35);
+    position:absolute;
+    top: 10px;
+    right: 10px;
+    width: var(--dot);
+    height: var(--dot);
+    border-radius: 999px;
+    background: #ef4444;
+    border: 2px solid #ffffff;
+    box-shadow: 0 6px 14px rgba(239,68,68,.25);
+}
+
+/* subtle pulse ring */
+.notify-dot::after{
+    content:"";
+    position:absolute;
+    inset:-6px;
+    border-radius:999px;
+    background: var(--ring);
+    transform: scale(.65);
+    opacity: 0;
+    animation: notifyPulse 1.6s ease-out infinite;
+}
+
+@keyframes notifyPulse{
+    0%   { transform: scale(.55); opacity: 0; }
+    30%  { opacity: .65; }
+    100% { transform: scale(1.25); opacity: 0; }
+}
+
+/* corporate mode: no animation */
+.notify-dot.no-pulse::after{ animation:none; display:none; }
+
+/* Navbar: put dot at top-right corner (no overlap with text) */
+.navbar .nav-link.has-notify{
+    position: relative;
+    padding-right: 2rem; /* give space so dot never touches text */
+}
+
+.navbar .nav-link.has-notify .notify-dot{
+    top: -6px;   /* same vibe as your button dot */
+    right: -6px; /* corner badge */
+}
+
+/* ===== VL navbar notification dot (match button style + dynamic) ===== */
+.navbar .nav-link.has-notify{
+    position: relative;
+    display: inline-flex;          /* ensure width hugs text */
+    align-items: center;
+    gap: .35rem;
+    padding-right: 1.6rem;         /* reserve room for the dot */
+}
+
+/* place dot near the 't' (top-right of the text area) */
+.navbar .nav-link.has-notify .notify-dot{
+    top: 6px;                      /* move down near text-top */
+    right: 10px;                   /* pull inside near last letter */
+    transform: none;               /* avoid bootstrap translate-middle effects */
+    z-index: 2;
+}
