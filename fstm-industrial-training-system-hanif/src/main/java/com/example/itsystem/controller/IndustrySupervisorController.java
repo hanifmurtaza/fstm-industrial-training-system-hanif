@@ -562,30 +562,45 @@ public class IndustrySupervisorController {
         }
         if (!allowed) return "redirect:/industry/companies";
 
-        companyRepository.findById(companyId).ifPresent(company -> {
-            company.setName(name);
-            company.setAddress(address);
-            company.setDefaultJobScope(defaultJobScope);
-            company.setTypicalAllowance(typicalAllowance);
-            company.setAccommodation(accommodation);
-            company.setContactName(contactName);
-            company.setContactEmail(contactEmail);
-            company.setContactPhone(contactPhone);
-            company.setWebsite(website);
+        Company company = companyRepository.findById(companyId).orElse(null);
+        if (company == null) {
+            ra.addFlashAttribute("error", "Company not found.");
+            return "redirect:/industry/companies";
+        }
 
-            // keep enum string normalized
-            if (sector == null || sector.isBlank()) company.setSector(null);
-            else {
-                try { company.setSector(CompanySector.valueOf(sector.trim()).name()); }
-                catch (Exception ex) { company.setSector(CompanySector.OTHERS.name()); }
-            }
+        company.setName(name);
+        company.setAddress(address);
+        company.setDefaultJobScope(defaultJobScope);
+        company.setTypicalAllowance(typicalAllowance);
+        company.setAccommodation(accommodation);
+        company.setContactName(contactName);
+        company.setContactEmail(contactEmail);
+        company.setContactPhone(contactPhone);
+        company.setWebsite(website);
 
-            companyRepository.save(company);
-        });
+        // keep enum string normalized
+        if (sector == null || sector.isBlank()) company.setSector(null);
+        else {
+            try { company.setSector(CompanySector.valueOf(sector.trim()).name()); }
+            catch (Exception ex) { company.setSector(CompanySector.OTHERS.name()); }
+        }
+
+        Company saved = companyRepository.save(company);
+
+        // ✅ keep User.company string in sync for supervisors linked by companyId
+        List<User> linked = userRepository.findByRole("industry").stream()
+                .filter(u -> u.getCompanyId() != null && u.getCompanyId().equals(saved.getId()))
+                .toList(); // if Java < 16, use Collectors.toList()
+
+        for (User u : linked) {
+            u.setCompany(saved.getName());
+        }
+        userRepository.saveAll(linked);
 
         ra.addFlashAttribute("success", "Company profile updated.");
         return "redirect:/industry/companies";
     }
+
 
 
 

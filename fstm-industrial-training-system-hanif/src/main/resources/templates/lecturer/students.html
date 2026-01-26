@@ -66,7 +66,10 @@
           <td th:text="${student.name}">Name</td>
           <td th:text="${student.studentId}">213793</td>
           <td th:text="${student.session}">2025/2026-1</td>
-          <td th:text="${student.company}">Company</td>
+          <td>
+            <span th:text="${companyByStudentId[student.id] != null ? companyByStudentId[student.id] : '—'}">—</span>
+          </td>
+
           <td>
             <a th:href="@{'/lecturer/reflection/history/' + ${student.id}}"
                class="btn btn-sm btn-outline-primary">

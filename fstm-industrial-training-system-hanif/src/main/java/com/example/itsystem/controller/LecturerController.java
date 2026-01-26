@@ -19,6 +19,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.example.itsystem.model.VisitEvaluation;
 import com.example.itsystem.repository.VisitEvaluationRepository;
 import java.time.LocalDateTime;
+import com.example.itsystem.model.Company;
+import com.example.itsystem.model.Placement;
+import com.example.itsystem.model.PlacementStatus;
+import com.example.itsystem.repository.CompanyRepository;
+import com.example.itsystem.repository.PlacementRepository;
+
 
 import java.util.*;
 
@@ -31,6 +37,9 @@ public class LecturerController {
     @Autowired private UserRepository userRepository;
     @Autowired private LogbookEntryRepository logbookEntryRepository;
     @Autowired private VisitEvaluationRepository visitEvaluationRepository;
+    @Autowired private PlacementRepository placementRepository;
+    @Autowired private CompanyRepository companyRepository;
+
 
     // ★ 仪表服务（KPI & 周统计）
     @Autowired private LecturerDashboardService dashboardService;
@@ -183,21 +192,45 @@ public class LecturerController {
             Model model) {
 
         User lecturer = (User) httpSession.getAttribute("user");
-        if (lecturer == null || !"teacher".equals(lecturer.getRole())) {
+        if (lecturer == null || !"teacher".equalsIgnoreCase(lecturer.getRole())) {
             return "redirect:/login";
         }
 
         model.addAttribute("lecturer", lecturer.getName());
-        model.addAttribute("activePage", "students"); // ★ 高亮菜单
+        model.addAttribute("activePage", "students");
 
+        // keep your existing repo method
         List<String> sessions = userRepository.findDistinctSessionsByLecturer(lecturer);
         model.addAttribute("sessions", sessions);
 
+        // keep your existing repo methods
         List<User> students = (sessionFilter != null && !sessionFilter.isBlank())
                 ? userRepository.findByLecturerAndSession(lecturer, sessionFilter)
                 : userRepository.findByLecturer(lecturer);
 
+        // ✅ NEW: build companyByStudentId from Placement -> Company
+        Map<Long, String> companyByStudentId = new HashMap<>();
+
+        for (User s : students) {
+            if (s.getId() == null) continue;
+
+            Placement latest = placementRepository
+                    .findTopByStudentIdOrderByIdDesc(s.getId())
+                    .orElse(null);
+
+            if (latest != null
+                    && latest.getStatus() != PlacementStatus.CANCELLED
+                    && latest.getCompanyId() != null) {
+
+                companyRepository.findById(latest.getCompanyId())
+                        .map(Company::getName)
+                        .filter(name -> name != null && !name.isBlank())
+                        .ifPresent(name -> companyByStudentId.put(s.getId(), name));
+            }
+        }
+
         model.addAttribute("students", students);
+        model.addAttribute("companyByStudentId", companyByStudentId);
         model.addAttribute("selectedSession", sessionFilter == null ? "" : sessionFilter);
 
         return "lecturer/students";

@@ -43,6 +43,10 @@ public class User {
     @Column(length = 120)
     private String company;
 
+    private Long companyId;
+
+
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lecturer_id")
@@ -130,5 +134,8 @@ public class User {
     public void setRemarks(String remarks) {
         this.remarks = remarks;
     }
+
+    public Long getCompanyId() { return companyId; }
+    public void setCompanyId(Long companyId) { this.companyId = companyId; }
 
 }

@@ -8,6 +8,7 @@ import com.example.itsystem.service.StudentAssessmentService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -1129,39 +1130,28 @@ public class AdminController {
     public String newPlacement(@RequestParam(value = "companyId", required = false) Long companyId,
                                Model model) {
 
-        requireBean(companyRepository, "CompanyRepository");
-
         Placement placement = new Placement();
 
-        // supervisors: default = all industry supervisors
         List<User> allIndustrySupervisors = userRepository.findByRole("industry");
         List<User> supervisors = new ArrayList<>(allIndustrySupervisors);
 
         boolean filtered = false;
 
-        // if company selected -> filter supervisors by matching User.company (string) to company.name
         if (companyId != null) {
             Company selectedCompany = companyRepository.findById(companyId).orElse(null);
 
             if (selectedCompany != null && selectedCompany.getName() != null) {
                 String companyName = selectedCompany.getName().trim();
-
-                // IMPORTANT: wrap to ArrayList to avoid unmodifiable list issues
-                supervisors = new ArrayList<>(
-                        allIndustrySupervisors.stream()
-                                .filter(u -> u.getCompany() != null
-                                        && u.getCompany().trim().equalsIgnoreCase(companyName))
-                                .toList()
-                );
+                supervisors = allIndustrySupervisors.stream()
+                        .filter(u -> u.getCompany() != null && u.getCompany().trim().equalsIgnoreCase(companyName))
+                        .toList();
 
                 filtered = true;
 
-                // auto-select if exactly one supervisor
                 if (supervisors.size() == 1) {
                     placement.setSupervisorUserId(supervisors.get(0).getId());
                 }
 
-                // safety fallback: if none matched, show all so admin can still choose manually
                 if (supervisors.isEmpty()) {
                     supervisors = new ArrayList<>(allIndustrySupervisors);
                     model.addAttribute("supervisorFilterWarning", true);
@@ -1170,10 +1160,7 @@ public class AdminController {
         }
 
         model.addAttribute("placement", placement);
-
-        // ✅ CHANGE THIS: only students without active placement
         model.addAttribute("students", userRepository.findStudentsWithoutActivePlacement());
-
         model.addAttribute("companies", companyRepository.findAll());
         model.addAttribute("supervisors", supervisors);
 
@@ -1185,27 +1172,22 @@ public class AdminController {
     }
 
 
+
     @PostMapping("/placements")
     public String createPlacement(@RequestParam Long studentId,
                                   @RequestParam Long supervisorUserId,
                                   @RequestParam Long companyId,
                                   @RequestParam(required = false)
-                                  @org.springframework.format.annotation.DateTimeFormat(
-                                          iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
-                                  LocalDate startDate,
+                                  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                   @RequestParam(required = false)
-                                  @org.springframework.format.annotation.DateTimeFormat(
-                                          iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
-                                  LocalDate endDate,
-                                  org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+                                  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                  RedirectAttributes redirectAttributes) {
 
         requireBean(placementRepository, "PlacementRepository");
 
-        // ✅ check FIRST (before saving)
         if (placementRepository.existsByStudentIdAndStatusNot(studentId, PlacementStatus.CANCELLED)) {
             redirectAttributes.addFlashAttribute("error",
                     "This student already has an active placement. Please cancel the existing placement first.");
-            // keep admin on the form, optionally keep company selected
             return "redirect:/admin/placements/new?companyId=" + companyId;
         }
 
@@ -1220,9 +1202,9 @@ public class AdminController {
         placementRepository.save(p);
         logAction("CREATE_PLACEMENT", "Created placement for studentId=" + studentId);
 
-        redirectAttributes.addFlashAttribute("success", "Placement created successfully.");
         return "redirect:/admin/placements?status=AWAITING_ADMIN";
     }
+
 
 
     // ============================
