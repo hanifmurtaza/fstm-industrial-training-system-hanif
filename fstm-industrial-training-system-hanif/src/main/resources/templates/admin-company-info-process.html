@@ -332,13 +332,12 @@
                     <!-- existing company -->
                     <div class="mb-3" id="existingCompanyBlock">
                         <label class="form-label fw-semibold">Link to Master Company</label>
-                        <select class="form-select" name="existingCompanyId">
+                        <select class="form-select" id="existingCompanyId" name="existingCompanyId">
                             <option value="">-- Select company --</option>
                             <option th:each="c : ${companies}"
                                     th:value="${c.id}"
-                                    th:selected="${info.linkedCompanyId != null} ? ${c.id} == ${info.linkedCompanyId} : false"
-                                    th:text="${c.name}">
-                                Company
+                                    th:text="${c.name}"
+                                    th:attr="data-company-name=${c.name}">
                             </option>
                         </select>
                         <div class="small-note mt-1">Choose an existing company from the master list.</div>
@@ -513,12 +512,12 @@
                     <!-- existing supervisor -->
                     <div class="mb-3" id="existingSupervisorBlock">
                         <label class="form-label fw-semibold">Industry Supervisor (existing account)</label>
-                        <select class="form-select" name="existingSupervisorId">
+                        <select class="form-select" id="existingSupervisorId" name="existingSupervisorId">
                             <option value="">-- Select supervisor --</option>
                             <option th:each="s : ${supervisors}"
                                     th:value="${s.id}"
-                                    th:text="${s.name != null ? s.name + ' (' + s.username + ')' : s.username}">
-                                Supervisor
+                                    th:text="${s.name + ' (' + s.username + ')'}"
+                                    th:attr="data-company-id=${s.companyId},data-company-name=${s.company}">
                             </option>
                         </select>
                         <div class="small-note mt-1">Pick the supervisor account responsible for this student.</div>
@@ -701,6 +700,86 @@
     </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const companySelect = document.getElementById("existingCompanyId");
+        const supervisorSelect = document.getElementById("existingSupervisorId");
+
+        if (!companySelect || !supervisorSelect) return;
+
+        // Keep a master copy of ALL supervisor options (including placeholder)
+        const allSupervisorOptions = Array.from(supervisorSelect.querySelectorAll("option"))
+            .map(opt => opt.cloneNode(true));
+
+        function rebuildSupervisorOptions(companyId) {
+            const prevValue = supervisorSelect.value;
+
+            // Clear current options
+            supervisorSelect.innerHTML = "";
+
+            // Always keep placeholder first
+            const placeholder =
+                allSupervisorOptions.find(o => !o.value) || new Option("-- Select supervisor --", "");
+            supervisorSelect.appendChild(placeholder.cloneNode(true));
+
+            // If no company selected, show ALL supervisors
+            if (!companyId) {
+                allSupervisorOptions.forEach(opt => {
+                    if (opt.value) supervisorSelect.appendChild(opt.cloneNode(true));
+                });
+                // restore previous selection if possible
+                supervisorSelect.value = prevValue;
+                return;
+            }
+
+            // Selected company name (fallback matching for legacy data)
+            const selectedOpt = companySelect.options[companySelect.selectedIndex];
+            const selectedCompanyName = selectedOpt
+                ? (selectedOpt.getAttribute("data-company-name") || "").trim().toLowerCase()
+                : "";
+
+            // Filter supervisors by companyId OR company name
+            const filtered = allSupervisorOptions.filter(opt => {
+                if (!opt.value) return false;
+
+                const cid = opt.getAttribute("data-company-id");
+                if (cid && cid === String(companyId)) return true;
+
+                const cname = (opt.getAttribute("data-company-name") || "").trim().toLowerCase();
+                return selectedCompanyName && cname && cname === selectedCompanyName;
+            });
+
+            // If none, show a disabled hint option
+            if (filtered.length === 0) {
+                const none = new Option("No supervisors linked to this company", "");
+                none.disabled = true;
+                supervisorSelect.appendChild(none);
+                supervisorSelect.value = "";
+                return;
+            }
+
+            // Append filtered options
+            filtered.forEach(opt => supervisorSelect.appendChild(opt.cloneNode(true)));
+
+            // Restore selection if still valid
+            if (filtered.some(opt => opt.value === prevValue)) {
+                supervisorSelect.value = prevValue;
+            } else {
+                supervisorSelect.value = "";
+            }
+        }
+
+        companySelect.addEventListener("change", function () {
+            rebuildSupervisorOptions(companySelect.value);
+        });
+
+        // Initial filter on page load
+        rebuildSupervisorOptions(companySelect.value);
+    });
+</script>
+
+
 
 </body>
 </html>

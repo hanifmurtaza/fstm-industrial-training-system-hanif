@@ -1605,26 +1605,38 @@ public class AdminController {
 
         CompanyInfo info = companyInfoRepository.findById(id).orElseThrow();
 
-        //  Block re-processing if already decided
+        // Block re-processing if already decided
         if (info.getStatus() != CompanyInfoStatus.PENDING) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "This submission is already " + info.getStatus() + " and cannot be processed again.");
             return "redirect:/admin/company-info/process?id=" + id;
         }
 
+        // ✅ Defensive: block processing if student already has an active placement
+        if (placementRepository.existsByStudentIdAndStatusNot(info.getStudentId(), PlacementStatus.CANCELLED)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Student already has an active placement. Please cancel the current placement before processing a new company info.");
+            return "redirect:/admin/company-info/process?id=" + id;
+        }
 
+        // -------------------------
+        // Resolve Company (existing/new)
+        // -------------------------
         Long companyId;
+        Company chosenCompany = null;
+
         if ("existing".equalsIgnoreCase(companyMode)) {
             if (existingCompanyId == null) {
                 throw new IllegalArgumentException("Existing company must be selected.");
             }
             companyId = existingCompanyId;
+            chosenCompany = companyRepository.findById(companyId).orElse(null);
         } else {
             requireBean(companyRepository, "CompanyRepository");
+
             Company company;
             if (info.getLinkedCompanyId() != null) {
-                company = companyRepository.findById(info.getLinkedCompanyId())
-                        .orElse(new Company());
+                company = companyRepository.findById(info.getLinkedCompanyId()).orElse(new Company());
             } else {
                 company = new Company();
             }
@@ -1640,23 +1652,50 @@ public class AdminController {
             company.setAddress((newCompanyAddress != null && !newCompanyAddress.isBlank())
                     ? newCompanyAddress.trim()
                     : info.getAddress());
+
+            // ✅ normalize sector to enum name string for Company
             if (sector != null && !sector.isBlank()) {
-                company.setSector(sector.trim());
+                try {
+                    company.setSector(CompanySector.valueOf(sector.trim()).name());
+                } catch (Exception ex) {
+                    company.setSector(CompanySector.OTHERS.name());
+                }
             }
+
             companyRepository.save(company);
             companyId = company.getId();
+            chosenCompany = company;
         }
 
+        // -------------------------
+        // Resolve Supervisor (existing/new/none)
+        // -------------------------
         Long supervisorUserId = null;
+
         if ("existing".equalsIgnoreCase(supervisorMode)) {
             if (existingSupervisorId == null) {
                 throw new IllegalArgumentException("Existing supervisor must be selected.");
             }
-            supervisorUserId = existingSupervisorId;
+
+            // ✅ Sync chosen supervisor with this company (IMPORTANT)
+            User sup = userRepository.findById(existingSupervisorId)
+                    .orElseThrow(() -> new IllegalArgumentException("Supervisor not found: " + existingSupervisorId));
+
+            sup.setCompanyId(companyId);
+
+            // Keep User.company string consistent (UI + legacy)
+            if (chosenCompany == null) chosenCompany = companyRepository.findById(companyId).orElse(null);
+            if (chosenCompany != null) sup.setCompany(chosenCompany.getName());
+
+            userRepository.save(sup);
+
+            supervisorUserId = sup.getId();
         } else if ("new".equalsIgnoreCase(supervisorMode)) {
+
             String username = (supervisorUsername != null && !supervisorUsername.isBlank())
                     ? supervisorUsername.trim().toLowerCase()
                     : (info.getSupervisorEmail() != null ? info.getSupervisorEmail().trim().toLowerCase() : null);
+
             if (username == null || username.isBlank()) {
                 throw new IllegalArgumentException("Supervisor username/email is required for new account.");
             }
@@ -1669,6 +1708,8 @@ public class AdminController {
                     ? supervisorPassword
                     : generateTempPassword();
 
+            if (chosenCompany == null) chosenCompany = companyRepository.findById(companyId).orElse(null);
+
             User supervisor = new User();
             supervisor.setUsername(username);
             supervisor.setPassword(encode(rawPassword));
@@ -1676,21 +1717,29 @@ public class AdminController {
             supervisor.setName((supervisorName != null && !supervisorName.isBlank())
                     ? supervisorName.trim()
                     : info.getSupervisorName());
-            supervisor.setCompany(info.getCompanyName());
+
+            supervisor.setCompanyId(companyId);
+            supervisor.setCompany(chosenCompany != null ? chosenCompany.getName() : info.getCompanyName());
+
             supervisor.setEnabled(true);
             supervisor.setAccessStart(LocalDate.now());
             supervisor.setAccessEnd(LocalDate.now().plus(1, ChronoUnit.YEARS));
+
             userRepository.save(supervisor);
             supervisorUserId = supervisor.getId();
 
             redirectAttributes.addFlashAttribute("newSupervisorUsername", username);
             redirectAttributes.addFlashAttribute("newSupervisorPassword", rawPassword);
+
         } else if (supervisorMode == null || supervisorMode.isBlank()) {
             supervisorUserId = null;
         } else {
             throw new IllegalArgumentException("Unsupported supervisor mode: " + supervisorMode);
         }
 
+        // -------------------------
+        // Create Placement
+        // -------------------------
         if (placementRepository == null) {
             throw new IllegalStateException("PlacementRepository is not wired yet.");
         }
@@ -1706,14 +1755,20 @@ public class AdminController {
         placement.setStartDate(info.getInternshipStartDate());
         placement.setEndDate(info.getInternshipEndDate());
         placement.setStatus(PlacementStatus.AWAITING_SUPERVISOR);
+
         if (placementNotes != null && !placementNotes.isBlank()) {
             placement.setAdminNotes(placementNotes.trim());
         }
+
         placementRepository.save(placement);
 
+        // -------------------------
+        // Update CompanyInfo
+        // -------------------------
         info.setLinkedCompanyId(companyId);
         info.setStatus(CompanyInfoStatus.VERIFIED);
         info.setIsPublicListing(publicListing ? Boolean.TRUE : Boolean.FALSE);
+
         if (session != null && !session.isBlank()) {
             info.setSession(session.trim());
         }
@@ -1726,14 +1781,15 @@ public class AdminController {
         if (supervisorPhone != null && !supervisorPhone.isBlank()) {
             info.setSupervisorPhone(supervisorPhone.trim());
         }
-        if (placementNotes != null && !placementNotes.isBlank()) {
-            placement.setAdminNotes(placementNotes.trim());
-        }
+
+        // if CompanyInfo has sector (enum), keep it consistent
         if (sector != null && !sector.isBlank()) {
             try {
                 info.setSector(CompanySector.valueOf(sector.trim()));
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+            }
         }
+
         companyInfoRepository.save(info);
 
         logAction("PROCESS_COMPANY_INFO",
@@ -1744,8 +1800,10 @@ public class AdminController {
         redirectAttributes.addFlashAttribute("successMessage",
                 "Placement " + placement.getId() + " is now awaiting supervisor verification.");
 
-        return "redirect:/admin/company-info/" + id + "/process";
+        // ✅ IMPORTANT: redirect to the correct GET page pattern used elsewhere
+        return "redirect:/admin/company-info/process?id=" + id;
     }
+
 
     @PostMapping("/company-info/{id}/verify")
     public String verifyCompanyInfo(@PathVariable Long id) {

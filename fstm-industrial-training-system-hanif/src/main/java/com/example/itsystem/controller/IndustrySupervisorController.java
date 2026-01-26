@@ -480,12 +480,19 @@ public class IndustrySupervisorController {
 
         // ✅ Primary design: company linked to this supervisor account
         List<Company> companies = new ArrayList<>();
-        if (user.getCompany() != null && !user.getCompany().isBlank()) {
+
+// 1) Prefer companyId link (strongest)
+        if (user.getCompanyId() != null) {
+            companyRepository.findById(user.getCompanyId()).ifPresent(companies::add);
+        }
+
+// 2) Legacy: fallback to company name string
+        if (companies.isEmpty() && user.getCompany() != null && !user.getCompany().isBlank()) {
             Company own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
             if (own != null) companies.add(own);
         }
 
-        // fallback (optional): if supervisor.company not set, use placements-derived
+// 3) fallback (optional): if not linked, use placements-derived
         if (companies.isEmpty()) {
             Long me = currentUserId(session);
             List<Long> companyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
@@ -496,6 +503,7 @@ public class IndustrySupervisorController {
 
         model.addAttribute("companies", companies);
         return "industry-companies";
+
     }
 
 
@@ -506,21 +514,22 @@ public class IndustrySupervisorController {
         User user = (User) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        // ✅ allow edit if this company is the supervisor's own company
-        Company own = null;
-        if (user.getCompany() != null && !user.getCompany().isBlank()) {
-            own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
+        boolean allowed = (user.getCompanyId() != null && user.getCompanyId().equals(companyId));
+
+// Legacy: allow if matched by name string
+        if (!allowed && user.getCompany() != null && !user.getCompany().isBlank()) {
+            Company own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
+            allowed = (own != null && own.getId().equals(companyId));
         }
 
-        boolean allowed = (own != null && own.getId().equals(companyId));
-
-        // fallback allow if linked via placements (optional)
+// fallback allow if linked via placements (optional)
         if (!allowed) {
             Long me = currentUserId(session);
             allowed = placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId);
         }
 
         if (!allowed) return "redirect:/industry/companies";
+
 
         Company company = companyRepository.findById(companyId).orElse(null);
         if (company == null) return "redirect:/industry/companies";
@@ -550,17 +559,22 @@ public class IndustrySupervisorController {
         User user = (User) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        Company own = null;
-        if (user.getCompany() != null && !user.getCompany().isBlank()) {
-            own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
+        boolean allowed = (user.getCompanyId() != null && user.getCompanyId().equals(companyId));
+
+// Legacy: allow if matched by name string
+        if (!allowed && user.getCompany() != null && !user.getCompany().isBlank()) {
+            Company own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
+            allowed = (own != null && own.getId().equals(companyId));
         }
 
-        boolean allowed = (own != null && own.getId().equals(companyId));
+// fallback allow if linked via placements (optional)
         if (!allowed) {
             Long me = currentUserId(session);
             allowed = placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId);
         }
+
         if (!allowed) return "redirect:/industry/companies";
+
 
         Company company = companyRepository.findById(companyId).orElse(null);
         if (company == null) {
@@ -586,6 +600,9 @@ public class IndustrySupervisorController {
         }
 
         Company saved = companyRepository.save(company);
+
+        user.setCompany(saved.getName());
+        session.setAttribute("user", user);
 
         // ✅ keep User.company string in sync for supervisors linked by companyId
         List<User> linked = userRepository.findByRole("industry").stream()

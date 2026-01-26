@@ -242,14 +242,34 @@ public class StudentController {
                 .findFirstByStudentIdOrderByIdDesc(student.getId())
                 .orElse(null);
 
-        boolean canSubmit = (latest == null || latest.getStatus() == CompanyInfoStatus.REJECTED);
+        // ✅ placement-based lock (source of truth)
+        Placement latestPlacement = placementRepository
+                .findTopByStudentIdOrderByIdDesc(student.getId())
+                .orElse(null);
+
+        boolean hasActivePlacement = latestPlacement != null &&
+                (latestPlacement.getStatus() == PlacementStatus.AWAITING_SUPERVISOR
+                        || latestPlacement.getStatus() == PlacementStatus.AWAITING_ADMIN
+                        || latestPlacement.getStatus() == PlacementStatus.APPROVED);
+
+        // ✅ final canSubmit rule:
+        // - if active placement: cannot submit
+        // - else if latest company info is pending: cannot submit
+        // - else: can submit (null / rejected / verified)
+        boolean canSubmit = !hasActivePlacement &&
+                (latest == null || latest.getStatus() != CompanyInfoStatus.PENDING);
 
         model.addAttribute("student", student);
         model.addAttribute("latestInfo", latest);
         model.addAttribute("canSubmit", canSubmit);
 
+        // ✅ for UI messaging
+        model.addAttribute("hasActivePlacement", hasActivePlacement);
+        model.addAttribute("latestPlacement", latestPlacement);
+
         return "student/company-form";
     }
+
 
     /**
      * ✅ 提交公司信息 + 实习起止日期校验（>=24周）
@@ -267,6 +287,23 @@ public class StudentController {
 
         User student = (User) session.getAttribute("user");
         if (student == null || !"student".equals(student.getRole())) return "redirect:/login";
+
+        // ✅ block submission if student already has an active placement
+        Placement latestPlacement = placementRepository
+                .findTopByStudentIdOrderByIdDesc(student.getId())
+                .orElse(null);
+
+        boolean hasActivePlacement = latestPlacement != null &&
+                (latestPlacement.getStatus() == PlacementStatus.AWAITING_SUPERVISOR
+                        || latestPlacement.getStatus() == PlacementStatus.AWAITING_ADMIN
+                        || latestPlacement.getStatus() == PlacementStatus.APPROVED);
+
+        if (hasActivePlacement) {
+            ra.addFlashAttribute("error",
+                    "You already have an active placement (" + latestPlacement.getStatus()
+                            + "). You cannot submit a new company information unless the placement is cancelled.");
+            return "redirect:/student/company-info";
+        }
 
         // 1) 不能重复提交（除非 REJECTED）
         CompanyInfo latest = companyInfoRepository
