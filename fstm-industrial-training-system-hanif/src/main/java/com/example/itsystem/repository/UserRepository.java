@@ -131,5 +131,20 @@ AND (:department IS NULL OR u.department = :department)
     );
 
 
+    @Query("""
+  SELECT u
+  FROM User u
+  WHERE lower(u.role) = 'student'
+    AND u.id NOT IN (
+      SELECT p.studentId
+      FROM Placement p
+      WHERE p.studentId IS NOT NULL
+        AND p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+    )
+  ORDER BY u.name ASC
+""")
+    List<User> findStudentsWithoutActivePlacement();
+
+
 
 }

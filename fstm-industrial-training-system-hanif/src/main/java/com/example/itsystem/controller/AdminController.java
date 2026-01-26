@@ -1126,13 +1126,64 @@ public class AdminController {
     }
 
     @GetMapping("/placements/new")
-    public String newPlacement(Model model) {
+    public String newPlacement(@RequestParam(value = "companyId", required = false) Long companyId,
+                               Model model) {
+
         requireBean(companyRepository, "CompanyRepository");
-        model.addAttribute("students", userRepository.findByRole("student"));
-        model.addAttribute("supervisors", userRepository.findByRole("industry"));
+
+        Placement placement = new Placement();
+
+        // supervisors: default = all industry supervisors
+        List<User> allIndustrySupervisors = userRepository.findByRole("industry");
+        List<User> supervisors = new ArrayList<>(allIndustrySupervisors);
+
+        boolean filtered = false;
+
+        // if company selected -> filter supervisors by matching User.company (string) to company.name
+        if (companyId != null) {
+            Company selectedCompany = companyRepository.findById(companyId).orElse(null);
+
+            if (selectedCompany != null && selectedCompany.getName() != null) {
+                String companyName = selectedCompany.getName().trim();
+
+                // IMPORTANT: wrap to ArrayList to avoid unmodifiable list issues
+                supervisors = new ArrayList<>(
+                        allIndustrySupervisors.stream()
+                                .filter(u -> u.getCompany() != null
+                                        && u.getCompany().trim().equalsIgnoreCase(companyName))
+                                .toList()
+                );
+
+                filtered = true;
+
+                // auto-select if exactly one supervisor
+                if (supervisors.size() == 1) {
+                    placement.setSupervisorUserId(supervisors.get(0).getId());
+                }
+
+                // safety fallback: if none matched, show all so admin can still choose manually
+                if (supervisors.isEmpty()) {
+                    supervisors = new ArrayList<>(allIndustrySupervisors);
+                    model.addAttribute("supervisorFilterWarning", true);
+                }
+            }
+        }
+
+        model.addAttribute("placement", placement);
+
+        // ✅ CHANGE THIS: only students without active placement
+        model.addAttribute("students", userRepository.findStudentsWithoutActivePlacement());
+
         model.addAttribute("companies", companyRepository.findAll());
+        model.addAttribute("supervisors", supervisors);
+
+        model.addAttribute("filteredByCompany", filtered);
+        model.addAttribute("selectedCompanyId", companyId);
+        model.addAttribute("selectedSupervisorId", placement.getSupervisorUserId());
+
         return "admin-placement-form";
     }
+
 
     @PostMapping("/placements")
     public String createPlacement(@RequestParam Long studentId,
@@ -1145,8 +1196,19 @@ public class AdminController {
                                   @RequestParam(required = false)
                                   @org.springframework.format.annotation.DateTimeFormat(
                                           iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
-                                  LocalDate endDate) {
+                                  LocalDate endDate,
+                                  org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+
         requireBean(placementRepository, "PlacementRepository");
+
+        // ✅ check FIRST (before saving)
+        if (placementRepository.existsByStudentIdAndStatusNot(studentId, PlacementStatus.CANCELLED)) {
+            redirectAttributes.addFlashAttribute("error",
+                    "This student already has an active placement. Please cancel the existing placement first.");
+            // keep admin on the form, optionally keep company selected
+            return "redirect:/admin/placements/new?companyId=" + companyId;
+        }
+
         Placement p = new Placement();
         p.setStudentId(studentId);
         p.setSupervisorUserId(supervisorUserId);
@@ -1154,10 +1216,14 @@ public class AdminController {
         p.setStartDate(startDate);
         p.setEndDate(endDate);
         p.setStatus(PlacementStatus.AWAITING_ADMIN);
+
         placementRepository.save(p);
         logAction("CREATE_PLACEMENT", "Created placement for studentId=" + studentId);
+
+        redirectAttributes.addFlashAttribute("success", "Placement created successfully.");
         return "redirect:/admin/placements?status=AWAITING_ADMIN";
     }
+
 
     // ============================
     // Logbooks
@@ -1744,21 +1810,26 @@ public class AdminController {
         return "redirect:/admin/company-info/" + id + "/process";
     }
 
-    @PostMapping("/admin/placements/{id}/delete")
-    public String deletePlacement(@PathVariable Long id,
+    @PostMapping("/placements/{id}/delete") // ✅ use this if controller already has @RequestMapping("/admin")
+    public String cancelPlacement(@PathVariable Long id,
                                   RedirectAttributes redirectAttributes) {
 
-        // if you want to be safe and avoid error when id not found
-        if (placementRepository.existsById(id)) {
-            placementRepository.deleteById(id);
-            redirectAttributes.addFlashAttribute("success", "Placement deleted successfully.");
-        } else {
+        Placement p = placementRepository.findById(id).orElse(null);
+
+        if (p == null) {
             redirectAttributes.addFlashAttribute("error", "Placement not found.");
+            return "redirect:/admin/placements";
         }
 
-        // keep current filters/page simple: return to main list
+        // ✅ Soft cancel (instead of delete)
+        p.setStatus(PlacementStatus.CANCELLED);
+
+        placementRepository.save(p);
+
+        redirectAttributes.addFlashAttribute("success", "Placement cancelled successfully.");
         return "redirect:/admin/placements";
     }
+
 
     // ============================
     // Company MASTER (separate list)

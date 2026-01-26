@@ -14,6 +14,9 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
     boolean existsBySupervisorUserIdAndCompanyId(Long supervisorUserId, Long companyId);
 
+    boolean existsByStudentIdAndStatusNot(Long studentId, PlacementStatus status);
+
+
 
     // existing
     Page<Placement> findByStatus(PlacementStatus status, Pageable pageable);

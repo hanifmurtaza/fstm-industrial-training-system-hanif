@@ -39,13 +39,29 @@
             <div class="col-md-6">
                 <label class="form-label">Supervisor (Industry)</label>
                 <select class="form-select" name="supervisorUserId" required>
-                    <option th:each="i : ${supervisors}" th:value="${i.id}" th:text="${i.name + ' (' + i.username + ')'}"></option>
+                    <option value="" disabled th:selected="${selectedSupervisorId == null}">-- Select Supervisor --</option>
+
+                    <option th:each="i : ${supervisors}"
+                            th:value="${i.id}"
+                            th:text="${i.name + ' (' + i.username + ')'}"
+                            th:selected="${selectedSupervisorId != null and i.id == selectedSupervisorId}">
+                    </option>
                 </select>
+
+                <div class="text-warning small mt-2" th:if="${supervisorFilterWarning}">
+                    No supervisor is linked to this company name yet (User.company mismatch). Showing all supervisors.
+                </div>
             </div>
             <div class="col-md-6">
                 <label class="form-label">Company</label>
-                <select class="form-select" name="companyId" required>
-                    <option th:each="c : ${companies}" th:value="${c.id}" th:text="${c.name}"></option>
+                <select id="companySelect" class="form-select" name="companyId" required>
+                    <option value="" disabled th:selected="${selectedCompanyId == null}">-- Select Company --</option>
+
+                    <option th:each="c : ${companies}"
+                            th:value="${c.id}"
+                            th:text="${c.name}"
+                            th:selected="${selectedCompanyId != null and c.id == selectedCompanyId}">
+                    </option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -63,6 +79,19 @@
         </div>
     </form>
 </div>
+
+<script>
+    (function () {
+        const sel = document.getElementById('companySelect');
+        if (!sel) return;
+
+        sel.addEventListener('change', function () {
+            const id = this.value;
+            const baseUrl = /*[[@{/admin/placements/new}]]*/ '/admin/placements/new';
+            window.location.href = id ? (baseUrl + '?companyId=' + encodeURIComponent(id)) : baseUrl;
+        });
+    })();
+</script>
 
 </body>
 </html>
