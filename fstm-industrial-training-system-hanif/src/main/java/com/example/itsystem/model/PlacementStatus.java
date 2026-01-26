@@ -5,5 +5,6 @@ public enum PlacementStatus {
     AWAITING_SUPERVISOR,
     AWAITING_ADMIN,
     APPROVED,
-    REJECTED
+    REJECTED,
+    CANCELLED
 }

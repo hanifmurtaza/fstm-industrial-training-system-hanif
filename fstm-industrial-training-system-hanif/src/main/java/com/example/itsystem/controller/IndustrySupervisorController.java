@@ -12,9 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -477,34 +474,53 @@ public class IndustrySupervisorController {
     @GetMapping("/companies")
     public String listCompanies(HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
-        Long me = currentUserId(session);
-        if (me == null) return "redirect:/login";
 
-        List<Long> companyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
 
-        List<Company> companies = (companyIds == null || companyIds.isEmpty())
-                ? List.of()
-                : companyRepository.findAllById(companyIds);
-
-        Map<Long, Integer> order = new HashMap<>();
-        if (companyIds != null) {
-            for (int i = 0; i < companyIds.size(); i++) order.put(companyIds.get(i), i);
+        // ✅ Primary design: company linked to this supervisor account
+        List<Company> companies = new ArrayList<>();
+        if (user.getCompany() != null && !user.getCompany().isBlank()) {
+            Company own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
+            if (own != null) companies.add(own);
         }
-        companies.sort(Comparator.comparingInt(c -> order.getOrDefault(c.getId(), 999999)));
+
+        // fallback (optional): if supervisor.company not set, use placements-derived
+        if (companies.isEmpty()) {
+            Long me = currentUserId(session);
+            List<Long> companyIds = placementRepo.findDistinctCompanyIdsBySupervisorUserId(me);
+            if (companyIds != null && !companyIds.isEmpty()) {
+                companies.addAll(companyRepository.findAllById(companyIds));
+            }
+        }
 
         model.addAttribute("companies", companies);
         return "industry-companies";
     }
 
-    @GetMapping("/companies/{companyId}")
+
+    @GetMapping("/companies/{companyId}/edit")
     public String editCompany(@PathVariable Long companyId, HttpSession session, Model model) {
         if (notIndustry(session)) return "redirect:/login";
-        Long me = currentUserId(session);
-        if (me == null) return "redirect:/login";
 
-        if (!placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId)) {
-            return "redirect:/industry/companies";
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        // ✅ allow edit if this company is the supervisor's own company
+        Company own = null;
+        if (user.getCompany() != null && !user.getCompany().isBlank()) {
+            own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
         }
+
+        boolean allowed = (own != null && own.getId().equals(companyId));
+
+        // fallback allow if linked via placements (optional)
+        if (!allowed) {
+            Long me = currentUserId(session);
+            allowed = placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId);
+        }
+
+        if (!allowed) return "redirect:/industry/companies";
 
         Company company = companyRepository.findById(companyId).orElse(null);
         if (company == null) return "redirect:/industry/companies";
@@ -513,7 +529,8 @@ public class IndustrySupervisorController {
         return "industry-company-edit";
     }
 
-    @PostMapping("/companies/{companyId}")
+
+    @PostMapping("/companies/{companyId}/edit")
     public String updateCompany(@PathVariable Long companyId,
                                 @RequestParam String name,
                                 @RequestParam(required = false) String sector,
@@ -525,43 +542,51 @@ public class IndustrySupervisorController {
                                 @RequestParam(required = false) String contactEmail,
                                 @RequestParam(required = false) String contactPhone,
                                 @RequestParam(required = false) String website,
-                                HttpSession session) {
+                                HttpSession session,
+                                RedirectAttributes ra) {
 
         if (notIndustry(session)) return "redirect:/login";
-        Long me = currentUserId(session);
-        if (me == null) return "redirect:/login";
-        String who = currentDisplayName(session);
 
-        if (!placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId)) {
-            return "redirect:/industry/companies";
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        Company own = null;
+        if (user.getCompany() != null && !user.getCompany().isBlank()) {
+            own = companyRepository.findByNameIgnoreCase(user.getCompany().trim()).orElse(null);
         }
+
+        boolean allowed = (own != null && own.getId().equals(companyId));
+        if (!allowed) {
+            Long me = currentUserId(session);
+            allowed = placementRepo.existsBySupervisorUserIdAndCompanyId(me, companyId);
+        }
+        if (!allowed) return "redirect:/industry/companies";
 
         companyRepository.findById(companyId).ifPresent(company -> {
             company.setName(name);
-            company.setSector(sector);
             company.setAddress(address);
-
             company.setDefaultJobScope(defaultJobScope);
             company.setTypicalAllowance(typicalAllowance);
             company.setAccommodation(accommodation);
-
             company.setContactName(contactName);
             company.setContactEmail(contactEmail);
             company.setContactPhone(contactPhone);
             company.setWebsite(website);
 
-            companyRepository.save(company);
+            // keep enum string normalized
+            if (sector == null || sector.isBlank()) company.setSector(null);
+            else {
+                try { company.setSector(CompanySector.valueOf(sector.trim()).name()); }
+                catch (Exception ex) { company.setSector(CompanySector.OTHERS.name()); }
+            }
 
-            AuditLog log = new AuditLog();
-            log.setAction("COMPANY_PROFILE_UPDATE");
-            log.setUsername(who);
-            log.setDescription("Updated company profile ID " + companyId + " (" + company.getName() + ")");
-            log.setTimestamp(LocalDateTime.now());
-            auditLogRepo.save(log);
+            companyRepository.save(company);
         });
 
+        ra.addFlashAttribute("success", "Company profile updated.");
         return "redirect:/industry/companies";
     }
+
 
 
     // =========================
@@ -724,31 +749,6 @@ public class IndustrySupervisorController {
 
         ra.addFlashAttribute("toast", "Evaluation submitted successfully.");
         return "redirect:/industry/evaluations";
-    }
-
-
-    // Backward-compatible edit URL: /industry/companies/{id}/edit
-    @GetMapping("/companies/{companyId}/edit")
-    public String editCompanyEditPath(@PathVariable Long companyId, HttpSession session, Model model) {
-        return editCompany(companyId, session, model);
-    }
-
-    @PostMapping("/companies/{companyId}/edit")
-    public String updateCompanyEditPath(@PathVariable Long companyId,
-                                        @RequestParam String name,
-                                        @RequestParam(required = false) String sector,
-                                        @RequestParam(required = false) String address,
-                                        @RequestParam(required = false) String defaultJobScope,
-                                        @RequestParam(required = false) BigDecimal typicalAllowance,
-                                        @RequestParam(required = false) Boolean accommodation,
-                                        @RequestParam(required = false) String contactName,
-                                        @RequestParam(required = false) String contactEmail,
-                                        @RequestParam(required = false) String contactPhone,
-                                        @RequestParam(required = false) String website,
-                                        HttpSession session) {
-
-        return updateCompany(companyId, name, sector, address, defaultJobScope,
-                typicalAllowance, accommodation, contactName, contactEmail, contactPhone, website, session);
     }
 
 }

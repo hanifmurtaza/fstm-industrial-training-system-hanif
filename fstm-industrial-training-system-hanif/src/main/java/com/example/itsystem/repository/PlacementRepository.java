@@ -19,6 +19,9 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     Page<Placement> findByStatus(PlacementStatus status, Pageable pageable);
     long countByStatus(PlacementStatus status);
 
+    Page<Placement> findByStatusNot(PlacementStatus status, Pageable pageable);
+
+
     // --- NEW: list placements for a specific supervisor (paged) ---
     Page<Placement> findBySupervisorUserIdAndStatus(Long supervisorUserId,
                                                     PlacementStatus status,
@@ -43,16 +46,31 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     List<Placement> findReadyForSupervisorEvaluation(@Param("supervisorId") Long supervisorId);
 
     // Get all student IDs supervised by this industry user
-    @Query("select p.studentId from Placement p where p.supervisorUserId = :supervisorUserId")
+    @Query("""
+   select p.studentId from Placement p
+   where p.supervisorUserId = :supervisorUserId
+     and p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+""")
     List<Long> findStudentIdsBySupervisor(@Param("supervisorUserId") Long supervisorUserId);
 
+
     // Check whether a given student is supervised by this industry user
-    @Query("select (count(p) > 0) from Placement p " +
-            "where p.supervisorUserId = :supervisorUserId and p.studentId = :studentId")
+    @Query("""
+   select (count(p) > 0) from Placement p
+   where p.supervisorUserId = :supervisorUserId
+     and p.studentId = :studentId
+     and p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+""")
     boolean existsByStudentIdAndSupervisorUserId(@Param("studentId") Long studentId,
                                                  @Param("supervisorUserId") Long supervisorUserId);
 
-    @Query("select distinct p.companyId from Placement p where p.supervisorUserId = :supervisorUserId and p.companyId is not null")
+
+    @Query("""
+   select distinct p.companyId from Placement p
+   where p.supervisorUserId = :supervisorUserId
+     and p.companyId is not null
+     and p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+""")
     List<Long> findDistinctCompanyIdsBySupervisorUserId(@Param("supervisorUserId") Long supervisorUserId);
 
 

@@ -1068,7 +1068,7 @@ public class AdminController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<Placement> placements = (status == null)
-                ? placementRepository.findAll(pageable)
+                ? placementRepository.findByStatusNot(PlacementStatus.CANCELLED, pageable)
                 : placementRepository.findByStatus(status, pageable);
 
         java.util.Set<Long> studentIds    = new java.util.HashSet<>();
