@@ -277,6 +277,7 @@ public class IndustrySupervisorController {
             e.setReviewComment(comment);
             e.setReviewedBy(who);
             e.setReviewedAt(LocalDateTime.now());
+            e.setEndorsed(newStatus == ReviewStatus.APPROVED);
             logbookRepo.save(e);
 
             AuditLog log = new AuditLog();

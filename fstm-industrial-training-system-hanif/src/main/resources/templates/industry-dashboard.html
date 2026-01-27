@@ -49,21 +49,17 @@
 
     /* soft navbar like SaaS (safe even if app.css already styles appbar) */
     .appbar{
-      background:#ffffff !important;
-      border-bottom:1px solid rgba(148,163,184,.25);
+      background:#0d6efd !important; /* bootstrap primary */
+      border-bottom:0;
     }
-    .appbar .navbar-brand span{
-      font-weight:800;
-      color:#0f172a;
-    }
+    .appbar .navbar-brand span,
     .appbar .nav-link{
-      color:#334155 !important;
-      font-weight:700;
-      padding:.75rem .9rem;
+      color:#fff !important;
     }
     .appbar .nav-link:hover{
-      color:#2563eb !important;
+      color:#eaf2ff !important;
     }
+
 
     /* header label */
     .pill{
@@ -150,6 +146,52 @@
       color:#0f172a;
       flex:0 0 auto;
     }
+    .kpi-tile{
+      background:#f8fafc;
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:16px;
+      padding:16px 16px;
+      min-height:110px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+
+    .kpi-tile .kpi-label{
+      font-size:.9rem;
+      font-weight:800;
+      color:#475569;
+    }
+
+    .kpi-tile .kpi-value{
+      font-size:2.6rem;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:-.5px;
+      margin-top:4px;
+      color:#0f172a;
+    }
+
+    .kpi-tile .kpi-ico{
+      width:46px;
+      height:46px;
+      border-radius:16px;
+      background:#eef2ff;
+      color:#1d4ed8;
+      display:grid;
+      place-items:center;
+      font-size:1.15rem;
+    }
+
+    /* Company name should not be huge like a number */
+    .kpi-company{
+      font-size:1.35rem !important;
+      line-height:1.2 !important;
+      letter-spacing:-.2px !important;
+      margin-top:6px !important;
+      word-break:break-word;
+    }
+
 
     .section-gap{ margin-bottom:18px; }
   </style>
@@ -176,7 +218,7 @@
         <li class="nav-item"><a th:href="@{/industry/placements}" class="nav-link">Placements</a></li>
         <li class="nav-item"><a th:href="@{/industry/evaluations}" class="nav-link">Evaluations</a></li>
         <li class="nav-item"><a th:href="@{/industry/opportunities}" class="nav-link">Opportunities</a></li>
-        <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">My Companies</a></li>
+        <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">Profile</a></li>
         <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
       </ul>
     </div>
@@ -194,9 +236,6 @@
         Welcome, <span th:text="${displayName} ?: 'Industry Supervisor'">Industry Supervisor</span> 🏢
       </h1>
 
-      <div class="muted mt-1">
-        Company: <span class="fw-semibold text-dark" th:text="${companyName} ?: '—'">—</span>
-      </div>
     </div>
   </div>
 
@@ -213,8 +252,9 @@
         </div>
 
         <div class="row g-3">
+
           <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="kpi-tile">
               <div>
                 <div class="kpi-label">Logbooks Pending Review</div>
                 <div class="kpi-value" th:text="${pending} ?: 0">0</div>
@@ -224,7 +264,7 @@
           </div>
 
           <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="kpi-tile">
               <div>
                 <div class="kpi-label">Logbooks Approved</div>
                 <div class="kpi-value" th:text="${approved} ?: 0">0</div>
@@ -234,7 +274,7 @@
           </div>
 
           <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="kpi-tile">
               <div>
                 <div class="kpi-label">Logbooks Rejected</div>
                 <div class="kpi-value" th:text="${rejected} ?: 0">0</div>
@@ -244,38 +284,20 @@
           </div>
 
           <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="kpi-tile">
               <div>
                 <div class="kpi-label">Company</div>
-                <div class="kpi-value" th:text="${companyName} ?: '—'">—</div>
+                <div class="kpi-value kpi-company" th:text="${companyName} ?: '—'">—</div>
               </div>
               <div class="kpi-ico"><i class="bi bi-buildings"></i></div>
             </div>
           </div>
-        </div>
 
-        <hr class="my-3">
-
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="text-muted small fw-semibold">Tip</div>
-            <div class="fw-semibold" style="color:#0f172a;">
-              Review logbooks regularly to keep students on track.
-            </div>
-            <div class="text-muted small">Pending items can be filtered in the logbook list.</div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="text-muted small fw-semibold">Shortcuts</div>
-            <div class="d-flex flex-wrap gap-2 mt-1">
-              <a class="btn btn-soft btn-sm btn-rounded" th:href="@{/industry/logbooks(status='PENDING')}">Pending Logbooks</a>
-              <a class="btn btn-soft btn-sm btn-rounded" th:href="@{/industry/placements}">Placements</a>
-              <a class="btn btn-soft btn-sm btn-rounded" th:href="@{/industry/evaluations}">Evaluations</a>
-            </div>
-          </div>
         </div>
 
       </section>
     </div>
+
 
     <!-- Action Required panel -->
     <div class="col-12 col-lg-5">
@@ -401,7 +423,7 @@
           <div class="d-flex align-items-start gap-3">
             <div class="tile-ico"><i class="bi bi-buildings"></i></div>
             <div>
-              <p class="tile-title mb-1">My Companies</p>
+              <p class="tile-title mb-1">Profile</p>
               <p class="tile-desc">Update organisation profiles and contact details</p>
             </div>
           </div>
@@ -423,18 +445,6 @@
         </a>
       </div>
 
-      <div class="col-12 col-lg-6">
-        <div class="tile" style="cursor:default;">
-          <div class="d-flex align-items-start gap-3">
-            <div class="tile-ico"><i class="bi bi-info-circle"></i></div>
-            <div>
-              <p class="tile-title mb-1">Guidelines</p>
-              <p class="tile-desc">Faculty handbook and rubrics (coming soon)</p>
-            </div>
-          </div>
-          <button type="button" class="btn btn-outline-secondary btn-rounded" disabled>Coming Soon</button>
-        </div>
-      </div>
 
     </div>
   </section>

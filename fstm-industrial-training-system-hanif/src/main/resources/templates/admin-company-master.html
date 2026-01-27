@@ -101,14 +101,13 @@
                     <th style="min-width:260px;">Location</th>
                     <th class="col-narrow">Allowance</th>
                     <th class="col-narrow">Acc.</th>
-                    <th class="col-narrow">Rating</th>
                     <th class="col-narrow">Actions</th>
                 </tr>
                 </thead>
 
                 <tbody>
                 <tr th:if="${companies.empty}">
-                    <td colspan="8" class="text-center text-muted py-5">
+                    <td colspan="7" class="text-center text-muted py-5">
                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                         No companies found.
                     </td>
@@ -143,11 +142,6 @@
                               th:text="${c.accommodation} ? 'Yes' : 'No'">No</span>
                     </td>
 
-                    <td class="col-narrow">
-                        <span th:if="${c.ratingAvg != null}"
-                              th:text="${#numbers.formatDecimal(c.ratingAvg, 1, 1)} + ' ★ (' + c.ratingCount + ')'}">4.3 ★ (12)</span>
-                        <span th:if="${c.ratingAvg == null}" class="text-muted">—</span>
-                    </td>
 
                     <td class="col-narrow text-nowrap">
                         <a class="btn btn-sm btn-outline-primary btn-rounded" th:href="@{|/admin/company-master/${c.id}|}">

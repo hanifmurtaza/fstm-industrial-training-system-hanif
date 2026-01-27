@@ -49,21 +49,17 @@
 
     /* soft navbar like SaaS */
     .appbar{
-      background:#ffffff !important;
-      border-bottom:1px solid rgba(148,163,184,.25);
+      background:#0d6efd !important; /* bootstrap primary */
+      border-bottom:0;
     }
-    .appbar .navbar-brand span{
-      font-weight:800;
-      color:#0f172a;
-    }
+    .appbar .navbar-brand span,
     .appbar .nav-link{
-      color:#334155 !important;
-      font-weight:700;
-      padding:.75rem .9rem;
+      color:#fff !important;
     }
     .appbar .nav-link:hover{
-      color:#2563eb !important;
+      color:#eaf2ff !important;
     }
+
 
     /* header label */
     .pill{
@@ -176,6 +172,87 @@
       transform: translateY(-1px);
     }
 
+    /* Make KPI more dominant */
+    .kpi-big{
+      font-size: 3rem;       /* bigger */
+      line-height: 1.0;
+      letter-spacing: -0.5px;
+    }
+
+    .kpi-ico-big{
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+    }
+
+    /* Tip + shortcuts feel secondary */
+    .overview-extra .text-muted.small{
+      font-size: .78rem;
+    }
+
+    .overview-extra .btn-soft{
+      padding: .45rem .7rem;
+      border-radius: 999px;  /* pill buttons */
+      font-weight: 800;
+    }
+
+    .kpi-tile{
+      background:#f8fafc;
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:16px;
+      padding:14px 14px;       /* smaller padding */
+      min-height:160px;         /* was 120+ */
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .kpi-tile .kpi-label{
+      font-size:.9rem;
+      font-weight:800;
+      color:#475569;
+    }
+
+    .kpi-tile .kpi-value{
+      font-size:2.4rem;        /* was 3.2rem */
+      font-weight:900;
+      line-height:1;
+      letter-spacing:-.5px;
+      margin-top:2px;
+    }
+
+    .kpi-tile .kpi-ico{
+      width:46px;              /* smaller icon box */
+      height:46px;
+      border-radius:16px;
+      background:#eef2ff;
+      color:#1d4ed8;
+      display:grid;
+      place-items:center;
+      font-size:1.15rem;
+    }
+
+    /* Make KPI row consume more height so Tip/Shortcuts move down */
+    .kpi-tile{
+      min-height: 140px;        /* increase height to fill the card */
+      align-items: flex-start;  /* keep text at top */
+      padding: 18px 18px;
+    }
+
+    /* Make the numbers a bit bigger again (not crazy) */
+    .kpi-tile .kpi-value{
+      font-size: 2.8rem;
+    }
+
+    /* Optional: give KPI row a little bottom spacing */
+    .kpi-row{
+      margin-bottom: 6px;
+    }
+
+
+
+
+
 
     /* spacing consistency */
     .section-gap{ margin-bottom:18px; }
@@ -240,8 +317,8 @@
         </div>
 
         <div class="row g-3">
-          <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
+          <div class="col-12 col-md-6">
+            <div class="kpi-tile">
               <div>
                 <div class="kpi-label">Total Students</div>
                 <div class="kpi-value" th:text="${studentCount} ?: 0">0</div>
@@ -250,8 +327,8 @@
             </div>
           </div>
 
-          <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
+          <div class="col-12 col-md-6">
+            <div class="kpi-tile">
               <div>
                 <div class="kpi-label">Companies</div>
                 <div class="kpi-value" th:text="${companyCount} ?: 0">0</div>
@@ -259,32 +336,14 @@
               <div class="kpi-ico"><i class="bi bi-buildings"></i></div>
             </div>
           </div>
-
-          <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="kpi-label">Evaluations</div>
-                <div class="kpi-value" th:text="${evalCount} ?: 0">0</div>
-              </div>
-              <div class="kpi-ico"><i class="bi bi-clipboard-check"></i></div>
-            </div>
-          </div>
-
-          <div class="col-12 col-sm-6">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="kpi-label">Documents</div>
-                <div class="kpi-value" th:text="${documentCount} ?: 0">0</div>
-              </div>
-              <div class="kpi-ico"><i class="bi bi-file-earmark-text"></i></div>
-            </div>
-          </div>
         </div>
+
+
 
         <hr class="my-3">
 
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
+        <div class="row g-3 kpi-row">
+        <div class="col-12 col-md-6">
             <div class="text-muted small fw-semibold">Tip</div>
             <div class="fw-semibold" style="color:#0f172a;">
               Use “Action Required” to clear approvals and reviews quickly.
@@ -307,7 +366,7 @@
           </div>
         </div>
 
-      </section>
+        </section>
     </div>
 
     <!-- Action Required panel -->
