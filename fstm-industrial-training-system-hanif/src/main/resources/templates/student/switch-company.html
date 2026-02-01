@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout2}" lang="en">
+<head>
+    <title>Switch Company • UPM Industrial Training</title>
+</head>
+
+<body>
+<div layout:fragment="content">
+
+    <div class="container py-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-1">Switch Internship Company</h4>
+                <p class="text-muted mb-4">Please read the policy below. You must agree before submitting.</p>
+
+                <!-- Policy content area -->
+                <div class="border rounded p-3 bg-light" style="max-height: 420px; overflow:auto;">
+                    <h6 class="fw-bold mb-2">Policy on Conditions for Changing Industrial Training Placement</h6>
+
+                    <div class="small">
+                        <p class="mb-2">
+                            <b>1. Conditions Before Commencing Industrial Training</b><br>
+                            Students must complete all prerequisite courses before they are allowed to undergo industrial training.
+                            The selection of the industrial training placement is based on the student’s own choice and must be formally endorsed by the Faculty.
+                            Any application to change the industrial training placement after official confirmation is not permitted unless there are very strong and reasonable grounds supported by credible evidence.
+                        </p>
+
+                        <p class="mb-2"><b>2. Categories for Approval of Industrial Training Placement Change</b></p>
+                        <p class="mb-2">
+                            Approval is based on three categories: <b>A) Critical</b>, <b>B) Considerable</b>, and <b>C) Not Approved</b>.
+                            Applications under the Considerable category may only be submitted after the student has completed three weeks of industrial training.
+                        </p>
+
+                        <p class="mb-2"><b>Category A: Critical</b></p>
+                        <ul class="mb-2">
+                            <li>Serious health issues such as chronic illness or severe injury (official medical letter)</li>
+                            <li>Sexual harassment at the industrial training workplace (employer/police report and evidence)</li>
+                            <li>Female students required to work night shifts without supervision (work schedule + complaint letter)</li>
+                        </ul>
+
+                        <p class="mb-2"><b>Category B: Considerable</b></p>
+                        <ul class="mb-2">
+                            <li>Location too far / no public transportation (proof + family support letter)</li>
+                            <li>Assigned tasks not aligned with level of study (complaint + employer confirmation)</li>
+                            <li>No supervision/monitoring by appointed supervisor (evidence + unsigned weekly reports)</li>
+                            <li>Serious personal issues involving family (official letter + verified documents)</li>
+                        </ul>
+
+                        <p class="mb-2"><b>Category C: Not Approved</b></p>
+                        <ul class="mb-2">
+                            <li>Feeling unhappy / placement uninteresting</li>
+                            <li>Transfer to follow friends</li>
+                            <li>Workload tiring/heavy</li>
+                            <li>Incompatibility with supervisor/staff</li>
+                            <li>Return hometown for cost saving/family commitments</li>
+                            <li>Another offer seems more attractive after confirmation</li>
+                        </ul>
+
+                        <p class="mb-0">
+                            <b>Student Declaration and Acknowledgement</b><br>
+                            By ticking the checkbox below, the student confirms that they have read, understood, and agree to comply with all requirements, procedures, and implications outlined by the Faculty.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div th:if="${agreeError}" class="alert alert-danger mt-3 mb-0" th:text="${agreeError}"></div>
+
+                <!-- Agreement -->
+                <form class="mt-4" th:action="@{/student/switch-company}" method="post">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="agree" name="agree">
+                        <label class="form-check-label" for="agree">
+                            I have read and understood the policy above, and I agree to comply.
+                        </label>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button id="submitBtn" class="btn btn-primary" type="submit" disabled>
+                            Agree & Submit
+                        </button>
+                        <a class="btn btn-outline-secondary" th:href="@{/student/dashboard}">Back</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal (static contact placeholders) -->
+    <div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true"
+         th:classappend="${showContactModal} ? 'show d-block' : ''"
+         th:style="${showContactModal} ? 'background:rgba(0,0,0,.55);' : ''">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Please Contact Admin Faculty</h5>
+                    <a class="btn-close" th:href="@{/student/switch-company}"></a>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-2">Your acknowledgement has been recorded.</p>
+                    <p class="mb-3">To proceed with switching your internship company, please contact Admin Faculty:</p>
+
+                    <div class="p-3 border rounded bg-light">
+                        <div><b>Admin Contact</b></div>
+                        <div class="small text-muted mt-1">Email: ****CHANGEME****</div>
+                        <div class="small text-muted">Phone: ****CHANGEME****</div>
+                        <div class="small text-muted">Office: ****CHANGEME****</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <a class="btn btn-secondary" th:href="@{/student/switch-company}">Close</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enable submit only when checkbox ticked
+        const agree = document.getElementById('agree');
+        const btn = document.getElementById('submitBtn');
+        if (agree && btn) {
+            agree.addEventListener('change', () => btn.disabled = !agree.checked);
+        }
+    </script>
+
+</div>
+</body>
+</html>
