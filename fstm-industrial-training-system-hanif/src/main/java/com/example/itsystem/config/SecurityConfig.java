@@ -26,6 +26,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     // public/static
                     .requestMatchers("/login", "/login2", "/error").permitAll()
+                    .requestMatchers("/*.png", "/*.jpg", "/*.jpeg", "/*.gif", "/*.svg", "/*.webp", "/*.ico").permitAll()
+                    .requestMatchers("/logos/**").permitAll()
                     .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**", "/app.css").permitAll()
 
                     // public api
