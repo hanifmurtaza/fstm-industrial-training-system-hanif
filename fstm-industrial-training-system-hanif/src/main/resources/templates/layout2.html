@@ -23,7 +23,7 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item"><a class="nav-link" th:href="@{/student-dashboard}">Home</a></li>
                 <li class="nav-item">
                     <a class="nav-link" href="/student/company-info">
@@ -62,9 +62,16 @@
                     </a>
                 </li>
 
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-flex align-items-center m-0 p-0">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit"
+                                class="nav-link btn btn-link p-0 m-0 border-0 bg-transparent">
+                            Logout
+                        </button>
+                    </form>
+                </li>
 
-
-                <li class="nav-item"><a class="nav-link" th:href="@{/logout}">Logout</a></li>
             </ul>
         </div>
     </div>

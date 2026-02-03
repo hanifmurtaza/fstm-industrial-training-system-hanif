@@ -51,8 +51,15 @@
                 <li class="nav-item"><a th:href="@{/industry/placements}" class="nav-link">Placements</a></li>
                 <li class="nav-item"><a th:href="@{/industry/evaluations}" class="nav-link">Evaluations</a></li>
                 <li class="nav-item"><a th:href="@{/industry/opportunities}" class="nav-link">Opportunities</a></li>
-                <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">My Companies</a></li>
-                <li class="nav-item"><a th:href="@{/logout}" class="nav-link">Logout</a></li>
+                <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">Profile</a></li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-flex align-items-center h-100 m-0 p-0">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="nav-link btn btn-link p-0 m-0 border-0 bg-transparent">
+                            Logout
+                        </button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>

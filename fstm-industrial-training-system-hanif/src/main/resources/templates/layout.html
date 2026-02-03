@@ -75,9 +75,12 @@
             </li>
         </ul>
 
-        <form th:action="@{/logout}" method="post" class="d-flex">
+        <form th:action="@{/logout}" method="post" class="d-flex align-items-center m-0 p-0">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <button type="submit" class="btn btn-outline-light">Logout</button>
+            <button type="submit"
+                    class="nav-link btn btn-link p-0 m-0 border-0 bg-transparent">
+                Logout
+            </button>
         </form>
     </div>
 </nav>
