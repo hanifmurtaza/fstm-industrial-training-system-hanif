@@ -50,7 +50,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
             switch (role) {
                 case "admin" -> response.sendRedirect("/admin/dashboard");
                 case "industry" -> response.sendRedirect("/industry/dashboard");
-                case "teacher" -> response.sendRedirect("/lecturer/dashboard");
+                case "teacher" -> response.sendRedirect("/lecturer/home");
                 case "student" -> response.sendRedirect("/student-dashboard");
                 default -> response.sendRedirect("/login?error=true");
             }

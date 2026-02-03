@@ -290,6 +290,7 @@
             <div class="card-body-pad">
                 <form th:action="@{'/admin/company-info/' + ${info.id} + '/process'}"
                       method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <fieldset th:disabled="${info.status.name() != 'PENDING'}">
 
 
@@ -651,6 +652,7 @@
                           th:action="@{/admin/company-info/{id}/reject(id=${info.id})}"
                           method="post"
                           class="d-inline ms-1">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <button type="submit" class="btn btn-outline-danger btn-rounded">
                             <i class="bi bi-x-circle"></i> Reject
                         </button>
