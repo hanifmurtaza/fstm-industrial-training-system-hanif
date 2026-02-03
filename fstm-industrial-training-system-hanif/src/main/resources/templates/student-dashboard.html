@@ -20,11 +20,13 @@
 
     <div th:if="${visitSchedule.status == 'Pending'}" class="d-flex justify-content-center gap-2">
       <form th:action="@{/student/visit/confirm}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <input type="hidden" name="visitId" th:value="${visitSchedule.id}">
         <button type="submit" class="btn btn-success btn-sm">Confirm</button>
       </form>
 
       <form th:action="@{/student/visit/reschedule}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <input type="hidden" name="visitId" th:value="${visitSchedule.id}">
         <button type="submit" class="btn btn-warning btn-sm">Request Reschedule</button>
       </form>

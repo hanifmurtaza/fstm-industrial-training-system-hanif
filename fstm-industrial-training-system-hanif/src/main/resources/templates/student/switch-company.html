@@ -70,6 +70,7 @@
 
                 <!-- Agreement -->
                 <form class="mt-4" th:action="@{/student/switch-company}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="agree" name="agree">
                         <label class="form-check-label" for="agree">

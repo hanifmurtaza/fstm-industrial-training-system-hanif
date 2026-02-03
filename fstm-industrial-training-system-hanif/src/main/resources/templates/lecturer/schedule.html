@@ -19,6 +19,7 @@
     </div>
 
     <form th:action="@{/lecturer/schedule}" method="post" th:object="${visitSchedule}">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
       <div class="mb-3">
         <label class="form-label">Student</label>
         <select class="form-select" th:field="*{studentId}">

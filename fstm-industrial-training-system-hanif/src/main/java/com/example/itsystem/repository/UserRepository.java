@@ -28,6 +28,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findTopByUsernameAndRoleOrderByIdDesc(String username, String role);
 
+    Optional<User> findByUsernameIgnoreCase(String username);
+
+
     // (kept for backward compatibility, but prefer searchStudents below)
     Page<User> findByRoleAndNameContainingOrRoleAndStudentIdContaining(
             String role1, String search1, String role2, String search2, Pageable pageable);

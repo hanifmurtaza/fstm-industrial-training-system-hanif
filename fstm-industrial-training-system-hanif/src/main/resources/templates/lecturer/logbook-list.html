@@ -134,6 +134,7 @@
           <!-- Endorse (✅ fixed: use endorsedByLecturer + CSRF) -->
           <td>
             <form th:action="@{/lecturer/logbook/endorse}" method="post" class="d-inline">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
               <!-- ✅ 防止 _csrf 为 null 导致模板报错 -->
               <input type="hidden"

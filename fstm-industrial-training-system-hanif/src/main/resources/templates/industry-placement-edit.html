@@ -138,7 +138,9 @@
     <hr>
 
     <form th:action="@{|/industry/placements/${placement.id}/verify|}" method="post" class="row g-3">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
       <div class="col-md-6">
+
         <label class="form-label">Department / Unit <span class="text-danger">*</span></label>
         <input type="text" name="department" class="form-control"
                placeholder="e.g. Quality Assurance Lab"

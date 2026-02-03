@@ -67,6 +67,7 @@
 
     <div class="p-3">
       <form class="row g-2 align-items-end" method="post" th:action="@{/admin/logbooks/mark}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <input type="hidden" name="studentId" th:value="${student.id}">
         <input type="hidden" name="sessionStr" th:value="${sessionStr}">
 

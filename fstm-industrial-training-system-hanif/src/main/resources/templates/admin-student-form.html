@@ -18,6 +18,7 @@
             <form th:object="${student}"
                   th:action="${student.id == null} ? @{/admin/students/add} : @{/admin/students/save}"
                   method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
                 <!-- Include id only when editing -->
                 <input type="hidden" th:if="${student.id != null}" th:field="*{id}"/>

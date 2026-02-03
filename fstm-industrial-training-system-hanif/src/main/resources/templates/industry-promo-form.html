@@ -171,6 +171,8 @@
                   method="post"
                   enctype="multipart/form-data"
                   novalidate>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
 
                 <!-- keep id when editing -->
                 <input type="hidden" th:if="*{id}" th:field="*{id}"/>
@@ -336,6 +338,8 @@
             <form th:if="${promo != null && promo.id != null}"
                   th:action="@{'/industry/opportunities/' + ${promo.id} + '/publish'}"
                   method="post" class="mt-3">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
 
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <div class="small-note me-auto">

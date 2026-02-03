@@ -20,6 +20,8 @@
           method="post"
           enctype="multipart/form-data"
           class="vstack gap-3 card card-body">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
 
         <div>
             <label class="form-label">Student list file (.csv)</label>

@@ -34,6 +34,7 @@
   </div>
 
   <form th:action="@{/login}" method="post" autocomplete="off">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
     <div class="mb-3 text-start">
       <label for="username" class="form-label">UPM ID</label>
       <input type="text" name="username" id="username" class="form-control"

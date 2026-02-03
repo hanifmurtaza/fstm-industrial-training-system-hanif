@@ -12,7 +12,7 @@
     <h4 class="mb-4 text-primary">Edit Visit Schedule</h4>
 
     <form th:action="@{/lecturer/schedule/update}" method="post" th:object="${visitSchedule}">
-      <!-- hidden id field -->
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
       <input type="hidden" th:field="*{id}" />
 
       <div class="mb-3">

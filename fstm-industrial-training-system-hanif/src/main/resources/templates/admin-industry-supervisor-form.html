@@ -20,6 +20,7 @@
     <div class="card shadow-sm">
         <div class="card-body">
             <form th:action="@{/admin/industry-supervisors/save}" th:object="${supervisor}" method="post" class="row g-3">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
                 <!-- Hidden id (for edit reuse) -->
                 <input type="hidden" th:field="*{id}" />

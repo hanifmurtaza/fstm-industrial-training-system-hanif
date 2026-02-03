@@ -20,6 +20,7 @@
           <h3 class="text-center mb-4">📝 Self-Reflection Form</h3>
 
           <form th:action="@{/student/reflection/submit}" th:object="${reflection}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div class="mb-3">
               <label for="learningExperience" class="form-label fw-bold">Key Learning Experiences</label>
               <textarea id="learningExperience" th:field="*{learningExperience}" class="form-control" rows="4" required></textarea>

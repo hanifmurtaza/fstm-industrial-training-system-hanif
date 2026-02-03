@@ -144,9 +144,8 @@
 
       <form th:action="@{/industry/evaluations/{id}(id=${form.placementId})}"
             th:object="${form}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <!-- CSRF -->
-        <input type="hidden" name="_csrf" th:if="${_csrf != null}" th:value="${_csrf.token}" />
 
         <div th:if="${alreadySubmitted}" class="alert alert-info mb-3">
           <i class="bi bi-lock-fill"></i>

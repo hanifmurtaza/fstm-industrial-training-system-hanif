@@ -641,6 +641,7 @@
                           th:action="@{/admin/company-info/{id}/verify(id=${info.id})}"
                           method="post"
                           class="d-inline">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <button type="submit" class="btn btn-success btn-rounded">
                             <i class="bi bi-check-circle"></i> Verify
                         </button>

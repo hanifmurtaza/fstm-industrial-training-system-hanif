@@ -48,25 +48,8 @@
         .auth-card .form-control{ height:40px; padding:.5rem .75rem; box-sizing:border-box; }
         .auth-card .btn-primary{ height:40px; border-radius:12px; margin:0; box-sizing:border-box; }
 
-        /* Role segmented control */
-        .role-switch-wrap{ margin:0; padding:0 6px; }
-        .role-switch{
-            background:#fff; border:1.5px solid #cfd6e4; border-radius:999px;
-            padding:6px; display:inline-flex; gap:8px; flex-wrap:wrap; justify-content:center;
-            width:100%; box-sizing:border-box;
-        }
-        .role-switch .btn{
-            border:none; border-radius:999px; padding:.4rem .8rem;
-            font-weight:600; color:#374151;
-        }
-        .role-switch .btn.active, .btn-check:checked + .btn{ background:var(--primary); color:#fff; }
-        .btn-check:focus + .btn, .btn:focus{ box-shadow:0 0 0 .15rem rgba(13,110,253,.20); }
-
-        /* Guaranteed space between pill and button */
+        /* Guaranteed spacing */
         .stack-12{ display:flex; flex-direction:column; gap:14px; }
-
-        /* Partners */
-        .partners .logo{ width:100%; height:56px; object-fit:contain; filter:grayscale(15%); }
 
         /* Chart sizing */
         .chart-wrap{ height:320px; }
@@ -76,15 +59,68 @@
         .table-wrap{ max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:12px; }
         .table-wrap thead th{ position:sticky; top:0; background:#fff; z-index:1; }
 
-        .section-h{ font-size:1rem; font-weight:700; margin-bottom:.5rem; }
         .subtle{ color:var(--muted); }
 
         /* Opportunities feed cards */
         .op-card { border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08); }
         .op-img { height:180px; object-fit:cover; border-top-left-radius:12px; border-top-right-radius:12px; }
         .badge { font-size:.72rem; }
+
+        /* ---------- Partners (Premium) ---------- */
+        .partners-wrap{ --tile-h: 72px; --tile-r: 14px; }
+
+        .partners-grid{
+            display:grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap:12px;
+        }
+
+        .partner-tile{
+            height: var(--tile-h);
+            border: 1px solid rgba(148,163,184,.25);
+            border-radius: var(--tile-r);
+            background: linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.72));
+            box-shadow: 0 8px 18px rgba(15,23,42,.06);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding: 10px 14px;
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            overflow:hidden;
+            text-decoration:none;
+        }
+
+        .partner-tile:hover{
+            transform: translateY(-2px);
+            box-shadow: 0 14px 26px rgba(15,23,42,.10);
+            border-color: rgba(13,110,253,.25);
+        }
+        .partner-tile:active{ transform: translateY(0px); }
+
+        .partner-tile img{
+            width:100%;
+            height:100%;
+            object-fit: contain;
+            object-position:center;
+            max-height: 44px;
+            filter: grayscale(18%);
+            opacity: .95;
+            transition: filter .18s ease, opacity .18s ease, transform .18s ease;
+        }
+
+        .partner-tile:hover img{
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(1.02);
+        }
+
+        @media (max-width: 420px){
+            .partners-wrap{ --tile-h: 66px; }
+            .partner-tile img{ max-height: 40px; }
+        }
     </style>
 </head>
+
 <body>
 
 <!-- Top bar -->
@@ -99,12 +135,14 @@
 
 <main class="container container-narrow py-5">
     <div class="row g-4 align-items-start">
+
         <!-- Left: Login + partners -->
         <div class="col-lg-4">
             <div class="card p-4 auth-card">
                 <div class="d-flex justify-content-center mb-2">
                     <img th:src="@{/Picture1.png}" alt="UPM" class="brand-mark" />
                 </div>
+
                 <h2 class="text-center mb-3">Login</h2>
 
                 <!-- Error banner -->
@@ -125,47 +163,66 @@
                     Your access has expired. Please contact the admin to renew your access.
                 </div>
 
+                <!-- ✅ Single form (fixed) -->
                 <form th:action="@{/login}" method="post">
-
-
-                <form th:action="@{/login}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <div class="mb-3">
                         <label for="username" class="form-label mb-1">UPM ID</label>
-                        <input type="text" id="username" name="username" class="form-control" placeholder="Enter UPM ID" required>
+                        <input type="text" id="username" name="username" class="form-control"
+                               placeholder="Enter UPM ID" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="password" class="form-label mb-1">Password</label>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
+                        <input type="password" id="password" name="password" class="form-control"
+                               placeholder="Enter password" required>
                     </div>
 
-                    <!-- Role segmented control + Login button -->
                     <div class="stack-12">
                         <button type="submit" class="btn btn-primary w-100">Login</button>
                     </div>
                 </form>
             </div>
 
-            <!-- Partners -->
-            <div class="card p-3 mt-4">
+            <!-- Partners (Premium, equal ratio + spacing) -->
+            <div class="card p-3 mt-4 partners-wrap">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="fw-semibold">Trusted by companies</span>
                     <span class="subtle small">Partnerships & internships</span>
                 </div>
-                <div class="row row-cols-2 g-3 partners">
-                    <div class="col text-center"><a href="https://career.huawei.com/reccampportal/euportal/portal/index.html" target="_blank"><img src="/logos/huawei.png" alt="Huawei" class="logo"></a></div>
-                    <div class="col text-center"><a href="https://jobs.bytedance.com/en" target="_blank"><img src="/logos/bytedance.png" alt="ByteDance" class="logo"></a></div>
-                    <div class="col text-center"><a href="https://www.djistore.com.my/" target="_blank"><img src="/logos/dji.png" alt="DJI" class="logo"></a></div>
-                    <div class="col text-center"><a href="https://www.airchina.com" target="_blank"><img src="/logos/airchina.png" alt="Air China" class="logo"></a></div>
-                    <div class="col text-center"><a href="https://www.lazada.com.my" target="_blank"><img src="/logos/lazada.png" alt="Lazada" class="logo"></a></div>
-                    <div class="col text-center"><a href="https://www.airasia.com" target="_blank"><img src="/logos/airasia.png" alt="AirAsia" class="logo"></a></div>
+
+                <div class="partners-grid">
+                    <a class="partner-tile" href="https://kfc.com.my/" target="_blank" rel="noopener">
+                        <img src="/logos/KFC.png" alt="KFC">
+                    </a>
+
+                    <a class="partner-tile" href="https://www.mcdonalds.com.my/" target="_blank" rel="noopener">
+                        <img src="/logos/MCD.png" alt="MCD">
+                    </a>
+
+                    <a class="partner-tile" href="http://www.mixuemalaysia.com/" target="_blank" rel="noopener">
+                        <img src="/logos/MIXUE.png" alt="MIXUE">
+                    </a>
+
+                    <a class="partner-tile" href="https://chagee.com.my/" target="_blank" rel="noopener">
+                        <img src="/logos/CHAGEE.png" alt="CHAGEE">
+                    </a>
+
+                    <a class="partner-tile" href="https://www.subway.com.my/" target="_blank" rel="noopener">
+                        <img src="/logos/SUBWAY.png" alt="SUBWAY">
+                    </a>
+
+                    <a class="partner-tile" href="https://www.starbucks.com.my/" target="_blank" rel="noopener">
+                        <img src="/logos/STARBUCKS.png" alt="STARBUCKS">
+                    </a>
                 </div>
             </div>
         </div>
 
-        <!-- Right: Opportunities feed (NEW) + Chart + Table -->
+        <!-- Right: Opportunities feed + Chart + Table -->
         <div class="col-lg-8">
-            <!-- NEW: Opportunities Feed -->
+
+            <!-- Opportunities Feed -->
             <div class="card p-3 mb-4">
                 <div class="d-flex align-items-center justify-content-between">
                     <h3 class="card-title fs-5 mb-0">Latest Opportunities</h3>
@@ -179,10 +236,10 @@
                 </div>
             </div>
 
-            <!-- Existing: Chart -->
+            <!-- Chart -->
             <div class="card p-3 mb-4">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h3 class="card-title fs-5">Student Placement by Organisation Type </h3>
+                    <h3 class="card-title fs-5">Student Placement by Organisation Type</h3>
                     <span class="subtle small">Summary</span>
                 </div>
                 <div class="chart-wrap mt-2">
@@ -190,9 +247,9 @@
                 </div>
             </div>
 
-            <!-- Existing: Table -->
+            <!-- Table -->
             <div class="card p-3">
-                <h3 class="card-title fs-5 mb-2">Registered Organisation Name & Student Count </h3>
+                <h3 class="card-title fs-5 mb-2">Registered Organisation Name & Student Count</h3>
                 <input id="orgSearch" type="text" class="form-control mb-2" placeholder="Search organisation" />
                 <div class="table-wrap">
                     <table class="table align-middle mb-0">
@@ -337,7 +394,6 @@
     });
 </script>
 
-
 <script th:inline="javascript">
     const labels = /*[[${sectorLabels}]]*/ [];
     const values = /*[[${sectorData}]]*/ [];
@@ -361,7 +417,6 @@
         }
     });
 </script>
-
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {

@@ -89,6 +89,7 @@
             <form th:if="${canSubmit}"
                   th:action="@{/student/company-info}"
                   method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
                 <div class="mb-3">
                     <label class="form-label">Company Name</label>

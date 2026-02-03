@@ -261,6 +261,7 @@
 
     <div class="card-body-pad">
       <form th:action="@{|/industry/logbooks/${entry.id}/review|}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <div class="mb-3">
           <label class="form-label">Comment to student (optional)</label>
           <textarea class="form-control" name="comment" rows="3"

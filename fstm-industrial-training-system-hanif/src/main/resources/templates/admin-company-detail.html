@@ -130,7 +130,8 @@
       </a>
 
       <form th:action="@{|/admin/company-master/${company.id}/delete|}" method="post"
-            onsubmit="return confirm('Delete this company? It may be referenced by placements or other data.');">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      onsubmit="return confirm('Delete this company? It may be referenced by placements or other data.');">
         <button class="btn btn-outline-danger btn-rounded" type="submit">
           <i class="bi bi-trash me-1"></i> Delete company
         </button>
