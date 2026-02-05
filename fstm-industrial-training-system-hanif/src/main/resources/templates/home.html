@@ -35,14 +35,16 @@
                         <li class="list-group-item px-0" th:each="a : ${announcements}">
                             <div class="d-flex">
                                 <div class="me-2 mt-1">
-                                    <i class="bi bi-megaphone text-primary"></i>
+                                    <i class="bi bi-file-earmark-arrow-down text-primary"></i>
                                 </div>
-                                <div>
-                                    <div class="fw-semibold" th:text="${a.title}">Title</div>
-                                    <div class="text-muted small" th:text="${a.message}">Message…</div>
+                                <div class="flex-grow-1">
+                                    <a class="link-primary text-decoration-none fw-semibold"
+                                       th:href="@{'/announcement/download/' + ${a.id}}"
+                                       th:text="${a.title}">Announcement title</a>
+                                    <div class="text-muted small" th:text="${a.originalName}">file.pdf</div>
                                     <div class="text-muted small mt-1">
                                         <i class="bi bi-calendar-event me-1"></i>
-                                        <span th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">2025-10-26</span>
+                                        <span th:text="${#temporals.format(a.uploadedAt, 'yyyy-MM-dd HH:mm')}">2025-10-26</span>
                                     </div>
                                 </div>
                             </div>

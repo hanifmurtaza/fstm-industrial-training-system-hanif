@@ -94,7 +94,10 @@ public class LecturerLogbookController {
             e.setEndorsedByLecturer(newValue);
 
             if (newValue) {
-                e.setLecturerReviewedBy("teacher"); // or lecturer.getUsername()
+                String who = (lecturer.getName() != null && !lecturer.getName().isBlank())
+                        ? lecturer.getName()
+                        : lecturer.getUsername();
+                e.setLecturerReviewedBy(who);
                 e.setLecturerReviewedAt(java.time.LocalDateTime.now());
             } else {
                 e.setLecturerReviewedBy(null);

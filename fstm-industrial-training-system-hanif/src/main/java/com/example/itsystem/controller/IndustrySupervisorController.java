@@ -17,6 +17,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 
 import static org.springframework.format.annotation.DateTimeFormat.ISO;
 
@@ -261,9 +264,22 @@ public class IndustrySupervisorController {
                                 HttpSession session) {
         if (notIndustry(session)) return "redirect:/login";
 
-        String who = currentDisplayName(session);
         Long me = currentUserId(session);
         if (me == null) return "redirect:/login";
+
+
+        String whoName = currentDisplayName(session);
+
+        User meUser = userRepository.findById(me).orElse(null);
+        if (meUser != null) {
+            String real = (meUser.getName() != null && !meUser.getName().isBlank())
+                    ? meUser.getName()
+                    : meUser.getUsername();
+            if (real != null && !real.isBlank()) whoName = real;
+        }
+
+        final String who = whoName; // ✅ important: makes it work inside lambda
+
 
         logbookRepo.findById(id).ifPresent(e -> {
             boolean owned = placementRepo.existsByStudentIdAndSupervisorUserId(e.getStudentId(), me);

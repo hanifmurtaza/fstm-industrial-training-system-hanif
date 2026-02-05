@@ -281,6 +281,7 @@
         <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
         <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
         <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
+        <li class="nav-item"><a th:href="@{/admin/announcements}" class="nav-link">Announcements</a></li>
         <li class="nav-item">
           <form th:action="@{/logout}" method="post" class="d-flex align-items-center h-100 m-0 p-0">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -350,7 +351,7 @@
         <hr class="my-3">
 
         <div class="row g-3 kpi-row">
-        <div class="col-12 col-md-6">
+          <div class="col-12 col-md-6">
             <div class="text-muted small fw-semibold">Tip</div>
             <div class="fw-semibold" style="color:#0f172a;">
               Use “Action Required” to clear approvals and reviews quickly.
@@ -373,7 +374,7 @@
           </div>
         </div>
 
-        </section>
+      </section>
     </div>
 
     <!-- Action Required panel -->
@@ -432,7 +433,7 @@
           <hr class="my-1" th:if="${awaitingSupEndorse != null}"/>
 
           <div class="queue-row">
-          <div class="queue-left">
+            <div class="queue-left">
               <span class="queue-dot"></span>
               <div>
                 <div class="queue-title">Logbooks: Awaiting Lecturer</div>
@@ -576,8 +577,8 @@
 
 
 
-      <div class="col-12">
-        <div class="tile" style="cursor:default;">
+      <div class="col-12 col-lg-6">
+        <a class="tile" th:href="@{/admin/placements}">
           <div class="d-flex align-items-start gap-3">
             <div class="tile-ico"><i class="bi bi-diagram-3"></i></div>
             <div>
@@ -585,11 +586,21 @@
               <p class="tile-desc">Approve placements and monitor status</p>
             </div>
           </div>
-          <div class="d-flex gap-2">
-            <a th:href="@{/admin/placements}" class="btn btn-primary btn-rounded">View</a>
-            <a th:href="@{/admin/placements/new}" class="btn btn-outline-primary btn-rounded">+ New</a>
+          <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
+        </a>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <a class="tile" th:href="@{/admin/announcements}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="tile-ico"><i class="bi bi-megaphone"></i></div>
+            <div>
+              <p class="tile-title mb-1">Announcements</p>
+              <p class="tile-desc">Upload and publish downloadable notices</p>
+            </div>
           </div>
-        </div>
+          <div class="tile-right"><i class="bi bi-chevron-right"></i></div>
+        </a>
       </div>
 
     </div>

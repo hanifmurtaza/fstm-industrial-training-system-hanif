@@ -1299,6 +1299,11 @@ public class AdminController {
     @GetMapping("/logbooks/{id}")
     public String viewLogbookAdmin(@PathVariable Long id, Model model) {
         requireBean(logbookEntryRepository, "LogbookEntryRepository");
+        requireBean(userRepository, "UserRepository");
+
+        // Optional beans (some deployments may not have these wired yet)
+        // Used to resolve company + supervisor names for display.
+        // (We intentionally don't hard fail if missing.)
 
         LogbookEntry entry = logbookEntryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Logbook not found: " + id));
@@ -1308,9 +1313,81 @@ public class AdminController {
             student = userRepository.findById(entry.getStudentId()).orElse(null);
         }
 
+        // -------- Resolve company name from Placement -> Company --------
+        String companyName = null;
+        String supervisorName = null;
+
+        try {
+            if (placementRepository != null && entry.getStudentId() != null) {
+                var pOpt = placementRepository.findTopByStudentIdOrderByIdDesc(entry.getStudentId());
+                if (pOpt.isPresent()) {
+                    var p = pOpt.get();
+
+                    // Supervisor display name
+                    if (p.getSupervisorUserId() != null && userRepository != null) {
+                        var sup = userRepository.findById(p.getSupervisorUserId()).orElse(null);
+                        if (sup != null) {
+                            supervisorName = (sup.getName() != null && !sup.getName().isBlank())
+                                    ? sup.getName()
+                                    : sup.getUsername();
+                        }
+                    }
+
+                    // Company name
+                    if (companyRepository != null && p.getCompanyId() != null) {
+                        var c = companyRepository.findById(p.getCompanyId()).orElse(null);
+                        if (c != null) companyName = c.getName();
+                    }
+                }
+            }
+        } catch (Exception ignore) {
+            // display fallback only
+        }
+
+        // -------- Resolve lecturer display name --------
+        String lecturerName = null;
+        try {
+            if (student != null && student.getLecturer() != null) {
+                var lec = student.getLecturer();
+                lecturerName = (lec.getName() != null && !lec.getName().isBlank())
+                        ? lec.getName()
+                        : lec.getUsername();
+            }
+        } catch (Exception ignore) {
+            // display fallback only
+        }
+
+        // If entry.reviewedBy / lecturerReviewedBy is a generic placeholder, prefer resolved names.
+        String displaySupervisor = entry.getReviewedBy();
+        if (isGenericReviewer(displaySupervisor) && supervisorName != null) {
+            displaySupervisor = supervisorName;
+        }
+
+        String displayLecturer = entry.getLecturerReviewedBy();
+        if (isGenericReviewer(displayLecturer) && lecturerName != null) {
+            displayLecturer = lecturerName;
+        }
+
         model.addAttribute("entry", entry);
         model.addAttribute("student", student);  // for name + matric
+
+        model.addAttribute("companyName", companyName);
+        model.addAttribute("supervisorDisplayName", displaySupervisor);
+        model.addAttribute("lecturerDisplayName", displayLecturer);
         return "admin-logbook-view";
+    }
+
+    private boolean isGenericReviewer(String s) {
+        if (s == null) return true;
+        String x = s.trim().toLowerCase();
+        if (x.isBlank()) return true;
+        return x.equals("teacher")
+                || x.equals("industry_supervisor")
+                || x.equals("industry.supervisor")
+                || x.equals("industry")
+                || x.equals("supervisor")
+                || x.contains("industry")
+                || x.contains("teacher");
     }
 
 

@@ -18,7 +18,7 @@ public class AccessWindowInterceptor implements HandlerInterceptor {
 
     // Paths that should NOT be blocked
     private static final Set<String> WHITELIST_PREFIX = Set.of(
-            "/login", "/logout", "/css", "/js", "/images", "/uploads", "/public", "/error"
+            "/login", "/logout", "/announcement", "/css", "/js", "/images", "/uploads", "/public", "/error"
     );
 
     public AccessWindowInterceptor(UserRepository userRepository) {

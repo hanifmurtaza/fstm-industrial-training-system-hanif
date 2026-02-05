@@ -17,6 +17,7 @@ public class FileStorageService {
     private final Path opportunitiesRoot;
     private final Path logbookRoot;
     private final Path finalReportRoot;
+    private final Path announcementsRoot;
 
     public FileStorageService() {
         try {
@@ -25,14 +26,36 @@ public class FileStorageService {
             this.opportunitiesRoot = uploadsRoot.resolve("opportunities");
             this.logbookRoot = uploadsRoot.resolve("logbook");
             this.finalReportRoot = uploadsRoot.resolve("final-report");
+            this.announcementsRoot = uploadsRoot.resolve("announcements");
 
             Files.createDirectories(uploadsRoot);
             Files.createDirectories(opportunitiesRoot);
             Files.createDirectories(logbookRoot);
             Files.createDirectories(finalReportRoot);
+            Files.createDirectories(announcementsRoot);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize upload folder", e);
         }
+    }
+
+    // =========================================================
+    // (5) Announcement files (any type)
+    // -> /uploads/announcements/{file}
+    // =========================================================
+    public String storeAnnouncementFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) return null;
+
+        String ext = getExt(file.getOriginalFilename());
+        String base = UUID.randomUUID().toString().replace("-", "");
+        String name = base + (ext != null ? "." + ext : "");
+
+        try {
+            Files.copy(file.getInputStream(), announcementsRoot.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store announcement file", e);
+        }
+
+        return "/uploads/announcements/" + name;
     }
 
     // =========================================================

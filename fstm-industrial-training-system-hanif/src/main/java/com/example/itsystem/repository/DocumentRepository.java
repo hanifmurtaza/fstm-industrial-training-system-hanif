@@ -9,4 +9,7 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     List<Document> findByAudience(Document.Audience audience);
     List<Document> findByFileType(Document.FileType fileType);
     List<Document> findByUploaderId(Long uploaderId);
+
+    // Announcements
+    List<Document> findByAnnouncementTrueAndAudienceOrderByUploadedAtDesc(Document.Audience audience);
 }

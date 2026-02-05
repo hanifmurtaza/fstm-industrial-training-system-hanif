@@ -43,6 +43,10 @@ public class Document {
     /** Optional: bytes */
     private Long fileSize;
 
+    /** Mark this document as an Announcement item (shown on login / VL home). */
+    @Column(nullable = false)
+    private boolean announcement = false;
+
     @Column(nullable = false)
     private LocalDateTime uploadedAt;
 
@@ -70,6 +74,8 @@ public class Document {
     public void setUploaderId(Long uploaderId) { this.uploaderId = uploaderId; }
     public Long getFileSize() { return fileSize; }
     public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+    public boolean isAnnouncement() { return announcement; }
+    public void setAnnouncement(boolean announcement) { this.announcement = announcement; }
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
 }

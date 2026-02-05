@@ -24,6 +24,8 @@ import com.example.itsystem.model.Placement;
 import com.example.itsystem.model.PlacementStatus;
 import com.example.itsystem.repository.CompanyRepository;
 import com.example.itsystem.repository.PlacementRepository;
+import com.example.itsystem.repository.DocumentRepository;
+import com.example.itsystem.model.Document;
 
 
 import java.util.*;
@@ -39,6 +41,7 @@ public class LecturerController {
     @Autowired private VisitEvaluationRepository visitEvaluationRepository;
     @Autowired private PlacementRepository placementRepository;
     @Autowired private CompanyRepository companyRepository;
+    @Autowired private DocumentRepository documentRepository;
 
 
     // ★ 仪表服务（KPI & 周统计）
@@ -57,6 +60,9 @@ public class LecturerController {
         model.addAttribute("userName", lecturer.getName());
         // 选中导航高亮（可选）
         model.addAttribute("activePage", "home");
+        // Announcements (VL-only)
+        model.addAttribute("announcements",
+                documentRepository.findByAnnouncementTrueAndAudienceOrderByUploadedAtDesc(Document.Audience.LECTURER));
         // 你的 home.html 放在 templates 根目录就返回 "home"
         return "home";
     }

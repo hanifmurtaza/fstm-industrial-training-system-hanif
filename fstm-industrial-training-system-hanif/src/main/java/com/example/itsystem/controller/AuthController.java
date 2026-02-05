@@ -12,6 +12,8 @@ import com.example.itsystem.model.CompanySector;
 import com.example.itsystem.model.PlacementStatus;
 import com.example.itsystem.repository.CompanyRepository;
 import com.example.itsystem.repository.CompanyStudentCountRow;
+import com.example.itsystem.repository.DocumentRepository;
+import com.example.itsystem.model.Document;
 import org.springframework.ui.Model;
 
 import java.util.*;
@@ -27,13 +29,16 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CompanyRepository companyRepository;
+    private final DocumentRepository documentRepository;
 
     public AuthController(UserRepository userRepository,
                           PasswordEncoder passwordEncoder,
-                          CompanyRepository companyRepository) {
+                          CompanyRepository companyRepository,
+                          DocumentRepository documentRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.companyRepository = companyRepository;
+        this.documentRepository = documentRepository;
     }
 
     // Root -> login
@@ -96,6 +101,12 @@ public class AuthController {
                 companyRepository.findCompanyStudentCounts(PlacementStatus.APPROVED);
 
         model.addAttribute("companyCounts", companyCounts);
+
+        // ==============================
+        // ✅ PUBLIC ANNOUNCEMENTS (shown on login page)
+        // ==============================
+        model.addAttribute("publicAnnouncements",
+                documentRepository.findByAnnouncementTrueAndAudienceOrderByUploadedAtDesc(Document.Audience.ALL));
 
         return "login";
     }

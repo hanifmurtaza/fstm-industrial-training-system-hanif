@@ -52,7 +52,7 @@
 
         <p class="text-muted">
             <strong>Company:</strong>
-            <span th:text="${student != null && student.company != null && student.company != '' ? student.company : 'Not set'}">Not set</span>
+            <span th:text="${companyName != null && companyName != '' ? companyName : (student != null && student.company != null && student.company != '' ? student.company : 'Not set')}">Not set</span>
         </p>
 
         <p class="text-muted">
@@ -96,6 +96,22 @@
                 <pre th:text="${entry.result} ?: '-'">-</pre>
             </div>
 
+            <!-- Photo / attachment (optional) -->
+            <div class="col-md-12 mb-3" th:if="${entry.photoPath != null && entry.photoPath != ''}">
+                <h6 class="text-uppercase text-muted small">Photo / Attachment</h6>
+
+                <!-- If PDF, show download link; otherwise show image preview -->
+                <div th:if="${#strings.endsWith(#strings.toLowerCase(entry.photoPath), '.pdf')}">
+                    <a class="link-primary fw-semibold" th:href="${entry.photoPath}" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> View / Download attachment
+                    </a>
+                </div>
+                <div th:unless="${#strings.endsWith(#strings.toLowerCase(entry.photoPath), '.pdf')}">
+                    <img th:src="${entry.photoPath}" alt="Logbook photo"
+                         class="img-fluid rounded border" style="max-height:520px; object-fit:contain;"/>
+                </div>
+            </div>
+
             <div class="col-md-12 mb-3" th:if="${entry.internalNote != null}">
                 <h6 class="text-uppercase text-muted small">Internal Note (Admin only)</h6>
                 <pre th:text="${entry.internalNote}">-</pre>
@@ -110,7 +126,7 @@
 
             <div class="mt-2">
                 <div><strong>Supervisor Endorsed:</strong> <span th:text="${entry.endorsed} ? 'YES' : 'NO'">NO</span></div>
-                <div><strong>Reviewed by (Supervisor):</strong> <span th:text="${entry.reviewedBy != null ? entry.reviewedBy : '-'}">-</span></div>
+                <div><strong>Reviewed by (Supervisor):</strong> <span th:text="${supervisorDisplayName != null ? supervisorDisplayName : (entry.reviewedBy != null ? entry.reviewedBy : '-')}">-</span></div>
                 <div>
                     <strong>Reviewed at (Supervisor):</strong>
                     <span th:text="${entry.reviewedAt != null ? #temporals.format(entry.reviewedAt, 'dd MMM yyyy, HH:mm') : '-'}">-</span>
@@ -121,7 +137,7 @@
 
             <div class="mt-2">
                 <div><strong>Lecturer Endorsed:</strong> <span th:text="${entry.endorsedByLecturer} ? 'YES' : 'NO'">NO</span></div>
-                <div><strong>Reviewed by (Lecturer):</strong> <span th:text="${entry.lecturerReviewedBy != null ? entry.lecturerReviewedBy : '-'}">-</span></div>
+                <div><strong>Reviewed by (Lecturer):</strong> <span th:text="${lecturerDisplayName != null ? lecturerDisplayName : (entry.lecturerReviewedBy != null ? entry.lecturerReviewedBy : '-')}">-</span></div>
                 <div>
                     <strong>Reviewed at (Lecturer):</strong>
                     <span th:text="${entry.lecturerReviewedAt != null ? #temporals.format(entry.lecturerReviewedAt, 'dd MMM yyyy, HH:mm') : '-'}">-</span>

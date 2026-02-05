@@ -184,37 +184,25 @@
                 </form>
             </div>
 
-            <!-- Partners (Premium, equal ratio + spacing) -->
-            <div class="card p-3 mt-4 partners-wrap">
+            <!-- Announcements (Public - shown on login page) -->
+            <div class="card p-3 mt-4">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="fw-semibold">Trusted by companies</span>
-                    <span class="subtle small">Partnerships & internships</span>
+                    <span class="fw-semibold">Announcement</span>
+                    <span class="subtle small" th:text="${#lists.size(publicAnnouncements)} + ' item(s)'">0 item(s)</span>
                 </div>
 
-                <div class="partners-grid">
-                    <a class="partner-tile" href="https://kfc.com.my/" target="_blank" rel="noopener">
-                        <img src="/logos/KFC.png" alt="KFC">
-                    </a>
+                <ol class="mb-0 ps-3" th:if="${publicAnnouncements != null and !#lists.isEmpty(publicAnnouncements)}">
+                    <li class="mb-2" th:each="a : ${publicAnnouncements}">
+                        <a class="link-primary text-decoration-none"
+                           th:href="@{'/announcement/download/' + ${a.id}}"
+                           th:text="${a.title}">Announcement title</a>
+                        <div class="subtle small" th:text="${a.originalName}">file.pdf</div>
+                    </li>
+                </ol>
 
-                    <a class="partner-tile" href="https://www.mcdonalds.com.my/" target="_blank" rel="noopener">
-                        <img src="/logos/MCD.png" alt="MCD">
-                    </a>
-
-                    <a class="partner-tile" href="http://www.mixuemalaysia.com/" target="_blank" rel="noopener">
-                        <img src="/logos/MIXUE.png" alt="MIXUE">
-                    </a>
-
-                    <a class="partner-tile" href="https://chagee.com.my/" target="_blank" rel="noopener">
-                        <img src="/logos/CHAGEE.png" alt="CHAGEE">
-                    </a>
-
-                    <a class="partner-tile" href="https://www.subway.com.my/" target="_blank" rel="noopener">
-                        <img src="/logos/SUBWAY.png" alt="SUBWAY">
-                    </a>
-
-                    <a class="partner-tile" href="https://www.starbucks.com.my/" target="_blank" rel="noopener">
-                        <img src="/logos/STARBUCKS.png" alt="STARBUCKS">
-                    </a>
+                <div class="text-muted small py-3 text-center"
+                     th:if="${publicAnnouncements == null or #lists.isEmpty(publicAnnouncements)}">
+                    <i class="bi bi-inbox me-1"></i>No announcements yet.
                 </div>
             </div>
         </div>
