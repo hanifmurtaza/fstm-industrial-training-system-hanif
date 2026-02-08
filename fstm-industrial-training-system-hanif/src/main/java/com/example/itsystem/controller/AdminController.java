@@ -60,6 +60,8 @@ public class AdminController {
     @Autowired(required = false) private VisitEvaluationRepository visitEvaluationRepository;
     @Autowired private SupervisorEvaluationRepository supervisorEvaluationRepository;
 
+    @Autowired(required = false) private SystemSettingRepository systemSettingRepository;
+
 
 
 
@@ -109,8 +111,28 @@ public class AdminController {
         if (adminMetricsService != null) {
             model.addAttribute("metrics", adminMetricsService.snapshot());
         }
+
+        // Session: Admin-defined current session (used as default filter across admin pages)
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
+        model.addAttribute("currentSession", getConfiguredCurrentSession());
+
         return "admin-dashboard";
     }
+
+    @PostMapping("/current-session")
+    public String setCurrentSession(@RequestParam("session") String session, HttpSession httpSession, RedirectAttributes ra) {
+        String norm = normalizeSessionParam(session);
+        if (norm == null || norm.isBlank()) {
+            ra.addFlashAttribute("toast", "Please select a valid session.");
+            return "redirect:/admin/dashboard";
+        }
+        saveSystemSetting(SETTING_CURRENT_SESSION, norm);
+        httpSession.setAttribute(ADMIN_SELECTED_SESSION_ATTR, norm);
+        ra.addFlashAttribute("toast", "Current session set to: " + norm);
+        logAction("SET_CURRENT_SESSION", "Set current session to " + norm);
+        return "redirect:/admin/dashboard";
+    }
+
 
     @GetMapping("/notifications")
     public String notifications(Model model) {
@@ -143,15 +165,17 @@ public class AdminController {
             @RequestParam(value = "department", required = false) Department department,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size,
-            Model model
+            Model model,
+            HttpSession httpSession
     ) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
+
         Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
                 "student",
                 search != null ? search.trim() : null,
-                session != null && !session.isBlank() ? session : null,
+                session,
                 department,
                 pageable
         );
@@ -196,7 +220,7 @@ public class AdminController {
         model.addAttribute("search", search);
         model.addAttribute("department", department);
         model.addAttribute("selectedSession", session);
-        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
         model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", students.getTotalPages());
@@ -209,7 +233,7 @@ public class AdminController {
     @GetMapping("/students/add")
     public String addStudentForm(Model model) {
         model.addAttribute("student", new User());
-        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
         model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("lecturers", userRepository.findByRole("teacher"));
 
@@ -276,7 +300,7 @@ public class AdminController {
         }
         model.addAttribute("currentPlacementCompany", currentPlacementCompany);
         model.addAttribute("student", userRepository.findById(id).orElse(null));
-        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
         model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("lecturers", userRepository.findByRole("teacher"));
         return "admin-student-form";
@@ -510,7 +534,7 @@ public class AdminController {
 
     @GetMapping("/students/import")
     public String importForm(Model model) {
-        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
         model.addAttribute("departmentOptions", Department.values());
         return "admin-students-import";
     }
@@ -582,13 +606,14 @@ public class AdminController {
                                     @RequestParam(value = "department", required = false) String department,
                                     @RequestParam(value = "page", defaultValue = "0") int page,
                                     @RequestParam(value = "size", defaultValue = "25") int size,
-                                    Model model) {
+                                    Model model,
+                                    HttpSession httpSession) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
         // ✅ normalize empty to null (critical)
         String searchTerm = (search != null && !search.isBlank()) ? search.trim() : null;
-        String sessionTerm = (session != null && !session.isBlank()) ? session.trim() : null;
+        String sessionTerm = resolveAdminSession(session, httpSession);
 
         Department deptEnum = null;
         if (department != null && !department.isBlank()) {
@@ -740,8 +765,7 @@ public class AdminController {
         model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("selectedDepartment", deptEnum != null ? deptEnum.name() : "");
 
-        List<String> sessions = userRepository.findDistinctStudentSessions();
-        model.addAttribute("sessions", sessions);
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
 
         return "admin-evaluations";
     }
@@ -941,7 +965,8 @@ public class AdminController {
             @RequestParam(value = "department", required = false) Department department,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size,
-            Model model
+            Model model,
+            HttpSession httpSession
     ) {
         User lecturer = userRepository.findById(lecturerId)
                 .orElseThrow(() -> new IllegalArgumentException("Lecturer not found: " + lecturerId));
@@ -956,7 +981,7 @@ public class AdminController {
         Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
                 "student",
                 search != null ? search.trim() : null,
-                session != null && !session.isBlank() ? session : null,
+                session,
                 department,
                 pageable
         );
@@ -969,7 +994,7 @@ public class AdminController {
         model.addAttribute("department", department);
 
         // reuse dropdown helpers you already use in students page
-        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
         model.addAttribute("departmentOptions", Department.values());
 
         model.addAttribute("currentPage", page);
@@ -1068,6 +1093,7 @@ public class AdminController {
         requireBean(placementRepository, "PlacementRepository");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
         Page<Placement> placements = (status == null)
                 ? placementRepository.findByStatusNot(PlacementStatus.CANCELLED, pageable)
                 : placementRepository.findByStatus(status, pageable);
@@ -1401,13 +1427,17 @@ public class AdminController {
                                   @RequestParam(value="department", required=false) String department,
                                   @RequestParam(value="page", defaultValue="0") int page,
                                   @RequestParam(value="size", defaultValue="10") int size,
-                                  Model model) {
+                                  Model model,
+                                  HttpSession httpSession) {
 
         requireBean(userRepository, "UserRepository");
         requireBean(logbookEntryRepository, "LogbookEntryRepository");
         requireBean(studentAssessmentRepository, "StudentAssessmentRepository");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+
+        // Default session filter
+        session = resolveAdminSession(session, httpSession);
 
         String q = (search == null) ? "" : search.trim();
 
@@ -1468,7 +1498,7 @@ public class AdminController {
         model.addAttribute("assessmentByStudentId", assessmentByStudentId);
 
         // dropdowns
-        model.addAttribute("sessionOptions", rollingSessions(3, 1));
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
         model.addAttribute("selectedSession", session);
         model.addAttribute("search", q);
 
@@ -1490,7 +1520,8 @@ public class AdminController {
                                     @RequestParam(value="page", defaultValue="0") int page,
                                     @RequestParam(value="size", defaultValue="10") int size,
                                     HttpSession session,
-                                    Model model) {
+                                    Model model,
+                                    HttpSession httpSession) {
 
         User admin = (User) session.getAttribute("user");
         if (admin == null) return "redirect:/login";
@@ -1578,7 +1609,8 @@ public class AdminController {
     public String listCompanyInfo(@RequestParam(value="status", required=false) String statusValue,
                                   @RequestParam(value="page", defaultValue="0") int page,
                                   @RequestParam(value="size", defaultValue="10") int size,
-                                  Model model) {
+                                  Model model,
+                                  HttpSession httpSession) {
         CompanyInfoStatus status = null;
         if (statusValue != null && !statusValue.isBlank()) {
             try {
@@ -2501,13 +2533,14 @@ public class AdminController {
                                @RequestParam(value = "department", required = false) String department,
                                @RequestParam(value = "page", defaultValue = "0") int page,
                                @RequestParam(value = "size", defaultValue = "25") int size,
-                               Model model) {
+                               Model model,
+                               HttpSession httpSession) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
         // ✅ normalize empty -> null (fix search bug)
         String searchTerm = (search != null && !search.isBlank()) ? search.trim() : null;
-        String sessionTerm = (session != null && !session.isBlank()) ? session.trim() : null;
+        String sessionTerm = resolveAdminSession(session, httpSession);
 
         Department deptEnum = null;
         if (department != null && !department.isBlank()) {
@@ -2541,8 +2574,7 @@ public class AdminController {
         model.addAttribute("currentPage", page);
         model.addAttribute("size", size);
 
-        List<String> sessions = userRepository.findDistinctStudentSessions();
-        model.addAttribute("sessions", sessions);
+        model.addAttribute("sessionOptions", rollingSessions(3, 5));
 
         // ✅ department filter UI
         model.addAttribute("departmentOptions", Department.values());
@@ -2648,6 +2680,63 @@ public class AdminController {
         return sb.toString();
     }
 
+    // ===== Current Session (Admin) =====
+    private static final String SETTING_CURRENT_SESSION = "CURRENT_SESSION";
+    private static final String ADMIN_SELECTED_SESSION_ATTR = "ADMIN_SELECTED_SESSION";
+    private static final String SESSION_ALL_SENTINEL = "__ALL__";
+
+    private String normalizeSessionParam(String s) {
+        if (s == null) return null;
+        String v = s.trim();
+        if (v.isEmpty()) return null;
+        if (SESSION_ALL_SENTINEL.equalsIgnoreCase(v)) return null;
+        return v;
+    }
+
+    private String getConfiguredCurrentSession() {
+        if (systemSettingRepository == null) return null;
+        return systemSettingRepository.findByKey(SETTING_CURRENT_SESSION)
+                .map(com.example.itsystem.model.SystemSetting::getValue)
+                .orElse(null);
+    }
+
+    private void saveSystemSetting(String key, String value) {
+        if (systemSettingRepository == null) return;
+        com.example.itsystem.model.SystemSetting s = systemSettingRepository.findByKey(key)
+                .orElseGet(() -> new com.example.itsystem.model.SystemSetting(key, null));
+        s.setValue(value);
+        systemSettingRepository.save(s);
+    }
+
+    /**
+     * Default admin session behavior:
+     * - If admin chooses a session => use it and remember it in HTTP session
+     * - If admin chooses "All sessions" => clear remembered session and return null
+     * - If no session param provided => fall back to remembered session, then configured current session
+     */
+    private String resolveAdminSession(String requested, HttpSession httpSession) {
+        if (httpSession == null) return normalizeSessionParam(requested);
+
+        if (requested != null && SESSION_ALL_SENTINEL.equalsIgnoreCase(requested.trim())) {
+            httpSession.removeAttribute(ADMIN_SELECTED_SESSION_ATTR);
+            return null;
+        }
+
+        String norm = normalizeSessionParam(requested);
+        if (norm != null) {
+            httpSession.setAttribute(ADMIN_SELECTED_SESSION_ATTR, norm);
+            return norm;
+        }
+
+        Object saved = httpSession.getAttribute(ADMIN_SELECTED_SESSION_ATTR);
+        if (saved instanceof String s && !s.isBlank()) {
+            return s;
+        }
+
+        String cfg = getConfiguredCurrentSession();
+        return (cfg == null || cfg.isBlank()) ? null : cfg.trim();
+    }
+
     private java.util.Optional<String> getActorUsername() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -2665,8 +2754,8 @@ public class AdminController {
         java.util.List<String> out = new java.util.ArrayList<>();
         for (int y = now - pastYears; y <= now + futureYears; y++) {
             String base = y + "/" + (y + 1);
-            out.add(base + "-2");
             out.add(base + "-1");
+            out.add(base + "-2");
         }
         return out;
     }

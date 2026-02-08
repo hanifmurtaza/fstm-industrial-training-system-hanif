@@ -322,7 +322,7 @@
                 <div class="col-12 col-md-3">
                     <label class="form-label mb-1">Session</label>
                     <select class="form-select form-select-sm filter-control" name="session">
-                        <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
+                        <option value="__ALL__" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
                         <option th:each="s : ${sessionOptions}"
                                 th:value="${s}"
                                 th:text="${s}"
@@ -368,7 +368,7 @@
     <div class="card-soft">
 
 
-    <!-- Bulk actions (sticky) -->
+        <!-- Bulk actions (sticky) -->
         <form th:action="@{/admin/students/bulk}" method="post" id="bulkForm"
               class="p-3 border-bottom bulk-bar"
               style="border-bottom:1px solid var(--border)!important;">
@@ -428,7 +428,7 @@
 
         <div class="table-responsive table-scroll">
             <table class="table table-hover align-middle table-compact mb-0">
-            <thead>
+                <thead>
                 <tr>
                     <th class="col-narrow">No</th>
                     <th>Name</th>

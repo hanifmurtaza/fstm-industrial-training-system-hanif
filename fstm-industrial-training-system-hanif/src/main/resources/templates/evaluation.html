@@ -39,7 +39,7 @@
             <div class="col-auto">
                 <label for="sessionSelect" class="form-label mb-0 fw-semibold">Session</label>
                 <select id="sessionSelect" name="session" class="form-select form-select-sm">
-                    <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
+                    <option value="__ALL__" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
                     <th:block th:each="s : ${sessions}">
                         <option th:value="${s}"
                                 th:selected="${selectedSession != null and selectedSession.equals(s)}"

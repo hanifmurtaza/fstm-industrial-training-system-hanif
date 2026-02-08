@@ -222,7 +222,7 @@
             <div class="input-shell">
                 <label class="small-label">Session</label>
                 <select name="session" class="form-select">
-                    <option value="" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
+                    <option value="__ALL__" th:selected="${selectedSession == null or selectedSession == ''}">All sessions</option>
                     <option th:each="s : ${sessionOptions}"
                             th:value="${s}"
                             th:text="${s}"
