@@ -2046,39 +2046,76 @@ public class AdminController {
         requireBean(companyRepository, "CompanyRepository");
         Company company = companyRepository.findById(id).orElseThrow();
 
-        // All industry users
-        List<User> allIndustry = userRepository.findByRole("industry");
+        // All industry users (supervisors)
+        java.util.List<User> allIndustry = userRepository.findByRole("industry");
 
+        // Linked supervisors:
+        // - prefer companyId match (source of truth)
+        // - fallback to legacy string match for older records
         String companyName = company.getName() != null ? company.getName().trim() : null;
         java.util.List<User> supervisors = new java.util.ArrayList<>();
 
         for (User u : allIndustry) {
-            if (companyName != null &&
-                    u.getCompany() != null &&
-                    companyName.equalsIgnoreCase(u.getCompany().trim())) {
+            boolean byId = (u.getCompanyId() != null && u.getCompanyId().equals(company.getId()));
+            boolean byLegacyName = (u.getCompanyId() == null
+                    && companyName != null
+                    && u.getCompany() != null
+                    && companyName.equalsIgnoreCase(u.getCompany().trim()));
+
+            if (byId || byLegacyName) {
                 supervisors.add(u);
+            }
+        }
+
+        // Available supervisors for linking:
+        // only show truly unlinked accounts (no companyId and no legacy company name).
+        java.util.List<User> available = new java.util.ArrayList<>();
+        for (User u : allIndustry) {
+            boolean hasIdLink = u.getCompanyId() != null;
+            boolean hasLegacyLink = u.getCompany() != null && !u.getCompany().isBlank();
+            if (!hasIdLink && !hasLegacyLink) {
+                available.add(u);
             }
         }
 
         model.addAttribute("company", company);
         model.addAttribute("supervisors", supervisors);
-        // list of all industry users – used in "link existing" dropdown
-        model.addAttribute("availableSupervisors", allIndustry);
+        // list of unlinked industry users – used in "link existing" dropdown
+        model.addAttribute("availableSupervisors", available);
         model.addAttribute("sectorOptions", CompanySector.values());
         return "admin-company-detail";
     }
 
     // Link an existing industry user to this company
     @PostMapping("/company-master/{companyId}/link-supervisor")
-    public String linkSupervisorToCompany(@PathVariable Long companyId,
-                                          @RequestParam Long supervisorId,
-                                          RedirectAttributes ra) {
+    public String linkSupervisorToCompany
+    (@PathVariable Long companyId,
+     @RequestParam Long supervisorId,
+     RedirectAttributes ra) {
         requireBean(companyRepository, "CompanyRepository");
         Company company = companyRepository.findById(companyId).orElseThrow();
         User sup = userRepository.findById(supervisorId).orElseThrow();
 
+        // Enforce: one supervisor account can only be linked to ONE company.
+        if (sup.getCompanyId() != null && !sup.getCompanyId().equals(companyId)) {
+            ra.addFlashAttribute("toast",
+                    "This supervisor is already linked to another company. Please unlink first.");
+            return "redirect:/admin/company-master/" + companyId;
+        }
+
+        // Legacy safety: if company string is set but companyId is null, treat as linked
+        if (sup.getCompanyId() == null
+                && sup.getCompany() != null
+                && !sup.getCompany().isBlank()
+                && (company.getName() == null || !sup.getCompany().trim().equalsIgnoreCase(company.getName().trim()))) {
+            ra.addFlashAttribute("toast",
+                    "This supervisor is already linked to another company (legacy record). Please unlink first.");
+            return "redirect:/admin/company-master/" + companyId;
+        }
+
         sup.setRole("industry"); // make sure it is an industry user
-        sup.setCompany(company.getName());
+        sup.setCompanyId(companyId);
+        sup.setCompany(company.getName()); // keep display name in sync
         userRepository.save(sup);
 
         logAction("LINK_INDUSTRY_SUPERVISOR",
@@ -2087,7 +2124,6 @@ public class AdminController {
         return "redirect:/admin/company-master/" + companyId;
     }
 
-    // Create a brand new industry supervisor for this company
     @PostMapping("/company-master/{companyId}/create-supervisor")
     public String createSupervisorForCompany(@PathVariable Long companyId,
                                              @RequestParam String name,
@@ -2112,7 +2148,11 @@ public class AdminController {
         sup.setPassword(encode(rawPassword));
         sup.setRole("industry");
         sup.setName(name);
+
+        // Lock to ONE company (source of truth: companyId)
+        sup.setCompanyId(companyId);
         sup.setCompany(company.getName());
+
         sup.setEnabled(true);
         sup.setAccessStart(LocalDate.now());
         sup.setAccessEnd(LocalDate.now().plusYears(1));
@@ -2127,6 +2167,7 @@ public class AdminController {
         ra.addFlashAttribute("toast", "New industry supervisor created and linked.");
         return "redirect:/admin/company-master/" + companyId;
     }
+
 
     // Update supervisor basic details (name + username/email)
     @PostMapping("/company-master/{companyId}/supervisors/{userId}/update")
@@ -2165,9 +2206,14 @@ public class AdminController {
         Company company = companyRepository.findById(companyId).orElseThrow();
         User sup = userRepository.findById(userId).orElseThrow();
 
-        if (sup.getCompany() != null &&
-                company.getName() != null &&
-                company.getName().equalsIgnoreCase(sup.getCompany())) {
+        boolean linkedById = (sup.getCompanyId() != null && sup.getCompanyId().equals(companyId));
+        boolean linkedByLegacyName = (sup.getCompanyId() == null
+                && sup.getCompany() != null
+                && company.getName() != null
+                && company.getName().trim().equalsIgnoreCase(sup.getCompany().trim()));
+
+        if (linkedById || linkedByLegacyName) {
+            sup.setCompanyId(null);
             sup.setCompany(null);
             userRepository.save(sup);
 
