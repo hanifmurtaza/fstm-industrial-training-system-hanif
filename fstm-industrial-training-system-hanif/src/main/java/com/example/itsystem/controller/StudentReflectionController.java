@@ -8,12 +8,14 @@ import com.itextpdf.layout.element.Text;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.io.font.constants.StandardFonts;
+
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-
 
 import com.example.itsystem.model.SelfReflection;
 import com.example.itsystem.model.User;
@@ -25,8 +27,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-
 @Controller
 @RequestMapping("/student/reflection")
 public class StudentReflectionController {
@@ -34,74 +34,113 @@ public class StudentReflectionController {
     @Autowired
     private SelfReflectionRepository repository;
 
+    /**
+     * Submit Reflection page:
+     * - If not submitted: show empty form + show reminder modal
+     * - If already submitted: load existing reflection into form (editable), no reminder
+     */
     @GetMapping
-    public String showForm(Model model) {
-        model.addAttribute("reflection", new SelfReflection());
+    public String showForm(HttpSession session, Model model) {
+        User student = (User) session.getAttribute("user");
+        if (student == null) return "redirect:/login";
+
+        Long studentId = student.getId();
+
+        SelfReflection existing = repository.findFirstByStudentIdOrderBySubmittedAtDesc(studentId).orElse(null);
+        boolean alreadySubmitted = (existing != null);
+
+        model.addAttribute("alreadySubmitted", alreadySubmitted);
+
+        if (alreadySubmitted) {
+            model.addAttribute("reflection", existing); // ✅ allow edit/update
+        } else {
+            model.addAttribute("reflection", new SelfReflection());
+            model.addAttribute("showOneTimeReminder", true); // ✅ show reminder only before first submit
+        }
+
         return "student/reflection-form";
     }
 
+    /**
+     * One-time submit rule:
+     * - If no record yet: create (submit once)
+     * - If already exists: UPDATE the same record (edit), not create a new one
+     */
     @PostMapping("/submit")
-    public String submitReflection(@ModelAttribute SelfReflection reflection,
-                                   HttpSession session,
-                                   RedirectAttributes redirectAttributes) {
+    public String submitOrUpdateReflection(@ModelAttribute SelfReflection reflection,
+                                           HttpSession session,
+                                           RedirectAttributes redirectAttributes) {
         User student = (User) session.getAttribute("user");
-        if (student != null) {
-            reflection.setStudentId(student.getId());
+        if (student == null) return "redirect:/login";
+
+        Long studentId = student.getId();
+
+        SelfReflection existing = repository.findFirstByStudentIdOrderBySubmittedAtDesc(studentId).orElse(null);
+
+        if (existing == null) {
+            // ✅ First time submit: create 1 record
+            reflection.setStudentId(studentId);
+            reflection.setSubmittedAt(LocalDateTime.now());
             repository.save(reflection);
-            redirectAttributes.addFlashAttribute("successMessage", "Reflection submitted successfully!");
+
+            redirectAttributes.addFlashAttribute("successMessage", "Reflection submitted successfully! You may edit it later if needed.");
+            return "redirect:/student/reflection";
         }
-        return "redirect:/student/reflection"; // 回到原表单页面
+
+        // ✅ Already submitted: update the SAME record (no new insert)
+        existing.setLearningExperience(reflection.getLearningExperience());
+        existing.setSoftSkills(reflection.getSoftSkills());
+        existing.setFeedback(reflection.getFeedback());
+        existing.setSubmittedAt(existing.getSubmittedAt()); // keep original submit time (optional)
+        repository.save(existing);
+
+        redirectAttributes.addFlashAttribute("successMessage", "Reflection updated successfully!");
+        return "redirect:/student/reflection";
     }
 
-    // 查看所有反思（按时间倒序）
+    // History page (will show 1 record usually)
     @GetMapping("/history")
     public String viewHistory(HttpSession session, Model model) {
         User student = (User) session.getAttribute("user");
         if (student == null) return "redirect:/login";
 
         List<SelfReflection> reflections = repository.findByStudentIdOrderBySubmittedAtDesc(student.getId());
-        if (reflections == null) reflections = new ArrayList<>(); // 安全处理
+        if (reflections == null) reflections = new ArrayList<>();
 
         model.addAttribute("reflections", reflections);
         return "student/reflection-history";
     }
 
-
-    // 删除反思
+    // ❌ Delete is NOT allowed
     @GetMapping("/delete/{id}")
-    public String deleteReflection(@PathVariable Long id, HttpSession session) {
+    public String deleteReflection(@PathVariable Long id,
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes) {
         User student = (User) session.getAttribute("user");
         if (student == null) return "redirect:/login";
 
-        SelfReflection r = repository.findById(id).orElse(null);
-        if (r != null && r.getStudentId().equals(student.getId())) {
-            repository.deleteById(id);
-        }
-
-        return "redirect:/student/reflection/history";
+        redirectAttributes.addFlashAttribute("errorMessage",
+                "Deletion is not allowed for Self-Reflection.");
+        return "redirect:/student/reflection";
     }
 
-    // 编辑反思（显示表单）
+    // Edit route is optional now; we keep it for compatibility and redirect to main page
     @GetMapping("/edit/{id}")
-    public String editForm(@PathVariable Long id, HttpSession session, Model model) {
+    public String editForm(@PathVariable Long id, HttpSession session) {
         User student = (User) session.getAttribute("user");
         if (student == null) return "redirect:/login";
-
-        SelfReflection r = repository.findById(id).orElse(null);
-        if (r != null && r.getStudentId().equals(student.getId())) {
-            model.addAttribute("reflection", r);
-            return "student/reflection-form";
-        }
-
-        return "redirect:/student/reflection/history";
+        return "redirect:/student/reflection";
     }
+
+    // Export PDF (unchanged)
     @GetMapping("/export/{id}")
     public void exportReflectionAsPdf(@PathVariable Long id, HttpServletResponse response) throws IOException {
         SelfReflection reflection = repository.findById(id).orElse(null);
         if (reflection == null) return;
 
         response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=reflection_" + reflection.getSubmittedAt().toLocalDate() + ".pdf");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=reflection_" + reflection.getSubmittedAt().toLocalDate() + ".pdf");
 
         PdfWriter writer = new PdfWriter(response.getOutputStream());
         PdfDocument pdfDoc = new PdfDocument(writer);
@@ -110,26 +149,26 @@ public class StudentReflectionController {
         PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont normal = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 
-        // 标题
         document.add(new Paragraph("Self-Reflection Record")
-                .setFont(bold)
-                .setFontSize(18)
-                .setBold()
+                .setFont(bold).setFontSize(18).setBold().setMarginBottom(10));
+
+        document.add(new Paragraph("Submitted on: " + reflection.getSubmittedAt())
+                .setFont(bold).setFontSize(12).setMarginBottom(20));
+
+        document.add(new Paragraph()
+                .add(new Text("Key Learning Experiences:\n").setFont(bold))
+                .add(new Text(reflection.getLearningExperience()).setFont(normal))
                 .setMarginBottom(10));
 
-// 副标题
-        document.add(new Paragraph("Submitted on: " + reflection.getSubmittedAt().toString())
-                .setFont(bold)
-                .setFontSize(12)
-                .setMarginBottom(20));
+        document.add(new Paragraph()
+                .add(new Text("Soft Skills Developed:\n").setFont(bold))
+                .add(new Text(reflection.getSoftSkills()).setFont(normal))
+                .setMarginBottom(10));
 
-        // 内容段落
-        document.add(new Paragraph().add(new Text("Key Learning Experiences:\n").setFont(bold)).add(new Text(reflection.getLearningExperience()).setFont(normal)).setMarginBottom(10));
-        document.add(new Paragraph().add(new Text("Soft Skills Developed:\n").setFont(bold)).add(new Text(reflection.getSoftSkills()).setFont(normal)).setMarginBottom(10));
-        document.add(new Paragraph().add(new Text("Feedback or Suggestions:\n").setFont(bold)).add(new Text(reflection.getFeedback()).setFont(normal)));
+        document.add(new Paragraph()
+                .add(new Text("Feedback or Suggestions:\n").setFont(bold))
+                .add(new Text(reflection.getFeedback()).setFont(normal)));
 
         document.close();
     }
-
-
 }

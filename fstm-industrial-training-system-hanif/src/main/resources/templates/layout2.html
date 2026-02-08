@@ -12,7 +12,7 @@
 <!-- Header -->
 <div class="bg-dark text-white p-3 d-flex align-items-center">
     <img th:src="@{/Picture1.png}" alt="UPM Logo" style="height: 50px; margin-right: 15px;">
-    <h5 class="m-0">UPM Faculty of Food Science Industrial Training and Career Management System</h5>
+    <h5 class="m-0">FSTM UPM DIGITAL INDUSTRIAL TRAINING SYSTEM</h5>
 </div>
 
 <!-- Navbar -->
@@ -25,6 +25,7 @@
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
             <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item"><a class="nav-link" th:href="@{/student-dashboard}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/student/profile}">Profile</a></li>
                 <li class="nav-item">
                     <a class="nav-link" href="/student/company-info">
                         Company Information
@@ -37,7 +38,7 @@
                         <li><a class="dropdown-item" th:href="@{/student/logbook/list}">View Logbook</a></li>
                     </ul>
                 </li>
-                <li class="nav-item"><a class="nav-link" th:href="@{/student/profile}">Profile</a></li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle [[${activePage == 'reflection'} ? 'active' : '']]" href="#" id="reflectionDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -58,7 +59,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/student/switch-company}">
-                        Switch Company
+                        Changing Company
                     </a>
                 </li>
 

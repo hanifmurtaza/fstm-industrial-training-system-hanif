@@ -9,11 +9,26 @@
 <body>
 <section layout:fragment="content">
   <div class="container mt-5">
+
+    <!-- success / error messages -->
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
       <i class="bi bi-check-circle-fill"></i>
       <span th:text="${successMessage}"></span>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span th:text="${errorMessage}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Info banner when already submitted (but editable) -->
+    <div th:if="${alreadySubmitted}" class="alert alert-info" role="alert">
+      <i class="bi bi-info-circle-fill"></i>
+      You have already submitted your reflection. You may update it, but you cannot submit a new one.
+    </div>
+
     <div class="row justify-content-center">
       <div class="col-md-8">
         <div class="card shadow p-4">
@@ -21,24 +36,38 @@
 
           <form th:action="@{/student/reflection/submit}" th:object="${reflection}" method="post">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
             <div class="mb-3">
               <label for="learningExperience" class="form-label fw-bold">Key Learning Experiences</label>
-              <textarea id="learningExperience" th:field="*{learningExperience}" class="form-control" rows="4" required></textarea>
+              <textarea id="learningExperience"
+                        th:field="*{learningExperience}"
+                        class="form-control"
+                        rows="4"
+                        required></textarea>
             </div>
 
             <div class="mb-3">
               <label for="softSkills" class="form-label fw-bold">Soft Skills Developed</label>
-              <textarea id="softSkills" th:field="*{softSkills}" class="form-control" rows="4" required></textarea>
+              <textarea id="softSkills"
+                        th:field="*{softSkills}"
+                        class="form-control"
+                        rows="4"
+                        required></textarea>
             </div>
 
             <div class="mb-3">
               <label for="feedback" class="form-label fw-bold">Feedback or Suggestions</label>
-              <textarea id="feedback" th:field="*{feedback}" class="form-control" rows="4" required></textarea>
+              <textarea id="feedback"
+                        th:field="*{feedback}"
+                        class="form-control"
+                        rows="4"
+                        required></textarea>
             </div>
 
             <div class="text-center">
               <button type="submit" class="btn btn-primary px-4">
-                <i class="bi bi-send-fill"></i> Submit
+                <i class="bi bi-send-fill"></i>
+                <span th:text="${alreadySubmitted} ? 'Update' : 'Submit'"></span>
               </button>
             </div>
           </form>
@@ -47,6 +76,43 @@
       </div>
     </div>
   </div>
+
+  <!-- Reminder Modal (only before first submission) -->
+  <div class="modal fade" id="reflectionReminderModal" tabindex="-1" aria-hidden="true"
+       th:if="${showOneTimeReminder}">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-exclamation-circle-fill text-warning"></i> Reminder
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          This reflection can only be submitted once and should be completed at the end of the internship period.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    const shouldShow = [[${showOneTimeReminder != null}]];
+    if (shouldShow) {
+      document.addEventListener("DOMContentLoaded", function () {
+        const el = document.getElementById('reflectionReminderModal');
+        if (el && window.bootstrap) {
+          const m = new bootstrap.Modal(el);
+          m.show();
+        }
+      });
+    }
+    /*]]>*/
+  </script>
+
 </section>
 </body>
 </html>

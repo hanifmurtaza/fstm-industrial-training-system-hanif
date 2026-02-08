@@ -17,7 +17,10 @@
         <th>#</th>
         <th>Week Start</th>
         <th style="min-width:260px;">Supervisor Endorsement</th>
-        <th style="min-width:300px;">Visiting Lecturer Endorsement</th>
+
+        <!-- ✅ Hide VL endorsement column -->
+        <!-- <th style="min-width:300px;">Visiting Lecturer Endorsement</th> -->
+
         <th>File</th>
         <th>Export</th>
         <th>Delete</th>
@@ -48,7 +51,8 @@
           </span>
         </td>
 
-        <!-- ✅ Visiting Lecturer endorsement: use endorsedByLecturer -->
+        <!-- ✅ Visiting Lecturer endorsement hidden -->
+        <!--
         <td>
           <span th:if="${entry.endorsedByLecturer}"
                 class="text-success fw-semibold">
@@ -59,6 +63,7 @@
             <i class="bi bi-x-lg"></i> Not Endorsed
           </span>
         </td>
+        -->
 
         <!-- ✅ File View/Download -->
         <td>
@@ -99,7 +104,7 @@
       </tr>
 
       <tr th:if="${#lists.isEmpty(logbookEntries)}">
-        <td colspan="7" class="text-muted py-4">No logbook entries found.</td>
+        <td colspan="6" class="text-muted py-4">No logbook entries found.</td>
       </tr>
 
       </tbody>
