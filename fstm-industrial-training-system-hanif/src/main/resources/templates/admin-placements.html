@@ -161,6 +161,18 @@
             </div>
 
             <div>
+                <label class="form-label mb-1 fw-semibold" for="departmentSelect">Department</label>
+                <select id="departmentSelect" name="department" class="form-select" style="min-width: 240px;">
+                    <option value="" th:selected="${selectedDepartment == null || selectedDepartment == ''}">All Departments</option>
+                    <option th:each="d : ${departmentOptions}"
+                            th:value="${d.name()}"
+                            th:text="${d.label}"
+                            th:selected="${d.name() == selectedDepartment}">
+                    </option>
+                </select>
+            </div>
+
+            <div>
                 <label class="form-label mb-1 fw-semibold" for="qInput">Search</label>
                 <input id="qInput" type="text" name="q" class="form-control"
                        style="min-width: 240px;" placeholder="Student, supervisor, company..."

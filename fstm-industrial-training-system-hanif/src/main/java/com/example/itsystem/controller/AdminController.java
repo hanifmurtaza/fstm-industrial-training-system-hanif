@@ -531,7 +531,7 @@ public class AdminController {
     // minimal url encode helper
     private String urlEncode(String v) {
         try {
-            return java.net.URLEncoder.encode(v, java.nio.charset.StandardCharsets.UTF_8);
+            return URLEncoder.encode(v, StandardCharsets.UTF_8);
         } catch (Exception e) {
             return v;
         }
@@ -550,7 +550,7 @@ public class AdminController {
                                 @RequestParam("defaultSession") String defaultSession,
                                 @RequestParam("defaultDepartment") Department defaultDepartment,
                                 Model model,
-                                jakarta.servlet.http.HttpSession session) throws IOException {
+                                HttpSession session) throws IOException {
 
         var preview = bulkImportService.preview(file, defaultSession);
 
@@ -566,7 +566,7 @@ public class AdminController {
 
 
     @PostMapping("/students/import/commit")
-    public String importCommit(jakarta.servlet.http.HttpSession session,
+    public String importCommit(HttpSession session,
                                RedirectAttributes ra) {
 
         com.example.itsystem.dto.BulkPreviewResult preview =
@@ -1094,6 +1094,7 @@ public class AdminController {
     public String listPlacements(@RequestParam(value = "status", required = false) PlacementStatus status,
                                  @RequestParam(value = "q", required = false) String q,
                                  @RequestParam(value = "session", required = false) String session,
+                                 @RequestParam(value = "department", required = false) String department,
                                  @RequestParam(value = "page", defaultValue = "0") int page,
                                  @RequestParam(value = "size", defaultValue = "10") int size,
                                  Model model,
@@ -1105,12 +1106,22 @@ public class AdminController {
         // Default to admin-selected / configured current session when session param is not provided
         String sessionTerm = resolveAdminSession(session, httpSession);
 
-        String qTerm = (q != null && !q.isBlank()) ? q.trim() : null;
-        Page<Placement> placements = placementRepository.searchAdminPlacements(status, qTerm, sessionTerm, pageable);
+        // Optional department filter (derived from student's User.department)
+        Department departmentTerm = null;
+        if (department != null && !department.isBlank()) {
+            try {
+                departmentTerm = Department.valueOf(department);
+            } catch (IllegalArgumentException ignored) {
+                departmentTerm = null;
+            }
+        }
 
-        java.util.Set<Long> studentIds    = new java.util.HashSet<>();
-        java.util.Set<Long> supervisorIds = new java.util.HashSet<>();
-        java.util.Set<Long> companyIds    = new java.util.HashSet<>();
+        String qTerm = (q != null && !q.isBlank()) ? q.trim() : null;
+        Page<Placement> placements = placementRepository.searchAdminPlacements(status, qTerm, sessionTerm, departmentTerm, pageable);
+
+        Set<Long> studentIds    = new HashSet<>();
+        Set<Long> supervisorIds = new HashSet<>();
+        Set<Long> companyIds    = new HashSet<>();
 
         for (Placement p : placements.getContent()) {
             if (p.getStudentId() != null)        studentIds.add(p.getStudentId());
@@ -1119,9 +1130,9 @@ public class AdminController {
         }
 
         // Map of userId -> User (for both student + supervisor)
-        java.util.Map<Long, User> userById = new java.util.HashMap<>();
+        Map<Long, User> userById = new HashMap<>();
         if (!studentIds.isEmpty() || !supervisorIds.isEmpty()) {
-            java.util.Set<Long> allUserIds = new java.util.HashSet<>(studentIds);
+            Set<Long> allUserIds = new HashSet<>(studentIds);
             allUserIds.addAll(supervisorIds);
             for (User u : userRepository.findAllById(allUserIds)) {
                 userById.put(u.getId(), u);
@@ -1129,7 +1140,7 @@ public class AdminController {
         }
 
         // Map of companyId -> Company
-        java.util.Map<Long, Company> companyById = new java.util.HashMap<>();
+        Map<Long, Company> companyById = new HashMap<>();
         if (!companyIds.isEmpty() && companyRepository != null) {
             for (Company c : companyRepository.findAllById(companyIds)) {
                 companyById.put(c.getId(), c);
@@ -1141,6 +1152,8 @@ public class AdminController {
         model.addAttribute("q", q);
         model.addAttribute("selectedSession", sessionTerm);
         model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
+        model.addAttribute("selectedDepartment", department);
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("userById", userById);
         model.addAttribute("companyById", companyById);
         model.addAttribute("currentPage", page);
@@ -1267,13 +1280,13 @@ public class AdminController {
         }
 
         // 🔹 build studentById for Admin table
-        java.util.Set<Long> studentIds = new java.util.HashSet<>();
+        Set<Long> studentIds = new HashSet<>();
         for (LogbookEntry e : data.getContent()) {
             if (e.getStudentId() != null) {
                 studentIds.add(e.getStudentId());
             }
         }
-        java.util.Map<Long, User> studentById = new java.util.HashMap<>();
+        Map<Long, User> studentById = new HashMap<>();
         if (!studentIds.isEmpty()) {
             userRepository.findAllById(studentIds)
                     .forEach(u -> studentById.put(u.getId(), u));
@@ -1620,6 +1633,7 @@ public class AdminController {
     @GetMapping("/company-info")
     public String listCompanyInfo(@RequestParam(value="status", required=false) String statusValue,
                                   @RequestParam(value="session", required=false) String session,
+                                  @RequestParam(value="department", required=false) String department,
                                   @RequestParam(value="page", defaultValue="0") int page,
                                   @RequestParam(value="size", defaultValue="10") int size,
                                   Model model,
@@ -1638,14 +1652,18 @@ public class AdminController {
         // Default to admin-selected / configured current session when session param is not provided
         String sessionTerm = resolveAdminSession(session, httpSession);
 
-        Page<CompanyInfo> data;
-        if (sessionTerm == null) {
-            data = (status == null) ? companyInfoRepository.findAll(p)
-                    : companyInfoRepository.findByStatus(status, p);
-        } else {
-            data = (status == null) ? companyInfoRepository.findBySession(sessionTerm, p)
-                    : companyInfoRepository.findByStatusAndSession(status, sessionTerm, p);
+        // Optional department filter (derived from student's User.department)
+        Department departmentTerm = null;
+        if (department != null && !department.isBlank()) {
+            try {
+                departmentTerm = Department.valueOf(department);
+            } catch (IllegalArgumentException ignored) {
+                departmentTerm = null;
+            }
         }
+
+        // Unified query supports optional status + session + department
+        Page<CompanyInfo> data = companyInfoRepository.searchAdminCompanyInfo(status, sessionTerm, departmentTerm, p);
 
         var ids = data.stream()
                 .map(CompanyInfo::getStudentId)
@@ -1656,7 +1674,7 @@ public class AdminController {
         var users = userRepository.findAllById(ids);
 
         // ✅ Map <User.id, User> so Thymeleaf can access name + matric
-        java.util.Map<Long, User> userById = new java.util.HashMap<>();
+        Map<Long, User> userById = new HashMap<>();
         for (User u : users) {
             userById.put(u.getId(), u);
         }
@@ -1667,6 +1685,8 @@ public class AdminController {
         model.addAttribute("statusValue", statusValue);
         model.addAttribute("selectedSession", sessionTerm);
         model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
+        model.addAttribute("selectedDepartment", department);
+        model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
         return "admin-company-info";
@@ -2103,13 +2123,13 @@ public class AdminController {
         Company company = companyRepository.findById(id).orElseThrow();
 
         // All industry users (supervisors)
-        java.util.List<User> allIndustry = userRepository.findByRole("industry");
+        List<User> allIndustry = userRepository.findByRole("industry");
 
         // Linked supervisors:
         // - prefer companyId match (source of truth)
         // - fallback to legacy string match for older records
         String companyName = company.getName() != null ? company.getName().trim() : null;
-        java.util.List<User> supervisors = new java.util.ArrayList<>();
+        List<User> supervisors = new ArrayList<>();
 
         for (User u : allIndustry) {
             boolean byId = (u.getCompanyId() != null && u.getCompanyId().equals(company.getId()));
@@ -2125,7 +2145,7 @@ public class AdminController {
 
         // Available supervisors for linking:
         // only show truly unlinked accounts (no companyId and no legacy company name).
-        java.util.List<User> available = new java.util.ArrayList<>();
+        List<User> available = new ArrayList<>();
         for (User u : allIndustry) {
             boolean hasIdLink = u.getCompanyId() != null;
             boolean hasLegacyLink = u.getCompany() != null && !u.getCompany().isBlank();
@@ -2720,14 +2740,14 @@ public class AdminController {
     private String getConfiguredCurrentSession() {
         if (systemSettingRepository == null) return null;
         return systemSettingRepository.findByKey(SETTING_CURRENT_SESSION)
-                .map(com.example.itsystem.model.SystemSetting::getValue)
+                .map(SystemSetting::getValue)
                 .orElse(null);
     }
 
     private void saveSystemSetting(String key, String value) {
         if (systemSettingRepository == null) return;
-        com.example.itsystem.model.SystemSetting s = systemSettingRepository.findByKey(key)
-                .orElseGet(() -> new com.example.itsystem.model.SystemSetting(key, null));
+        SystemSetting s = systemSettingRepository.findByKey(key)
+                .orElseGet(() -> new SystemSetting(key, null));
         s.setValue(value);
         systemSettingRepository.save(s);
     }
@@ -2761,21 +2781,21 @@ public class AdminController {
         return (cfg == null || cfg.isBlank()) ? null : cfg.trim();
     }
 
-    private java.util.Optional<String> getActorUsername() {
+    private Optional<String> getActorUsername() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated()
                     && auth.getName() != null
                     && !"anonymousUser".equals(auth.getName())) {
-                return java.util.Optional.of(auth.getName());
+                return Optional.of(auth.getName());
             }
         } catch (Throwable ignored) {}
-        return java.util.Optional.of("admin");
+        return Optional.of("admin");
     }
 
-    private java.util.List<String> rollingSessions(int pastYears, int futureYears) {
+    private List<String> rollingSessions(int pastYears, int futureYears) {
         int now = java.time.Year.now().getValue();
-        java.util.List<String> out = new java.util.ArrayList<>();
+        List<String> out = new ArrayList<>();
         for (int y = now - pastYears; y <= now + futureYears; y++) {
             String base = y + "/" + (y + 1);
             out.add(base + "-1");
@@ -2789,8 +2809,8 @@ public class AdminController {
      * Ensures the currently selected session is included even if it falls outside the rolling range,
      * so the dropdown won't default back to "All sessions".
      */
-    private java.util.List<String> sessionOptionsForDropdown(String selectedSession) {
-        java.util.List<String> opts = new java.util.ArrayList<>(rollingSessions(3, 5));
+    private List<String> sessionOptionsForDropdown(String selectedSession) {
+        List<String> opts = new ArrayList<>(rollingSessions(3, 5));
         if (selectedSession != null) {
             String s = selectedSession.trim();
             if (!s.isBlank() && !opts.contains(s)) {

@@ -148,40 +148,55 @@
 
             <a class="filter-pill filter-all"
                th:classappend="${statusValue == null or statusValue == ''} ? ' active' : ''"
-               th:href="@{/admin/company-info(session=${selectedSession})}">
+               th:href="@{/admin/company-info(session=${selectedSession}, department=${selectedDepartment})}">
                 All
             </a>
 
             <a class="filter-pill filter-pending"
                th:classappend="${statusValue == 'PENDING'} ? ' active' : ''"
-               th:href="@{/admin/company-info(status='PENDING', session=${selectedSession})}">
+               th:href="@{/admin/company-info(status='PENDING', session=${selectedSession}, department=${selectedDepartment})}">
                 Pending
             </a>
 
             <a class="filter-pill filter-verified"
                th:classappend="${statusValue == 'VERIFIED'} ? ' active' : ''"
-               th:href="@{/admin/company-info(status='VERIFIED', session=${selectedSession})}">
+               th:href="@{/admin/company-info(status='VERIFIED', session=${selectedSession}, department=${selectedDepartment})}">
                 Verified
             </a>
 
             <a class="filter-pill filter-rejected"
                th:classappend="${statusValue == 'REJECTED'} ? ' active' : ''"
-               th:href="@{/admin/company-info(status='REJECTED', session=${selectedSession})}">
+               th:href="@{/admin/company-info(status='REJECTED', session=${selectedSession}, department=${selectedDepartment})}">
                 Rejected
             </a>
 
             <!-- Session selector (defaults to CURRENT_SESSION) -->
-            <form class="d-flex align-items-center gap-2 ms-3" method="get" th:action="@{/admin/company-info}">
+            <form class="d-flex flex-wrap align-items-end gap-2 ms-3" method="get" th:action="@{/admin/company-info}">
                 <input type="hidden" name="status" th:value="${statusValue}">
-                <label class="fw-semibold small mb-0">Session</label>
-                <select name="session" class="form-select form-select-sm" style="width: 180px" onchange="this.form.submit()">
-                    <option value="__ALL__" th:selected="${selectedSession == null}">All sessions</option>
-                    <option th:each="s : ${sessionOptions}"
-                            th:value="${s}"
-                            th:text="${s}"
-                            th:selected="${s == selectedSession}">
-                    </option>
-                </select>
+
+                <div>
+                    <label class="fw-semibold small mb-0">Session</label>
+                    <select name="session" class="form-select form-select-sm" style="width: 180px" onchange="this.form.submit()">
+                        <option value="__ALL__" th:selected="${selectedSession == null}">All sessions</option>
+                        <option th:each="s : ${sessionOptions}"
+                                th:value="${s}"
+                                th:text="${s}"
+                                th:selected="${s == selectedSession}">
+                        </option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="fw-semibold small mb-0">Department</label>
+                    <select name="department" class="form-select form-select-sm" style="width: 220px" onchange="this.form.submit()">
+                        <option value="" th:selected="${selectedDepartment == null || selectedDepartment == ''}">All departments</option>
+                        <option th:each="d : ${departmentOptions}"
+                                th:value="${d.name()}"
+                                th:text="${d.label}"
+                                th:selected="${d.name() == selectedDepartment}">
+                        </option>
+                    </select>
+                </div>
             </form>
 
             <div class="ms-auto muted small">

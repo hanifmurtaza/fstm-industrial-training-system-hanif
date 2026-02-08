@@ -2,6 +2,7 @@ package com.example.itsystem.repository;
 
 import com.example.itsystem.model.Placement;
 import com.example.itsystem.model.PlacementStatus;
+import com.example.itsystem.model.Department;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
@@ -33,6 +34,7 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
         where p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
           and (:status is null or p.status = :status)
           and (:session is null or s.session = :session)
+          and (:department is null or s.department = :department)
           and (
                :q is null
                or lower(coalesce(s.name,'')) like lower(concat('%',:q,'%'))
@@ -46,6 +48,7 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     Page<Placement> searchAdminPlacements(@Param("status") PlacementStatus status,
                                           @Param("q") String q,
                                           @Param("session") String session,
+                                          @Param("department") Department department,
                                           Pageable pageable);
 
 
@@ -57,7 +60,7 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     // Optional convenience if you need "All statuses" for a supervisor:
     Page<Placement> findBySupervisorUserId(Long supervisorUserId, Pageable pageable);
 
-    java.util.Optional<Placement> findFirstByCompanyInfoId(Long companyInfoId);
+    Optional<Placement> findFirstByCompanyInfoId(Long companyInfoId);
 
     // --- NEW: items that are approved and still missing a supervisor evaluation ---
     @Query("""
