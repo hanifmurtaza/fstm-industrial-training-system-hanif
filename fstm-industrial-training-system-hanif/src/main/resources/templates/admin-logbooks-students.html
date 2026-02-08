@@ -261,7 +261,7 @@
     <!-- Table -->
     <div class="card-soft overflow-hidden">
         <div class="table-responsive">
-        <table class="table table-hover table-bordered mb-0 align-middle bg-white table-compact">
+            <table class="table table-hover table-bordered mb-0 align-middle bg-white table-compact">
                 <thead>
                 <tr>
                     <th class="col-narrow">No</th>
@@ -271,7 +271,6 @@
                     <th style="min-width:220px;">Visiting Lecturer</th>
                     <th class="col-narrow text-center">Submitted</th>
                     <th class="col-narrow text-center">Sup Pending</th>
-                    <th class="col-narrow text-center">Lec Pending</th>
                     <th class="col-narrow text-center">Score (10%)</th>
                     <th class="col-narrow text-end">Action</th>
                 </tr>
@@ -318,14 +317,6 @@
             <span th:if="${summaryByStudentId[s.id] != null}"
                   th:class="${summaryByStudentId[s.id].supPending > 0} ? 'badge-pill badge-bad' : 'badge-pill badge-ok'"
                   th:text="${summaryByStudentId[s.id].supPending}">0</span>
-                        <span th:if="${summaryByStudentId[s.id] == null}" class="badge-pill badge-ok">0</span>
-                    </td>
-
-                    <!-- Lec Pending -->
-                    <td class="text-center">
-            <span th:if="${summaryByStudentId[s.id] != null}"
-                  th:class="${summaryByStudentId[s.id].lecPending > 0} ? 'badge-pill badge-warn' : 'badge-pill badge-ok'"
-                  th:text="${summaryByStudentId[s.id].lecPending}">0</span>
                         <span th:if="${summaryByStudentId[s.id] == null}" class="badge-pill badge-ok">0</span>
                     </td>
 

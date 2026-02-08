@@ -120,13 +120,12 @@
           <th style="width:200px;">Created</th>
           <th style="width:120px;">Status</th>
           <th style="width:120px;">Sup</th>
-          <th style="width:120px;">Lec</th>
           <th style="width:120px;">Action</th>
         </tr>
         </thead>
         <tbody>
         <tr th:if="${#lists.isEmpty(logbooks.content)}">
-          <td colspan="7" class="text-center text-muted py-4">No logbooks found.</td>
+          <td colspan="5" class="text-center text-muted py-4">No logbooks found.</td>
         </tr>
 
         <tr th:each="e : ${logbooks.content}">
@@ -143,11 +142,6 @@
           <td>
             <span class="pill pill-ok" th:if="${e.endorsed}">YES</span>
             <span class="pill" style="background:#ECEEF3;color:#495057;" th:if="${!e.endorsed}">NO</span>
-          </td>
-
-          <td>
-            <span class="pill pill-ok" th:if="${e.endorsedByLecturer}">YES</span>
-            <span class="pill" style="background:#ECEEF3;color:#495057;" th:if="${!e.endorsedByLecturer}">NO</span>
           </td>
 
           <td>

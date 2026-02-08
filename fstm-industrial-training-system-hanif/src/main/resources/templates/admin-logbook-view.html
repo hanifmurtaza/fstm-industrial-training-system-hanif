@@ -133,16 +133,8 @@
                 </div>
             </div>
 
-            <hr/>
-
-            <div class="mt-2">
-                <div><strong>Lecturer Endorsed:</strong> <span th:text="${entry.endorsedByLecturer} ? 'YES' : 'NO'">NO</span></div>
-                <div><strong>Reviewed by (Lecturer):</strong> <span th:text="${lecturerDisplayName != null ? lecturerDisplayName : (entry.lecturerReviewedBy != null ? entry.lecturerReviewedBy : '-')}">-</span></div>
-                <div>
-                    <strong>Reviewed at (Lecturer):</strong>
-                    <span th:text="${entry.lecturerReviewedAt != null ? #temporals.format(entry.lecturerReviewedAt, 'dd MMM yyyy, HH:mm') : '-'}">-</span>
-                </div>
-            </div>
+            <!-- Visiting Lecturer endorsement was removed per faculty requirement.
+                 We keep the backend fields for compatibility, but Admin UI no longer shows VL endorsement. -->
         </div>
 
     </div>
