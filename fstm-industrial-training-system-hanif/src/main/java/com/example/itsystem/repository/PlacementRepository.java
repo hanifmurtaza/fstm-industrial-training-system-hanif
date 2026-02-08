@@ -24,6 +24,30 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
     Page<Placement> findByStatusNot(PlacementStatus status, Pageable pageable);
 
+    // --- Admin list with optional search + session (session is derived from the student's User.session) ---
+    @Query("""
+        select p from Placement p
+        left join User s on s.id = p.studentId
+        left join User sup on sup.id = p.supervisorUserId
+        left join Company c on c.id = p.companyId
+        where p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+          and (:status is null or p.status = :status)
+          and (:session is null or s.session = :session)
+          and (
+               :q is null
+               or lower(coalesce(s.name,'')) like lower(concat('%',:q,'%'))
+               or lower(coalesce(s.username,'')) like lower(concat('%',:q,'%'))
+               or lower(coalesce(s.studentId,'')) like lower(concat('%',:q,'%'))
+               or lower(coalesce(sup.name,'')) like lower(concat('%',:q,'%'))
+               or lower(coalesce(c.name,'')) like lower(concat('%',:q,'%'))
+          )
+        order by p.id desc
+    """)
+    Page<Placement> searchAdminPlacements(@Param("status") PlacementStatus status,
+                                          @Param("q") String q,
+                                          @Param("session") String session,
+                                          Pageable pageable);
+
 
     // --- NEW: list placements for a specific supervisor (paged) ---
     Page<Placement> findBySupervisorUserIdAndStatus(Long supervisorUserId,

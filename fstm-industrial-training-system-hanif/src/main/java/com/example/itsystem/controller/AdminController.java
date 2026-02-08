@@ -80,7 +80,7 @@ public class AdminController {
     // Dashboard
     // ============================
     @GetMapping("/dashboard")
-    public String dashboard(Model model) {
+    public String dashboard(Model model, HttpSession httpSession) {
         long studentCount   = userRepository.countByRole("student");
         long companyCount   = companyRepository.count();
         long evalCount      = evaluationRepository.count();
@@ -113,11 +113,14 @@ public class AdminController {
         }
 
         // Session: Admin-defined current session (used as default filter across admin pages)
-        model.addAttribute("sessionOptions", rollingSessions(3, 5));
+        String sessionTerm = resolveAdminSession(null, httpSession);
+        model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
         model.addAttribute("currentSession", getConfiguredCurrentSession());
+        model.addAttribute("selectedSession", sessionTerm);
 
         return "admin-dashboard";
     }
+
 
     @PostMapping("/current-session")
     public String setCurrentSession(@RequestParam("session") String session, HttpSession httpSession, RedirectAttributes ra) {
@@ -171,11 +174,14 @@ public class AdminController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
+        // Default to admin-selected / configured current session when session param is not provided
+        String sessionTerm = resolveAdminSession(session, httpSession);
+
 
         Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
                 "student",
                 search != null ? search.trim() : null,
-                session,
+                sessionTerm,
                 department,
                 pageable
         );
@@ -219,8 +225,8 @@ public class AdminController {
         model.addAttribute("students", students);
         model.addAttribute("search", search);
         model.addAttribute("department", department);
-        model.addAttribute("selectedSession", session);
-        model.addAttribute("sessionOptions", rollingSessions(3, 5));
+        model.addAttribute("selectedSession", sessionTerm);
+        model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
         model.addAttribute("departmentOptions", Department.values());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", students.getTotalPages());
@@ -1087,16 +1093,20 @@ public class AdminController {
     @GetMapping("/placements")
     public String listPlacements(@RequestParam(value = "status", required = false) PlacementStatus status,
                                  @RequestParam(value = "q", required = false) String q,
+                                 @RequestParam(value = "session", required = false) String session,
                                  @RequestParam(value = "page", defaultValue = "0") int page,
                                  @RequestParam(value = "size", defaultValue = "10") int size,
-                                 Model model) {
+                                 Model model,
+                                 HttpSession httpSession) {
         requireBean(placementRepository, "PlacementRepository");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
-        Page<Placement> placements = (status == null)
-                ? placementRepository.findByStatusNot(PlacementStatus.CANCELLED, pageable)
-                : placementRepository.findByStatus(status, pageable);
+        // Default to admin-selected / configured current session when session param is not provided
+        String sessionTerm = resolveAdminSession(session, httpSession);
+
+        String qTerm = (q != null && !q.isBlank()) ? q.trim() : null;
+        Page<Placement> placements = placementRepository.searchAdminPlacements(status, qTerm, sessionTerm, pageable);
 
         java.util.Set<Long> studentIds    = new java.util.HashSet<>();
         java.util.Set<Long> supervisorIds = new java.util.HashSet<>();
@@ -1129,6 +1139,8 @@ public class AdminController {
         model.addAttribute("placements", placements);
         model.addAttribute("status", status);
         model.addAttribute("q", q);
+        model.addAttribute("selectedSession", sessionTerm);
+        model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
         model.addAttribute("userById", userById);
         model.addAttribute("companyById", companyById);
         model.addAttribute("currentPage", page);
@@ -1607,6 +1619,7 @@ public class AdminController {
     // ============================
     @GetMapping("/company-info")
     public String listCompanyInfo(@RequestParam(value="status", required=false) String statusValue,
+                                  @RequestParam(value="session", required=false) String session,
                                   @RequestParam(value="page", defaultValue="0") int page,
                                   @RequestParam(value="size", defaultValue="10") int size,
                                   Model model,
@@ -1621,9 +1634,18 @@ public class AdminController {
         }
 
         Pageable p = PageRequest.of(page, size, Sort.by("id").descending());
-        Page<CompanyInfo> data = (status == null)
-                ? companyInfoRepository.findAll(p)
-                : companyInfoRepository.findByStatus(status, p);
+
+        // Default to admin-selected / configured current session when session param is not provided
+        String sessionTerm = resolveAdminSession(session, httpSession);
+
+        Page<CompanyInfo> data;
+        if (sessionTerm == null) {
+            data = (status == null) ? companyInfoRepository.findAll(p)
+                    : companyInfoRepository.findByStatus(status, p);
+        } else {
+            data = (status == null) ? companyInfoRepository.findBySession(sessionTerm, p)
+                    : companyInfoRepository.findByStatusAndSession(status, sessionTerm, p);
+        }
 
         var ids = data.stream()
                 .map(CompanyInfo::getStudentId)
@@ -1643,6 +1665,8 @@ public class AdminController {
         model.addAttribute("userById", userById);
         model.addAttribute("status", status);
         model.addAttribute("statusValue", statusValue);
+        model.addAttribute("selectedSession", sessionTerm);
+        model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
         return "admin-company-info";
@@ -2758,6 +2782,22 @@ public class AdminController {
             out.add(base + "-2");
         }
         return out;
+    }
+
+    /**
+     * Builds the session dropdown list.
+     * Ensures the currently selected session is included even if it falls outside the rolling range,
+     * so the dropdown won't default back to "All sessions".
+     */
+    private java.util.List<String> sessionOptionsForDropdown(String selectedSession) {
+        java.util.List<String> opts = new java.util.ArrayList<>(rollingSessions(3, 5));
+        if (selectedSession != null) {
+            String s = selectedSession.trim();
+            if (!s.isBlank() && !opts.contains(s)) {
+                opts.add(0, s);
+            }
+        }
+        return opts;
     }
 
     private String encode(String raw) {

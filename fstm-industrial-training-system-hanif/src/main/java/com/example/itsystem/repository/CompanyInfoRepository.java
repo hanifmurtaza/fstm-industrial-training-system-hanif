@@ -14,6 +14,10 @@ public interface CompanyInfoRepository extends JpaRepository<CompanyInfo, Long> 
     // For Admin list/filter: /admin/company-info?status=...
     Page<CompanyInfo> findByStatus(CompanyInfoStatus status, Pageable pageable);
 
+    // Session-aware admin list (defaults to CURRENT_SESSION)
+    Page<CompanyInfo> findBySession(String session, Pageable pageable);
+    Page<CompanyInfo> findByStatusAndSession(CompanyInfoStatus status, String session, Pageable pageable);
+
     // For dashboard cards: pending count, etc.
     long countByStatus(CompanyInfoStatus status);
 

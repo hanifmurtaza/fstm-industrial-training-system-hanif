@@ -148,27 +148,41 @@
 
             <a class="filter-pill filter-all"
                th:classappend="${statusValue == null or statusValue == ''} ? ' active' : ''"
-               th:href="@{/admin/company-info}">
+               th:href="@{/admin/company-info(session=${selectedSession})}">
                 All
             </a>
 
             <a class="filter-pill filter-pending"
                th:classappend="${statusValue == 'PENDING'} ? ' active' : ''"
-               th:href="@{/admin/company-info(status='PENDING')}">
+               th:href="@{/admin/company-info(status='PENDING', session=${selectedSession})}">
                 Pending
             </a>
 
             <a class="filter-pill filter-verified"
                th:classappend="${statusValue == 'VERIFIED'} ? ' active' : ''"
-               th:href="@{/admin/company-info(status='VERIFIED')}">
+               th:href="@{/admin/company-info(status='VERIFIED', session=${selectedSession})}">
                 Verified
             </a>
 
             <a class="filter-pill filter-rejected"
                th:classappend="${statusValue == 'REJECTED'} ? ' active' : ''"
-               th:href="@{/admin/company-info(status='REJECTED')}">
+               th:href="@{/admin/company-info(status='REJECTED', session=${selectedSession})}">
                 Rejected
             </a>
+
+            <!-- Session selector (defaults to CURRENT_SESSION) -->
+            <form class="d-flex align-items-center gap-2 ms-3" method="get" th:action="@{/admin/company-info}">
+                <input type="hidden" name="status" th:value="${statusValue}">
+                <label class="fw-semibold small mb-0">Session</label>
+                <select name="session" class="form-select form-select-sm" style="width: 180px" onchange="this.form.submit()">
+                    <option value="__ALL__" th:selected="${selectedSession == null}">All sessions</option>
+                    <option th:each="s : ${sessionOptions}"
+                            th:value="${s}"
+                            th:text="${s}"
+                            th:selected="${s == selectedSession}">
+                    </option>
+                </select>
+            </form>
 
             <div class="ms-auto muted small">
                 Total:

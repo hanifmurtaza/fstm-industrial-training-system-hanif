@@ -243,9 +243,10 @@
             <!-- Session -->
             <div class="input-shell">
                 <label class="form-label small-label">Session</label>
-                <select name="session" class="form-select">
-                    <option value="__ALL__" th:selected="${selectedSession == null || selectedSession == ''}">All Sessions</option>
-                    <option th:each="s : ${sessions}"
+                <select class="form-select" name="session">
+                    <option value="__ALL__" th:selected="${selectedSession == '__ALL__'}">All Sessions</option>
+
+                    <option th:each="s : ${sessionOptions}"
                             th:value="${s}"
                             th:text="${s}"
                             th:selected="${s == selectedSession}">

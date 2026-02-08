@@ -148,6 +148,25 @@
                 </select>
             </div>
 
+            <div>
+                <label class="form-label mb-1 fw-semibold" for="sessionSelect">Session</label>
+                <select id="sessionSelect" name="session" class="form-select" style="min-width: 180px;">
+                    <option value="__ALL__" th:selected="${selectedSession == null}">All sessions</option>
+                    <option th:each="s : ${sessionOptions}"
+                            th:value="${s}"
+                            th:text="${s}"
+                            th:selected="${s == selectedSession}">
+                    </option>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label mb-1 fw-semibold" for="qInput">Search</label>
+                <input id="qInput" type="text" name="q" class="form-control"
+                       style="min-width: 240px;" placeholder="Student, supervisor, company..."
+                       th:value="${q}">
+            </div>
+
             <button type="submit" class="btn btn-outline-primary btn-rounded">
                 <i class="bi bi-funnel me-1"></i> Filter
             </button>
