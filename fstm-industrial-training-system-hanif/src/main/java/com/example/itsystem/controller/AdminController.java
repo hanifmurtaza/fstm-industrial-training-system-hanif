@@ -2331,40 +2331,34 @@ public class AdminController {
         return "admin-industry-supervisors";
     }
 
-    @GetMapping("/industry-supervisors/add")
-    public String addIndustrySupervisorForm(Model model) {
-        model.addAttribute("supervisor", new User());
-
-        model.addAttribute("companies", companyRepository.findAll());
-
-        return "admin-industry-supervisor-form";
-    }
 
     @PostMapping("/industry-supervisors/save")
     public String saveIndustrySupervisor(
             @ModelAttribute User supervisor,
-            @RequestParam(value = "companyId", required = false) Long companyId
+            @RequestParam(value = "newPassword", required = false) String newPassword
     ) {
-
-        supervisor.setRole("industry");
-
-        if (supervisor.getPassword() != null && !supervisor.getPassword().isBlank()) {
-            supervisor.setPassword(encode(supervisor.getPassword()));
+        // This screen is now edit-only (create & link happens in Company Detail page)
+        if (supervisor.getId() == null) {
+            return "redirect:/admin/industry-supervisors";
         }
 
-        if (supervisor.getEnabled() == null) supervisor.setEnabled(true);
-        if (supervisor.getAccessStart() == null) supervisor.setAccessStart(LocalDate.now());
-        if (supervisor.getAccessEnd() == null) supervisor.setAccessEnd(LocalDate.now().plusMonths(12));
+        User existing = userRepository.findById(supervisor.getId()).orElseThrow();
 
-        // ✅ Link selected company (from masterlist) into User.company (string)
-        if (companyId != null && companyRepository != null) {
-            Company c = companyRepository.findById(companyId).orElse(null);
-            if (c != null) {
-                supervisor.setCompany(c.getName());   // <-- use your existing String field
-            }
+        // Keep role correct
+        existing.setRole("industry");
+
+        // Update editable fields
+        existing.setName(supervisor.getName());
+        existing.setUsername(supervisor.getUsername());
+
+        // Update password only if provided
+        if (newPassword != null && !newPassword.isBlank()) {
+            existing.setPassword(encode(newPassword));
         }
 
-        userRepository.save(supervisor);
+        // IMPORTANT: do NOT change company/companyId here (locked)
+        userRepository.save(existing);
+
         return "redirect:/admin/industry-supervisors";
     }
 
