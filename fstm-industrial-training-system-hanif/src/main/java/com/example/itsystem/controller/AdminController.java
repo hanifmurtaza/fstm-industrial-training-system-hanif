@@ -359,11 +359,16 @@ public class AdminController {
     }
 
     @PostMapping("/students/delete/{id}")
-    public String deleteStudent(@PathVariable Long id) {
-        userRepository.deleteById(id);
-        logAction("DELETE_STUDENT", "Deleted student with ID: " + id);
+    public String deleteStudent(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            userRepository.deleteById(id);
+            ra.addFlashAttribute("toast", "Student deleted.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Unable to delete. Student may be referenced by placements/logbooks/evaluations.");
+        }
         return "redirect:/admin/students";
     }
+
 
     // enable/disable user
     @PostMapping("/users/{id}/status")
@@ -957,9 +962,14 @@ public class AdminController {
         return "redirect:/admin/lecturers";
     }
 
-    @GetMapping("/lecturers/delete/{id}")
-    public String deleteLecturer(@PathVariable Long id) {
-        userRepository.deleteById(id);
+    @PostMapping("/lecturers/delete/{id}")
+    public String deleteLecturer(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            userRepository.deleteById(id);
+            ra.addFlashAttribute("toast", "Lecturer deleted.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Unable to delete. Lecturer may be referenced by students/visits.");
+        }
         return "redirect:/admin/lecturers";
     }
 
@@ -2364,14 +2374,25 @@ public class AdminController {
 
 
     @GetMapping("/industry-supervisors/edit/{id}")
-    public String editIndustrySupervisor(@PathVariable Long id, Model model) {
-        model.addAttribute("supervisor", userRepository.findById(id).orElse(null));
+    public String editIndustrySupervisor(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        User sup = userRepository.findById(id).orElse(null);
+        if (sup == null) {
+            ra.addFlashAttribute("toast", "Industry supervisor not found.");
+            return "redirect:/admin/industry-supervisors";
+        }
+        model.addAttribute("supervisor", sup);
         return "admin-industry-supervisor-form";
     }
 
+
     @PostMapping("/industry-supervisors/delete/{id}")
-    public String deleteIndustrySupervisor(@PathVariable Long id) {
-        userRepository.deleteById(id);
+    public String deleteIndustrySupervisor(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            userRepository.deleteById(id);
+            ra.addFlashAttribute("toast", "Supervisor deleted.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Unable to delete. This supervisor may be used in placements/logbooks.");
+        }
         return "redirect:/admin/industry-supervisors";
     }
 
