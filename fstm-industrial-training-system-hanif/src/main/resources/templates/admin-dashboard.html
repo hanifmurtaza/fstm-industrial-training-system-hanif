@@ -266,7 +266,7 @@
   <div class="container container-narrow">
     <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/admin/dashboard}">
       <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
-      <span>Admin Panel • UPM Industrial Training</span>
+      <span>Admin Panel</span>
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdmin">
@@ -278,7 +278,7 @@
         <li class="nav-item"><a th:href="@{/admin/students}" class="nav-link">Students</a></li>
         <li class="nav-item"><a th:href="@{/admin/lecturers}" class="nav-link">Lecturers</a></li>
         <li class="nav-item"><a th:href="@{/admin/evaluations}" class="nav-link">Evaluations</a></li>
-        <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Master</a></li>
+        <li class="nav-item"><a th:href="@{/admin/company-master}" class="nav-link">Company Directory</a></li>
         <li class="nav-item"><a th:href="@{/admin/company-info(status='PENDING')}" class="nav-link">Submissions</a></li>
         <li class="nav-item"><a th:href="@{/admin/placements}" class="nav-link">Placements</a></li>
         <li class="nav-item"><a th:href="@{/admin/announcements}" class="nav-link">Announcements</a></li>
@@ -350,41 +350,6 @@
 
         <hr class="my-3">
 
-        <div class="row g-3 kpi-row">
-          <div class="col-12 col-md-6">
-            <div class="text-muted small fw-semibold">Tip</div>
-            <div class="fw-semibold" style="color:#0f172a;">
-              Use “Action Required” to clear approvals and reviews quickly.
-            </div>
-            <div class="text-muted small">This keeps placements and logbooks moving smoothly.</div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="text-muted small fw-semibold">Shortcuts</div>
-            <div class="d-flex flex-wrap gap-2 mt-1">
-              <a class="btn btn-soft btn-sm btn-rounded" th:href="@{/admin/placements}">
-                Placements
-              </a>
-              <a class="btn btn-soft btn-sm btn-rounded" th:href="@{/admin/company-info(status='PENDING')}">
-                Submissions
-              </a>
-              <a class="btn btn-soft btn-sm btn-rounded" th:href="@{/admin/evaluations}">
-                Evaluations
-              </a>
-            </div>
-          </div>
-        </div>
-
-      </section>
-    </div>
-
-    <!-- Action Required panel -->
-    <div class="col-12 col-lg-5">
-      <section class="panel h-100">
-        <div class="panel-title">
-          <span>Action Required</span>
-          <span class="panel-sub">Queues that need attention</span>
-        </div>
-
         <div class="alert alert-light border rounded-3 p-3 mb-3">
           <div class="d-flex justify-content-between align-items-start">
             <div>
@@ -406,6 +371,18 @@
           </form>
         </div>
 
+      </section>
+    </div>
+
+    <!-- Action Required panel -->
+    <div class="col-12 col-lg-5">
+      <section class="panel h-100 d-flex flex-column">
+        <div class="panel-title">
+          <span>Action Required</span>
+          <span class="panel-sub">Queues that need attention</span>
+        </div>
+
+        <div class="flex-grow-1 d-flex flex-column justify-content-start pt-4">
         <div class="vstack">
 
           <div class="queue-row" th:if="${awaitingApproval != null}">
@@ -453,25 +430,8 @@
 
           <hr class="my-1" th:if="${awaitingSupEndorse != null}"/>
 
-          <div class="queue-row">
-            <div class="queue-left">
-              <span class="queue-dot"></span>
-              <div>
-                <div class="queue-title">Logbooks: Awaiting Lecturer</div>
-                <div class="queue-desc">
-                  Pending: <span class="fw-bold text-dark" th:text="${pendingLogbooksLecturer}">0</span>
 
-                </div>
-              </div>
-            </div>
-            <a class="btn btn-soft btn-rounded" th:href="@{/admin/logbooks/students}">Review</a>
-          </div>
-
-          <div class="text-muted small mt-2"
-               th:if="${(awaitingApproval == null) and (pendingCompanyInfo == null) and (awaitingSupEndorse == null) and (awaitingLecEndorse == null)}">
-            No queues to display.
-          </div>
-
+        </div>
         </div>
       </section>
     </div>
@@ -557,8 +517,8 @@
           <div class="d-flex align-items-start gap-3">
             <div class="tile-ico"><i class="bi bi-buildings"></i></div>
             <div>
-              <p class="tile-title mb-1">Company Master</p>
-              <p class="tile-desc">Deduped catalog for placements & analytics</p>
+              <p class="tile-title mb-1">Company Directory</p>
+              <p class="tile-desc">Directory of Companies Registered</p>
             </div>
           </div>
           <div class="tile-right"><i class="bi bi-chevron-right"></i></div>

@@ -36,7 +36,7 @@
     <div class="container container-narrow">
         <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/industry/dashboard}">
             <img th:src="@{/Picture1.png}" alt="UPM" style="height:28px">
-            <span>Industry Supervisor • UPM Industrial Training</span>
+            <span>Industry Supervisor Panel</span>
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navIndustry">
@@ -46,11 +46,11 @@
         <div id="navIndustry" class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item"><a th:href="@{/industry/dashboard}" class="nav-link">Dashboard</a></li>
+                <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">Profile</a></li>
+                <li class="nav-item"><a th:href="@{/industry/placements}" class="nav-link">Placements</a></li>
                 <li class="nav-item"><a th:href="@{/industry/logbooks}" class="nav-link">Logbooks</a></li>
-                <li class="nav-item"><a th:href="@{/industry/placements}" class="nav-link fw-semibold">Placements</a></li>
                 <li class="nav-item"><a th:href="@{/industry/evaluations}" class="nav-link">Evaluations</a></li>
                 <li class="nav-item"><a th:href="@{/industry/opportunities}" class="nav-link">Opportunities</a></li>
-                <li class="nav-item"><a th:href="@{/industry/companies}" class="nav-link">Profile</a></li>
                 <li class="nav-item">
                     <form th:action="@{/logout}" method="post" class="d-flex align-items-center h-100 m-0 p-0">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
