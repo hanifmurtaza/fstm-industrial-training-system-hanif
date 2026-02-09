@@ -169,7 +169,8 @@ public class AdminController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size,
             Model model,
-            HttpSession httpSession
+            HttpSession httpSession,
+            RedirectAttributes ra
     ) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
@@ -253,7 +254,8 @@ public class AdminController {
                                  @RequestParam String studentId,
                                  @RequestParam String session,
                                  @RequestParam(required = false) String company,
-                                 @RequestParam(required = false) Department department) {
+                                 @RequestParam(required = false) Department department,
+                                 RedirectAttributes ra) {
 
         User user = new User();
         user.setName(name);
@@ -261,7 +263,7 @@ public class AdminController {
         user.setStudentId(studentId);
         user.setSession(session);
 
-        // ✅ company should be empty at this stage (placement comes later)
+        // Optional company string (legacy display only)
         if (company != null && !company.isBlank()) {
             user.setCompany(company);
         } else {
@@ -272,16 +274,23 @@ public class AdminController {
         user.setRole("student");
 
         if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("Password cannot be blank.");
+            ra.addFlashAttribute("toast", "Password cannot be blank.");
+            return "redirect:/admin/students/add";
         }
         user.setPassword(encode(password));
 
         if (user.getAccessStart() == null) user.setAccessStart(LocalDate.now());
-        if (user.getAccessEnd() == null)   user.setAccessEnd(LocalDate.now().plusMonths(6));
+        if (user.getAccessEnd() == null) user.setAccessEnd(LocalDate.now().plusMonths(12));
         user.setEnabled(true);
 
-        userRepository.save(user);
-        logAction("ADD_STUDENT", "Added student: " + name);
+        try {
+            userRepository.save(user);
+            ra.addFlashAttribute("toast", "Student added.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Unable to add student. Username may already exist.");
+            return "redirect:/admin/students/add";
+        }
+
         return "redirect:/admin/students";
     }
 
@@ -313,48 +322,47 @@ public class AdminController {
     }
 
     @PostMapping("/students/save")
-    public String saveStudent(@ModelAttribute("student") User incoming) {
+    public String saveStudent(@ModelAttribute("student") User incoming, RedirectAttributes ra) {
         incoming.setRole("student");
+
         if (incoming.getId() != null) {
             User current = userRepository.findById(incoming.getId()).orElse(null);
-            if (current != null) {
-                if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
-                    incoming.setPassword(current.getPassword());
-                    incoming.setCompany(current.getCompany());
-                } else {
-                    incoming.setPassword(encode(incoming.getPassword()));
-                }
-                if (incoming.getEnabled() == null) incoming.setEnabled(current.getEnabled());
-                if (incoming.getAccessStart() == null) incoming.setAccessStart(current.getAccessStart());
-                if (incoming.getAccessEnd() == null) incoming.setAccessEnd(current.getAccessEnd());
-                if (incoming.getRemarks() == null) incoming.setRemarks(current.getRemarks());
+            if (current == null) {
+                ra.addFlashAttribute("toast", "Student not found.");
+                return "redirect:/admin/students";
             }
-        } else {
+
+            // keep password unless a new one is typed
             if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
-                throw new IllegalArgumentException("Password cannot be blank.");
+                incoming.setPassword(current.getPassword());
+            } else {
+                incoming.setPassword(encode(incoming.getPassword()));
+            }
+
+            // keep fields not present in the edit form
+            if (incoming.getEnabled() == null) incoming.setEnabled(current.getEnabled());
+            if (incoming.getAccessStart() == null) incoming.setAccessStart(current.getAccessStart());
+            if (incoming.getAccessEnd() == null) incoming.setAccessEnd(current.getAccessEnd());
+            if (incoming.getRemarks() == null) incoming.setRemarks(current.getRemarks());
+        } else {
+            // NEW student – password required
+            if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
+                ra.addFlashAttribute("toast", "Password cannot be blank.");
+                return "redirect:/admin/students/add";
             }
             incoming.setPassword(encode(incoming.getPassword()));
             if (incoming.getEnabled() == null) incoming.setEnabled(true);
             if (incoming.getAccessStart() == null) incoming.setAccessStart(LocalDate.now());
-            if (incoming.getAccessEnd() == null) incoming.setAccessEnd(LocalDate.now().plusMonths(6));
+            if (incoming.getAccessEnd() == null) incoming.setAccessEnd(LocalDate.now().plusMonths(12));
         }
 
-        // Fix transient lecturer object from form binding
-        if (incoming.getLecturer() != null) {
-            Long lecId = incoming.getLecturer().getId();
-
-            if (lecId == null) {
-                // If user selected 'none' / empty option
-                incoming.setLecturer(null);
-            } else {
-                // Replace transient User with a managed entity from DB
-                User managedLecturer = userRepository.findById(lecId).orElse(null);
-                incoming.setLecturer(managedLecturer);
-            }
+        try {
+            userRepository.save(incoming);
+            ra.addFlashAttribute("toast", "Student saved.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Unable to save student. Username may already exist.");
         }
 
-        userRepository.save(incoming);
-        logAction("UPDATE_STUDENT", "Updated student: " + incoming.getName());
         return "redirect:/admin/students";
     }
 
@@ -936,29 +944,44 @@ public class AdminController {
 
     @PostMapping("/lecturers/save")
     public String saveLecturer(@ModelAttribute("lecturer") User lecturer,
-                               @RequestParam(required = false) String rawPassword) {
+                               @RequestParam(required = false) String rawPassword,
+                               org.springframework.web.servlet.mvc.support.RedirectAttributes ra) {
 
         // make sure role is always teacher
         lecturer.setRole("teacher");
-        lecturer.setEnabled(true);
 
-        if (lecturer.getId() == null) {
-            // NEW lecturer – password is required
-            if (rawPassword == null || rawPassword.isBlank()) {
-                throw new IllegalArgumentException("Password is required for new lecturer");
+        // ✅ keep enabled status when editing (do NOT always force true)
+        if (lecturer.getId() != null) {
+            User existing = userRepository.findById(lecturer.getId()).orElse(null);
+            if (existing == null) {
+                ra.addFlashAttribute("toast", "Lecturer not found.");
+                return "redirect:/admin/lecturers";
             }
-            lecturer.setPassword(passwordEncoder.encode(rawPassword));
-        } else {
-            // EXISTING lecturer – only update password if something was entered
-            User existing = userRepository.findById(lecturer.getId()).orElseThrow();
+            lecturer.setEnabled(existing.getEnabled());
+
+            // existing lecturer — only update password if something was entered
             if (rawPassword == null || rawPassword.isBlank()) {
                 lecturer.setPassword(existing.getPassword());
             } else {
                 lecturer.setPassword(passwordEncoder.encode(rawPassword));
             }
+        } else {
+            // NEW lecturer – password is required
+            lecturer.setEnabled(true);
+            if (rawPassword == null || rawPassword.isBlank()) {
+                ra.addFlashAttribute("toast", "Password is required for new lecturer.");
+                return "redirect:/admin/lecturers/add";
+            }
+            lecturer.setPassword(passwordEncoder.encode(rawPassword));
         }
 
-        userRepository.save(lecturer);
+        try {
+            userRepository.save(lecturer);
+            ra.addFlashAttribute("toast", "Lecturer saved.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Unable to save lecturer. Username may already exist.");
+        }
+
         return "redirect:/admin/lecturers";
     }
 
@@ -982,22 +1005,31 @@ public class AdminController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size,
             Model model,
-            HttpSession httpSession
+            HttpSession httpSession,
+            RedirectAttributes ra
     ) {
-        User lecturer = userRepository.findById(lecturerId)
-                .orElseThrow(() -> new IllegalArgumentException("Lecturer not found: " + lecturerId));
+        User lecturer = userRepository.findById(lecturerId).orElse(null);
 
-        // Optional safety (recommended)
+        if (lecturer == null) {
+            ra.addFlashAttribute("toast", "Lecturer not found.");
+            return "redirect:/admin/lecturers";
+        }
+
+// Optional safety (recommended)
         if (!"teacher".equalsIgnoreCase(lecturer.getRole())) {
-            throw new IllegalArgumentException("Selected user is not a lecturer.");
+            ra.addFlashAttribute("toast", "Selected user is not a lecturer.");
+            return "redirect:/admin/lecturers";
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 
+        // Respect Admin "Current Session" default (and remembered selection)
+        String sessionTerm = resolveAdminSession(session, httpSession);
+
         Page<User> students = userRepository.searchStudentsWithSessionAndDepartment(
                 "student",
                 search != null ? search.trim() : null,
-                session,
+                sessionTerm,
                 department,
                 pageable
         );
@@ -1006,11 +1038,11 @@ public class AdminController {
         model.addAttribute("students", students);
 
         model.addAttribute("search", search);
-        model.addAttribute("selectedSession", session);
+        model.addAttribute("selectedSession", sessionTerm);
         model.addAttribute("department", department);
 
         // reuse dropdown helpers you already use in students page
-        model.addAttribute("sessionOptions", rollingSessions(3, 5));
+        model.addAttribute("sessionOptions", sessionOptionsForDropdown(sessionTerm));
         model.addAttribute("departmentOptions", Department.values());
 
         model.addAttribute("currentPage", page);
@@ -1035,11 +1067,16 @@ public class AdminController {
 
             RedirectAttributes ra
     ) {
-        User lecturer = userRepository.findById(lecturerId)
-                .orElseThrow(() -> new IllegalArgumentException("Lecturer not found: " + lecturerId));
+        User lecturer = userRepository.findById(lecturerId).orElse(null);
+
+        if (lecturer == null) {
+            ra.addFlashAttribute("toast", "Lecturer not found.");
+            return "redirect:/admin/lecturers";
+        }
 
         if (!"teacher".equalsIgnoreCase(lecturer.getRole())) {
-            throw new IllegalArgumentException("Selected user is not a lecturer.");
+            ra.addFlashAttribute("toast", "Selected user is not a lecturer.");
+            return "redirect:/admin/lecturers";
         }
 
         List<User> targets;
@@ -1790,7 +1827,8 @@ public class AdminController {
 
         if ("existing".equalsIgnoreCase(companyMode)) {
             if (existingCompanyId == null) {
-                throw new IllegalArgumentException("Existing company must be selected.");
+                redirectAttributes.addFlashAttribute("errorMessage", "Existing company must be selected.");
+                return "redirect:/admin/company-info/process?id=" + id;
             }
             companyId = existingCompanyId;
             chosenCompany = companyRepository.findById(companyId).orElse(null);
@@ -1808,7 +1846,8 @@ public class AdminController {
                     ? newCompanyName.trim()
                     : info.getCompanyName();
             if (name == null || name.isBlank()) {
-                throw new IllegalArgumentException("Company name is required.");
+                redirectAttributes.addFlashAttribute("errorMessage", "Company name is required.");
+                return "redirect:/admin/company-info/process?id=" + id;
             }
 
             company.setName(name);
@@ -1837,7 +1876,8 @@ public class AdminController {
 
         if ("existing".equalsIgnoreCase(supervisorMode)) {
             if (existingSupervisorId == null) {
-                throw new IllegalArgumentException("Existing supervisor must be selected.");
+                redirectAttributes.addFlashAttribute("errorMessage", "Existing supervisor must be selected.");
+                return "redirect:/admin/company-info/process?id=" + id;
             }
 
             // ✅ Sync chosen supervisor with this company (IMPORTANT)
@@ -1860,11 +1900,13 @@ public class AdminController {
                     : (info.getSupervisorEmail() != null ? info.getSupervisorEmail().trim().toLowerCase() : null);
 
             if (username == null || username.isBlank()) {
-                throw new IllegalArgumentException("Supervisor username/email is required for new account.");
+                redirectAttributes.addFlashAttribute("errorMessage", "Supervisor username/email is required for new account.");
+                return "redirect:/admin/company-info/process?id=" + id;
             }
 
             if (userRepository.findByUsername(username).isPresent()) {
-                throw new IllegalStateException("Username already exists: " + username);
+                redirectAttributes.addFlashAttribute("errorMessage", "Username already exists: " + username);
+                return "redirect:/admin/company-info/process?id=" + id;
             }
 
             String rawPassword = (supervisorPassword != null && !supervisorPassword.isBlank())
@@ -1897,14 +1939,16 @@ public class AdminController {
         } else if (supervisorMode == null || supervisorMode.isBlank()) {
             supervisorUserId = null;
         } else {
-            throw new IllegalArgumentException("Unsupported supervisor mode: " + supervisorMode);
+            redirectAttributes.addFlashAttribute("errorMessage", "Unsupported supervisor mode.");
+            return "redirect:/admin/company-info/process?id=" + id;
         }
 
         // -------------------------
         // Create Placement
         // -------------------------
         if (placementRepository == null) {
-            throw new IllegalStateException("PlacementRepository is not wired yet.");
+            redirectAttributes.addFlashAttribute("errorMessage", "System configuration error: PlacementRepository not available.");
+            return "redirect:/admin/company-info/process?id=" + id;
         }
 
         Placement placement = placementRepository.findFirstByCompanyInfoId(info.getId())

@@ -8,10 +8,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -23,7 +26,7 @@ public class AdminAnnouncementsController {
     private final FileStorageService fileStorageService;
 
     public AdminAnnouncementsController(DocumentRepository documentRepository,
-                                       FileStorageService fileStorageService) {
+                                        FileStorageService fileStorageService) {
         this.documentRepository = documentRepository;
         this.fileStorageService = fileStorageService;
     }
@@ -43,51 +46,56 @@ public class AdminAnnouncementsController {
                          @RequestParam(value = "audience", defaultValue = "ALL") String audience,
                          @RequestParam("file") MultipartFile file,
                          HttpSession session,
-                         Model model) {
+                         RedirectAttributes ra) {
         try {
-            if (title == null || title.isBlank()) throw new RuntimeException("Title is required");
-            if (file == null || file.isEmpty()) throw new RuntimeException("File is required");
+            if (title == null || title.isBlank()) {
+                ra.addFlashAttribute("toast", "Title is required.");
+                return "redirect:/admin/announcements";
+            }
+            if (file == null || file.isEmpty()) {
+                ra.addFlashAttribute("toast", "File is required.");
+                return "redirect:/admin/announcements";
+            }
 
             Document doc = new Document();
             doc.setTitle(title.trim());
             doc.setAnnouncement(true);
 
-            // Only allow: LECTURER (VL-only) or ALL (public login) as requested.
+            // Only allow: LECTURER (VL-only) or ALL
             Document.Audience a = "LECTURER".equalsIgnoreCase(audience)
                     ? Document.Audience.LECTURER
                     : Document.Audience.ALL;
             doc.setAudience(a);
 
-            doc.setOriginalName(file.getOriginalFilename());
+            String originalName = file.getOriginalFilename();
+            if (originalName == null) originalName = "announcement";
+            doc.setOriginalName(originalName);
+
+            // Detect type and store file using FileStorageService
+            doc.setFileType(detectFileType(originalName));
+            String storedPath = fileStorageService.storeAnnouncementFile(file);
+            // storedPath should be something like "/uploads/announcements/xxx.pdf"
+            doc.setFileName(storedPath);
+
             doc.setFileSize(file.getSize());
-            doc.setFileType(detectFileType(file.getOriginalFilename()));
 
-            String publicUrl = fileStorageService.storeAnnouncementFile(file);
-            doc.setFileName(publicUrl);
-
-            Object userObj = session.getAttribute("user");
-            if (userObj instanceof com.example.itsystem.model.User u) {
-                doc.setUploaderId(u.getId());
+            // Optional uploaderId (if you store it in session)
+            Object userId = session.getAttribute("userId");
+            if (userId instanceof Long) {
+                doc.setUploaderId((Long) userId);
             }
 
+            doc.setUploadedAt(LocalDateTime.now());
             documentRepository.save(doc);
-            return "redirect:/admin/announcements?success";
-        } catch (Exception ex) {
-            model.addAttribute("error", ex.getMessage());
-            return page(model);
+
+            ra.addFlashAttribute("toast", "Announcement uploaded.");
+            return "redirect:/admin/announcements";
+        } catch (Exception e) {
+            ra.addFlashAttribute("toast", "Upload failed. Please try again.");
+            return "redirect:/admin/announcements";
         }
     }
 
-    @PostMapping("/delete/{id}")
-    public String delete(@PathVariable Long id) {
-        Document doc = documentRepository.findById(id).orElse(null);
-        if (doc != null && doc.isAnnouncement()) {
-            // best-effort delete file from disk
-            deleteFileQuietly(doc.getFileName());
-            documentRepository.deleteById(id);
-        }
-        return "redirect:/admin/announcements";
-    }
 
     private Document.FileType detectFileType(String originalName) {
         if (originalName == null) return Document.FileType.OTHER;

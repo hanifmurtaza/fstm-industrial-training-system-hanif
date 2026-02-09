@@ -71,7 +71,8 @@
             <div class="col-md-3">
                 <label class="form-label">Session</label>
                 <select class="form-select" name="session">
-                    <option value="">All</option>
+                    <!-- Use the same sentinel as other admin pages so "All sessions" clears the saved default -->
+                    <option value="__ALL__" th:selected="${selectedSession == null}">All sessions</option>
                     <option th:each="s : ${sessionOptions}"
                             th:value="${s}"
                             th:text="${s}"
