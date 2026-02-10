@@ -62,8 +62,8 @@
   </div>
 
   <!-- =======================
-       Announcements (NEW)
-       ======================= -->
+     Announcements
+     ======================= -->
   <div class="container px-0 my-4">
     <div class="card shadow-sm border-0">
       <div class="card-body p-4">
@@ -73,27 +73,30 @@
         </div>
 
         <!-- When announcements exist -->
-        <div th:if="${announcements != null and #lists.size(announcements) > 0}">
-          <div class="list-group list-group-flush">
-            <div class="list-group-item py-3"
-                 th:each="a : ${announcements}">
-              <div class="d-flex justify-content-between align-items-start">
-                <div class="me-3">
-                  <div class="fw-semibold" th:text="${a.title}">Announcement title</div>
-                  <div class="text-muted small mt-1" th:text="${a.content}">
-                    Announcement content preview...
+        <div th:if="${announcements != null and !#lists.isEmpty(announcements)}">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item px-0 py-3" th:each="a : ${announcements}">
+              <div class="d-flex">
+                <div class="me-2 mt-1">
+                  <i class="bi bi-file-earmark-arrow-down text-primary"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <a class="link-primary text-decoration-none fw-semibold"
+                     th:href="@{'/announcement/download/' + ${a.id}}"
+                     th:text="${a.title}">Announcement title</a>
+                  <div class="text-muted small" th:text="${a.originalName}">file.pdf</div>
+                  <div class="text-muted small mt-1">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    <span th:text="${#temporals.format(a.uploadedAt, 'yyyy-MM-dd HH:mm')}">2025-10-26</span>
                   </div>
                 </div>
-                <div class="text-muted small text-end" style="min-width:120px;">
-                  <div th:text="${a.createdAt}">2025-01-01</div>
-                </div>
               </div>
-            </div>
-          </div>
+            </li>
+          </ul>
         </div>
 
         <!-- When no announcements -->
-        <div th:if="${announcements == null or #lists.size(announcements) == 0}">
+        <div th:if="${announcements == null or #lists.isEmpty(announcements)}">
           <div class="alert alert-light border mb-0">
             <div class="small text-muted">
               No announcements at the moment.
@@ -105,6 +108,7 @@
     </div>
   </div>
 
+  <!-- Switch Company Policy (embedded on dashboard) -->
   <!-- Switch Company Policy (embedded on dashboard) -->
   <div class="container px-0 py-2">
     <div class="card shadow-sm border-0">

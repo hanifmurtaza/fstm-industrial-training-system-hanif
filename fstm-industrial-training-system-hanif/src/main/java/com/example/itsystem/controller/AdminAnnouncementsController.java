@@ -61,10 +61,15 @@ public class AdminAnnouncementsController {
             doc.setTitle(title.trim());
             doc.setAnnouncement(true);
 
-            // Only allow: LECTURER (VL-only) or ALL
-            Document.Audience a = "LECTURER".equalsIgnoreCase(audience)
-                    ? Document.Audience.LECTURER
-                    : Document.Audience.ALL;
+            // Allow: STUDENT, LECTURER (VL-only) or ALL
+            Document.Audience a;
+            if ("LECTURER".equalsIgnoreCase(audience)) {
+                a = Document.Audience.LECTURER;
+            } else if ("STUDENT".equalsIgnoreCase(audience)) {
+                a = Document.Audience.STUDENT;
+            } else {
+                a = Document.Audience.ALL;
+            }
             doc.setAudience(a);
 
             String originalName = file.getOriginalFilename();

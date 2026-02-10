@@ -57,6 +57,8 @@ public class StudentController {
     @Autowired private CompanyRepository companyRepository;
 
     @Autowired private StudentAssessmentRepository studentAssessmentRepository;
+    @Autowired private DocumentRepository documentRepository;
+
 
     @Autowired private CompanyInfoRepository companyInfoRepository;
     @Autowired private VisitEvaluationRepository visitEvaluationRepository;
@@ -82,6 +84,24 @@ public class StudentController {
 
         VisitSchedule visit = visitScheduleService.findUpcomingForStudent(user.getId());
         model.addAttribute("visitSchedule", visit);
+
+        // Announcements (STUDENT only)
+        try {
+            List<com.example.itsystem.model.Document> stu =
+                    documentRepository.findByAnnouncementTrueAndAudienceOrderByUploadedAtDesc(
+                            com.example.itsystem.model.Document.Audience.STUDENT
+                    );
+
+            if (stu == null) stu = new ArrayList<>();
+
+            // Show only latest 5
+            if (stu.size() > 5) stu = stu.subList(0, 5);
+
+            model.addAttribute("announcements", stu);
+        } catch (Exception ignore) {
+            model.addAttribute("announcements", Collections.emptyList());
+        }
+
 
         // ====== Keep your original StudentAssessment lookup logic ======
         String byUser = (user.getSession() != null && !user.getSession().isBlank()) ? user.getSession() : null;
