@@ -280,6 +280,7 @@ public class StudentController {
                                     @RequestParam String supervisorName,
                                     @RequestParam String supervisorEmail,
                                     @RequestParam(required = false) String supervisorPhone,
+                                    @RequestParam("offerLetter") MultipartFile offerLetter,
                                     @RequestParam("internshipStartDate") LocalDate internshipStartDate,
                                     @RequestParam("internshipEndDate") LocalDate internshipEndDate,
                                     HttpSession session,
@@ -334,6 +335,17 @@ public class StudentController {
             return "redirect:/student/company-info";
         }
 
+        // 3b) ✅ Offer letter required
+        if (offerLetter == null || offerLetter.isEmpty()) {
+            ra.addFlashAttribute("error", "Offer letter (PDF) is required.");
+            return "redirect:/student/company-info";
+        }
+
+        if (fileStorageService == null) {
+            ra.addFlashAttribute("error", "File upload service is not available. Please contact admin.");
+            return "redirect:/student/company-info";
+        }
+
         // 4) 保存
         CompanyInfo info = new CompanyInfo();
         info.setStudentId(student.getId());
@@ -349,7 +361,19 @@ public class StudentController {
         info.setSession(currentSession(student));
         info.setStatus(CompanyInfoStatus.PENDING);
 
+        // Save first to get ID, then store offer letter under /uploads
         companyInfoRepository.save(info);
+
+        try {
+            String offerPath = fileStorageService.storeCompanyOfferLetterPdf(offerLetter, student.getId(), info.getId());
+            info.setOfferLetterPath(offerPath);
+            companyInfoRepository.save(info);
+        } catch (Exception ex) {
+            // Rollback the record if file storage fails to keep data consistent
+            companyInfoRepository.delete(info);
+            ra.addFlashAttribute("error", "Failed to upload offer letter: " + ex.getMessage());
+            return "redirect:/student/company-info";
+        }
 
         ra.addFlashAttribute("success", "Your company information has been submitted and is now pending approval.");
         return "redirect:/student/company-info";

@@ -17,9 +17,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.*;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,7 +38,6 @@ import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.repository.StudentAssessmentRepository;
 import com.example.itsystem.util.UpmGradeUtil;
 import com.example.itsystem.model.VisitSchedule;
-import jakarta.servlet.http.HttpSession;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -1771,6 +1779,48 @@ public class AdminController {
         return "admin-company-info-process";
     }
 
+    // =========================================================
+    // Offer letter download (Admin only)
+    // =========================================================
+    @GetMapping("/company-info/{id}/offer-letter")
+    public ResponseEntity<Resource> downloadOfferLetter(@PathVariable Long id, HttpSession session) throws IOException {
+        User admin = (User) session.getAttribute("user");
+        if (admin == null || !"admin".equalsIgnoreCase(admin.getRole())) {
+            return ResponseEntity.status(403).build();
+        }
+
+        CompanyInfo info = companyInfoRepository.findById(id).orElse(null);
+        if (info == null || info.getOfferLetterPath() == null || info.getOfferLetterPath().isBlank()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String publicPath = info.getOfferLetterPath();
+        if (!publicPath.startsWith("/uploads/")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Convert /uploads/... -> <project>/uploads/...
+        String rel = publicPath.substring("/uploads/".length());
+        Path uploadsRoot = Paths.get("uploads").toAbsolutePath().normalize();
+        Path filePath = uploadsRoot.resolve(rel).normalize();
+
+        // Prevent path traversal
+        if (!filePath.startsWith(uploadsRoot)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        if (!Files.exists(filePath)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Resource resource = new UrlResource(filePath.toUri());
+        String downloadName = "offer-letter-companyinfo-" + id + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
+                .body(resource);
+    }
 
     // Path-variable version (used by POST redirect)
     @GetMapping("/company-info/{id}/process")

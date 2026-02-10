@@ -49,6 +49,10 @@ public class CompanyInfo {
     private LocalDate internshipStartDate;
     private LocalDate internshipEndDate;
 
+    /** ✅ Student uploaded offer letter (PDF) public path under /uploads/** */
+    @Column(length = 400)
+    private String offerLetterPath;
+
     /** Admin workflow status */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -121,6 +125,9 @@ public class CompanyInfo {
 
     public LocalDate getInternshipEndDate() { return internshipEndDate; }
     public void setInternshipEndDate(LocalDate internshipEndDate) { this.internshipEndDate = internshipEndDate; }
+
+    public String getOfferLetterPath() { return offerLetterPath; }
+    public void setOfferLetterPath(String offerLetterPath) { this.offerLetterPath = offerLetterPath; }
 
     public CompanyInfoStatus getStatus() { return status; }
     public void setStatus(CompanyInfoStatus status) { this.status = status; }

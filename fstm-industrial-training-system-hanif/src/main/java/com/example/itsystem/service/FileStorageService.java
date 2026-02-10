@@ -20,6 +20,9 @@ public class FileStorageService {
     private final Path finalReportRoot;
     private final Path announcementsRoot;
 
+    // Company info attachments (offer letter)
+    private final Path companyInfoRoot;
+
     public FileStorageService() {
         try {
             this.uploadsRoot = Paths.get("uploads").toAbsolutePath().normalize();
@@ -28,15 +31,49 @@ public class FileStorageService {
             this.logbookRoot = uploadsRoot.resolve("logbook");
             this.finalReportRoot = uploadsRoot.resolve("final-report");
             this.announcementsRoot = uploadsRoot.resolve("announcements");
+            this.companyInfoRoot = uploadsRoot.resolve("company-info");
 
             Files.createDirectories(uploadsRoot);
             Files.createDirectories(opportunitiesRoot);
             Files.createDirectories(logbookRoot);
             Files.createDirectories(finalReportRoot);
             Files.createDirectories(announcementsRoot);
+            Files.createDirectories(companyInfoRoot);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize upload folder", e);
         }
+    }
+
+    // =========================================================
+    // (6) Student Offer Letter PDF
+    // -> /uploads/company-info/{studentId}/{companyInfoId}/offer-letter/{file}.pdf
+    // =========================================================
+    public String storeCompanyOfferLetterPdf(MultipartFile file, Long studentId, Long companyInfoId) {
+        if (file == null || file.isEmpty()) return null;
+
+        String contentType = file.getContentType();
+        String ext = getExt(file.getOriginalFilename());
+
+        boolean isPdf = "application/pdf".equalsIgnoreCase(contentType) || "pdf".equalsIgnoreCase(ext);
+        if (!isPdf) {
+            throw new RuntimeException("Only PDF is allowed for Offer Letter.");
+        }
+
+        String name = UUID.randomUUID().toString().replace("-", "") + ".pdf";
+
+        Path dir = companyInfoRoot
+                .resolve(String.valueOf(studentId))
+                .resolve(String.valueOf(companyInfoId))
+                .resolve("offer-letter");
+
+        try {
+            Files.createDirectories(dir);
+            Files.copy(file.getInputStream(), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store offer letter PDF", e);
+        }
+
+        return "/uploads/company-info/" + studentId + "/" + companyInfoId + "/offer-letter/" + name;
     }
 
     // =========================================================
