@@ -29,7 +29,9 @@ public class SecurityConfig {
                         .requestMatchers("/announcement/**").permitAll()
                         .requestMatchers("/*.png", "/*.jpg", "/*.jpeg", "/*.gif", "/*.svg", "/*.webp", "/*.ico").permitAll()
                         .requestMatchers("/logos/**").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**", "/app.css").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/app.css").permitAll()
+                        .requestMatchers("/uploads/opportunities/**").permitAll()
+                        .requestMatchers("/uploads/announcements/**").permitAll()
 
                         // public api
                         .requestMatchers("/api/opportunities/**").permitAll()

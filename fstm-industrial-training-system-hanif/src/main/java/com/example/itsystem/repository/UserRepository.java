@@ -142,7 +142,11 @@ AND (:department IS NULL OR u.department = :department)
       SELECT p.studentId
       FROM Placement p
       WHERE p.studentId IS NOT NULL
-        AND p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+        AND p.status IN (
+        com.example.itsystem.model.PlacementStatus.AWAITING_SUPERVISOR,
+        com.example.itsystem.model.PlacementStatus.AWAITING_ADMIN,
+        com.example.itsystem.model.PlacementStatus.APPROVED
+    )
     )
   ORDER BY u.name ASC
 """)
