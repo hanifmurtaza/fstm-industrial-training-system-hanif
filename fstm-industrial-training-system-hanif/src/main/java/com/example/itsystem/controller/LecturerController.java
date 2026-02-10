@@ -225,7 +225,9 @@ public class LecturerController {
                     .orElse(null);
 
             if (latest != null
-                    && latest.getStatus() != PlacementStatus.CANCELLED
+                    && (latest.getStatus() == PlacementStatus.AWAITING_SUPERVISOR
+                    || latest.getStatus() == PlacementStatus.AWAITING_ADMIN
+                    || latest.getStatus() == PlacementStatus.APPROVED)
                     && latest.getCompanyId() != null) {
 
                 companyRepository.findById(latest.getCompanyId())

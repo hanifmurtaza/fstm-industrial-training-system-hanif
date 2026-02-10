@@ -1291,7 +1291,8 @@ public class AdminController {
 
         requireBean(placementRepository, "PlacementRepository");
 
-        if (placementRepository.existsByStudentIdAndStatusNot(studentId, PlacementStatus.CANCELLED)) {
+        if (placementRepository.existsByStudentIdAndStatusIn(studentId,
+                List.of(PlacementStatus.AWAITING_SUPERVISOR, PlacementStatus.AWAITING_ADMIN, PlacementStatus.APPROVED))) {
             redirectAttributes.addFlashAttribute("error",
                     "This student already has an active placement. Please cancel the existing placement first.");
             return "redirect:/admin/placements/new?companyId=" + companyId;
@@ -1863,7 +1864,8 @@ public class AdminController {
         }
 
         // ✅ Defensive: block processing if student already has an active placement
-        if (placementRepository.existsByStudentIdAndStatusNot(info.getStudentId(), PlacementStatus.CANCELLED)) {
+        if (placementRepository.existsByStudentIdAndStatusIn(info.getStudentId(),
+                List.of(PlacementStatus.AWAITING_SUPERVISOR, PlacementStatus.AWAITING_ADMIN, PlacementStatus.APPROVED))) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Student already has an active placement. Please cancel the current placement before processing a new company info.");
             return "redirect:/admin/company-info/process?id=" + id;

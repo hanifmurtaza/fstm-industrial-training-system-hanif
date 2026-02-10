@@ -17,6 +17,9 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
 
     boolean existsByStudentIdAndStatusNot(Long studentId, PlacementStatus status);
 
+    // ✅ Treat only these as "active" placements (avoid mismatches with REJECTED records)
+    boolean existsByStudentIdAndStatusIn(Long studentId, List<PlacementStatus> statuses);
+
 
 
     // existing
@@ -79,7 +82,11 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     @Query("""
    select p.studentId from Placement p
    where p.supervisorUserId = :supervisorUserId
-     and p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+     and p.status in (
+       com.example.itsystem.model.PlacementStatus.AWAITING_SUPERVISOR,
+       com.example.itsystem.model.PlacementStatus.AWAITING_ADMIN,
+       com.example.itsystem.model.PlacementStatus.APPROVED
+     )
 """)
     List<Long> findStudentIdsBySupervisor(@Param("supervisorUserId") Long supervisorUserId);
 
@@ -89,7 +96,11 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
    select (count(p) > 0) from Placement p
    where p.supervisorUserId = :supervisorUserId
      and p.studentId = :studentId
-     and p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+     and p.status in (
+       com.example.itsystem.model.PlacementStatus.AWAITING_SUPERVISOR,
+       com.example.itsystem.model.PlacementStatus.AWAITING_ADMIN,
+       com.example.itsystem.model.PlacementStatus.APPROVED
+     )
 """)
     boolean existsByStudentIdAndSupervisorUserId(@Param("studentId") Long studentId,
                                                  @Param("supervisorUserId") Long supervisorUserId);
@@ -99,7 +110,11 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
    select distinct p.companyId from Placement p
    where p.supervisorUserId = :supervisorUserId
      and p.companyId is not null
-     and p.status <> com.example.itsystem.model.PlacementStatus.CANCELLED
+     and p.status in (
+       com.example.itsystem.model.PlacementStatus.AWAITING_SUPERVISOR,
+       com.example.itsystem.model.PlacementStatus.AWAITING_ADMIN,
+       com.example.itsystem.model.PlacementStatus.APPROVED
+     )
 """)
     List<Long> findDistinctCompanyIdsBySupervisorUserId(@Param("supervisorUserId") Long supervisorUserId);
 
