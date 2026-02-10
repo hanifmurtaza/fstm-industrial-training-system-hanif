@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout2}" lang="en">
 <head>
   <title>Student Dashboard</title>
@@ -8,17 +9,31 @@
 <div layout:fragment="content">
 
   <!-- Welcome -->
-  <h2 class="fw-bold mb-4 text-center">Welcome <span th:text="${name}">Student Name</span> 🎓</h2>
+  <h2 class="fw-bold mb-4 text-center">
+    Welcome <span th:text="${name}">Student Name</span> 🎓
+  </h2>
+
+  <!-- Weekly Logbook Reminder -->
+  <div class="alert alert-warning text-center">
+    <div class="fw-bold mb-1">📝 Weekly Logbook Reminder</div>
+    <div class="small">
+      Please submit your logbook <b>every week</b>
+    </div>
+  </div>
 
   <!-- Visit notice -->
   <div th:if="${visitSchedule != null}" class="alert alert-info text-center">
-    <p>
-      Lecturer will visit on <strong th:text="${visitSchedule.visitDate}">2025-05-01</strong> at
-      <strong th:text="${visitSchedule.visitTime}">15:00</strong> via
+    <p class="mb-3">
+      Lecturer will visit on
+      <strong th:text="${visitSchedule.visitDate}">2025-05-01</strong>
+      at
+      <strong th:text="${visitSchedule.visitTime}">15:00</strong>
+      via
       <strong th:text="${visitSchedule.mode}">Virtual</strong>.
     </p>
 
-    <div th:if="${visitSchedule.status == 'Pending'}" class="d-flex justify-content-center gap-2">
+    <div th:if="${visitSchedule.status == 'Pending'}"
+         class="d-flex justify-content-center gap-2">
       <form th:action="@{/student/visit/confirm}" method="post">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <input type="hidden" name="visitId" th:value="${visitSchedule.id}">
@@ -41,232 +56,124 @@
     </div>
   </div>
 
-  <!-- Evaluation Progress -->
-  <div class="row mt-4 justify-content-center">
-    <div class="col-md-10">
-      <div class="card p-4 shadow-sm">
-        <h5 class="text-center mb-4">📊 Evaluation Progress</h5>
+  <!-- If no visit schedule -->
+  <div th:if="${visitSchedule == null}" class="alert alert-secondary text-center">
+    No upcoming lecturer visit has been scheduled yet.
+  </div>
 
-        <div class="row row-cols-1 row-cols-md-4 g-3">
-          <div class="col" th:each="entry : ${evaluationStatus}">
-            <div class="card text-center h-100">
-              <div class="card-body">
+  <!-- =======================
+       Announcements (NEW)
+       ======================= -->
+  <div class="container px-0 my-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold m-0">📢 Announcements</h5>
+          <span class="badge bg-light text-muted border">Latest Updates</span>
+        </div>
 
-                <!-- Clean labels instead of raw keys -->
-                <h6 class="card-title">
-                  <span th:switch="${entry.key}">
-                    <span th:case="'VisitingLecturer'">Visiting Lecturer</span>
-                    <span th:case="'IndustrySupervisor'">Industry Supervisor</span>
-                    <span th:case="'FinalReport'">Final Report (Admin)</span>
-                    <span th:case="'Logbook'">Logbook (Admin)</span>
-                    <span th:case="*"
-                          th:text="${entry.key}">Score</span>
-                  </span>
-                </h6>
-
-                <p class="card-text fw-bold fs-5"
-                   th:text="${entry.value} != null ? (${entry.value} + ' / ' + ${maxMap[entry.key]}) : 'PENDING'">
-                  PENDING
-                </p>
-
+        <!-- When announcements exist -->
+        <div th:if="${announcements != null and #lists.size(announcements) > 0}">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item py-3"
+                 th:each="a : ${announcements}">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="me-3">
+                  <div class="fw-semibold" th:text="${a.title}">Announcement title</div>
+                  <div class="text-muted small mt-1" th:text="${a.content}">
+                    Announcement content preview...
+                  </div>
+                </div>
+                <div class="text-muted small text-end" style="min-width:120px;">
+                  <div th:text="${a.createdAt}">2025-01-01</div>
+                </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- When no announcements -->
+        <div th:if="${announcements == null or #lists.size(announcements) == 0}">
+          <div class="alert alert-light border mb-0">
+            <div class="small text-muted">
+              No announcements at the moment.
             </div>
           </div>
         </div>
 
       </div>
     </div>
+  </div>
 
-    <!-- ===== Detailed Scores: VL / Supervisor / Admin ===== -->
-    <div class="my-5"
-         th:with="
-           totalSafe=(${total100} == null ? 0 : ${total100}),
-           gradeSafe=${grade},
+  <!-- Switch Company Policy (embedded on dashboard) -->
+  <div class="container px-0 py-2">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h4 class="fw-bold mb-1">Changing Internship Company</h4>
+        <p class="text-muted mb-4">
+          Please read the policy below. If you intend to switch your internship company, you must follow the Faculty procedure.
+        </p>
 
-           vlSumSafe=(${vlSum} == null ? 0 : ${vlSum}),
-           vlRef10Safe=(${vlRef10} == null ? 0 : ${vlRef10}),
-           vlEng10Safe=(${vlEng10} == null ? 0 : ${vlEng10}),
-           vlSuit5Safe=(${vlSuit5} == null ? 0 : ${vlSuit5}),
-           vlLog5Safe=(${vlLog5} == null ? 0 : ${vlLog5}),
-           vlOverall10Safe=(${vlOverall10} == null ? 0 : ${vlOverall10}),
+        <div class="border rounded p-3 bg-light" style="max-height: 420px; overflow:auto;">
+          <h6 class="fw-bold mb-2">Policy on Conditions for Changing Industrial Training Placement</h6>
 
-           isSumSafe=(${isSum} == null ? 0 : ${isSum}),
-           isAttr30Safe=(${isAttr30} == null ? 0 : ${isAttr30}),
-           isOverall10Safe=(${isOverall10} == null ? 0 : ${isOverall10}),
+          <div class="small">
+            <p class="mb-2">
+              <b>1. Conditions Before Commencing Industrial Training</b><br>
+              Students must complete all prerequisite courses before they are allowed to undergo industrial training.
+              The selection of the industrial training placement is based on the student’s own choice and must be formally endorsed by the Faculty.
+              Any application to change the industrial training placement after official confirmation is not permitted unless there are very strong and reasonable grounds supported by credible evidence.
+            </p>
 
-           reportSafe=(${report10} == null ? 0 : ${report10}),
-           logbookSafe=(${logbook10} == null ? 0 : ${logbook10})
-         ">
+            <p class="mb-2"><b>2. Categories for Approval of Industrial Training Placement Change</b></p>
+            <p class="mb-2">
+              Approval is based on three categories: <b>A) Critical</b>, <b>B) Considerable</b>, and <b>C) Not Approved</b>.
+              Applications under the Considerable category may only be submitted after the student has completed three weeks of industrial training.
+            </p>
 
-      <!-- Top summary badges -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold m-0">📊 Detailed Scores</h5>
-        <div>
-          <span class="badge bg-primary me-2">
-            Total: <span th:text="${totalSafe}">0</span> / 100
-          </span>
-          <span class="badge bg-success" th:if="${gradeSafe != null}">
-            Grade: <span th:text="${gradeSafe}">A</span>
-          </span>
+            <p class="mb-2"><b>Category A: Critical</b></p>
+            <ul class="mb-2">
+              <li>Serious health issues such as chronic illness or severe injury (official medical letter)</li>
+              <li>Sexual harassment at the industrial training workplace (employer/police report and evidence)</li>
+              <li>Female students required to work night shifts without supervision (work schedule + complaint letter)</li>
+            </ul>
+
+            <p class="mb-2"><b>Category B: Considerable</b></p>
+            <ul class="mb-2">
+              <li>Location too far / no public transportation (proof + family support letter)</li>
+              <li>Assigned tasks not aligned with level of study (complaint + employer confirmation)</li>
+              <li>No supervision/monitoring by appointed supervisor (evidence + unsigned weekly reports)</li>
+              <li>Serious personal issues involving family (official letter + verified documents)</li>
+            </ul>
+
+            <p class="mb-2"><b>Category C: Not Approved</b></p>
+            <ul class="mb-2">
+              <li>Feeling unhappy / placement uninteresting</li>
+              <li>Transfer to follow friends</li>
+              <li>Workload tiring/heavy</li>
+              <li>Incompatibility with supervisor/staff</li>
+              <li>Return hometown for cost saving/family commitments</li>
+              <li>Another offer seems more attractive after confirmation</li>
+            </ul>
+
+            <p class="mb-0">
+              <b>Student Declaration and Acknowledgement</b><br>
+              Students must comply with all requirements, procedures, and implications outlined by the Faculty.
+            </p>
+          </div>
         </div>
+
+        <div class="alert alert-light border mt-3 mb-0">
+          <div class="small">
+            If you need to proceed with a placement change request, please contact <b>Admin Faculty</b>.<br>
+            <span class="text-muted">Email: ****CHANGEME****</span>
+          </div>
+        </div>
+
       </div>
+    </div>
+  </div>
 
-      <div class="row g-4">
-
-        <!-- Visiting Lecturer (40) -->
-        <div class="col-md-6">
-          <div class="card h-100" th:classappend="${hasVL} ? '' : ' opacity-50'">
-            <div class="card-body">
-              <h6 class="mb-2">Visiting Lecturer <span class="text-muted">(40)</span></h6>
-
-              <div class="mb-2 d-flex justify-content-between small">
-                <span>Total</span>
-                <strong th:text="|${vlSumSafe} / 40|">0 / 40</strong>
-              </div>
-              <div class="progress mb-3" style="height:10px;">
-                <div class="progress-bar"
-                     role="progressbar" aria-valuemin="0" aria-valuemax="40"
-                     th:aria-valuenow="${vlSumSafe}"
-                     th:style="|width: ${vlSumSafe * 100 / 40}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Reflection (10)</span><span th:text="|${vlRef10Safe} / 10|">0 / 10</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-info" th:style="|width: ${vlRef10Safe * 10}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Engagement (10)</span><span th:text="|${vlEng10Safe} / 10|">0 / 10</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-info" th:style="|width: ${vlEng10Safe * 10}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Placement Suitability (5)</span><span th:text="|${vlSuit5Safe} / 5|">0 / 5</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-info" th:style="|width: ${vlSuit5Safe * 20}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Logbook Review (5)</span><span th:text="|${vlLog5Safe} / 5|">0 / 5</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-info" th:style="|width: ${vlLog5Safe * 20}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Lecturer Overall (10)</span><span th:text="|${vlOverall10Safe} / 10|">0 / 10</span>
-              </div>
-              <div class="progress" style="height:6px;">
-                <div class="progress-bar bg-info" th:style="|width: ${vlOverall10Safe * 10}%;|"></div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <!-- Industry Supervisor (40) -->
-        <div class="col-md-6">
-          <div class="card h-100" th:classappend="${hasIS} ? '' : ' opacity-50'">
-            <div class="card-body">
-              <h6 class="mb-2">Industrial Training Supervisor <span class="text-muted">(40)</span></h6>
-
-              <div class="mb-2 d-flex justify-content-between small">
-                <span>Total</span>
-                <strong th:text="|${isSumSafe} / 40|">0 / 40</strong>
-              </div>
-              <div class="progress mb-3" style="height:10px;">
-                <div class="progress-bar"
-                     role="progressbar" aria-valuemin="0" aria-valuemax="40"
-                     th:aria-valuenow="${isSumSafe}"
-                     th:style="|width: ${isSumSafe * 100 / 40}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Attributes (30)</span><span th:text="|${isAttr30Safe} / 30|">0 / 30</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-warning" th:style="|width: ${isAttr30Safe * 100 / 30}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Overall (10)</span><span th:text="|${isOverall10Safe} / 10|">0 / 10</span>
-              </div>
-              <div class="progress" style="height:6px;">
-                <div class="progress-bar bg-warning" th:style="|width: ${isOverall10Safe * 10}%;|"></div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <!-- Admin / Coordinator: Logbook (10) -->
-        <div class="col-md-6">
-          <div class="card h-100" th:classappend="${hasLogbook} ? '' : ' opacity-50'">
-            <div class="card-body">
-              <h6 class="mb-2">Logbook <span class="text-muted">(10)</span> <span class="text-muted small">• Admin</span></h6>
-
-              <div class="mb-2 d-flex justify-content-between small">
-                <span>Total</span>
-                <strong th:text="${hasLogbook} ? |${logbookSafe} / 10| : 'PENDING'">PENDING</strong>
-              </div>
-              <div class="progress" style="height:10px;">
-                <div class="progress-bar bg-success"
-                     role="progressbar" aria-valuemin="0" aria-valuemax="10"
-                     th:aria-valuenow="${logbookSafe}"
-                     th:style="|width: ${logbookSafe * 10}%;|"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Admin / Coordinator: Final Report (10) -->
-        <div class="col-md-6">
-          <div class="card h-100" th:classappend="${hasReport} ? '' : ' opacity-50'">
-            <div class="card-body">
-              <h6 class="mb-2">Final Report <span class="text-muted">(10)</span> <span class="text-muted small">• Admin</span></h6>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Written (5)</span>
-                <span th:text="|${sa != null && sa.adminReportWritten5 != null ? sa.adminReportWritten5 : 0} / 5|">0 / 5</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-success"
-                     th:style="|width: ${(sa != null && sa.adminReportWritten5 != null ? sa.adminReportWritten5 : 0) * 20}%;|"></div>
-              </div>
-
-              <div class="small text-muted mb-1 d-flex justify-content-between">
-                <span>Video (5)</span>
-                <span th:text="|${sa != null && sa.adminReportVideo5 != null ? sa.adminReportVideo5 : 0} / 5|">0 / 5</span>
-              </div>
-              <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-success"
-                     th:style="|width: ${(sa != null && sa.adminReportVideo5 != null ? sa.adminReportVideo5 : 0) * 20}%;|"></div>
-              </div>
-
-              <hr>
-              <div class="d-flex justify-content-between small">
-                <span>Total</span>
-                <strong th:text="${hasReport} ? |${reportSafe} / 10| : 'PENDING'">PENDING</strong>
-              </div>
-              <div class="progress" style="height:10px;">
-                <div class="progress-bar bg-success"
-                     th:style="|width: ${reportSafe * 10}%;|"></div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-      </div> <!-- /row -->
-    </div> <!-- /my-5 -->
-
-  </div> <!-- /row (outer) -->
-
-</div> <!-- /content -->
+</div>
 </body>
 </html>
