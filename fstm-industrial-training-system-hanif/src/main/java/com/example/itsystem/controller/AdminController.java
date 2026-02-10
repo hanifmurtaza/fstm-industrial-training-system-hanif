@@ -2065,8 +2065,19 @@ public class AdminController {
 
 
     @PostMapping("/company-info/{id}/verify")
-    public String verifyCompanyInfo(@PathVariable Long id) {
+    public String verifyCompanyInfo(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         CompanyInfo ci = companyInfoRepository.findById(id).orElseThrow();
+
+        // ✅ Prevent "VERIFIED" without a placement link (can cause data mismatch).
+        // Admin should use "Save & Create/Update Placement" first.
+        if (placementRepository.findFirstByCompanyInfoId(id).isEmpty()) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Please click 'Save & Create/Update Placement' before verifying."
+            );
+            return "redirect:/admin/company-info/process?id=" + id;
+        }
+
         ci.setStatus(CompanyInfoStatus.VERIFIED);
         companyInfoRepository.save(ci);
         logAction("VERIFY_COMPANY_INFO", "Verified CompanyInfo id=" + id);
@@ -2110,6 +2121,7 @@ public class AdminController {
     }
 
     @PostMapping("/placements/{id}/delete")
+    @Transactional
     public String cancelPlacement(@PathVariable Long id,
                                   RedirectAttributes redirectAttributes) {
 

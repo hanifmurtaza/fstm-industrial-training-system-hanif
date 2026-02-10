@@ -14,7 +14,9 @@ public class CompanyInfoService {
     private CompanyInfoRepository repo;
 
     public Optional<CompanyInfo> findByStudentId(Long studentId) {
-        return repo.findByStudentId(studentId);
+        // IMPORTANT: a student may have multiple submissions over time (e.g., change company mid-internship).
+        // Always return the latest submission to avoid updating/reading an older record by accident.
+        return repo.findFirstByStudentIdOrderByIdDesc(studentId);
     }
 
     public CompanyInfo saveOrUpdate(CompanyInfo info) {
