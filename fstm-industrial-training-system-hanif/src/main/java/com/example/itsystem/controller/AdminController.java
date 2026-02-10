@@ -2107,7 +2107,7 @@ public class AdminController {
         return "redirect:/admin/company-info/" + id + "/process";
     }
 
-    @PostMapping("/placements/{id}/delete") // ✅ use this if controller already has @RequestMapping("/admin")
+    @PostMapping("/placements/{id}/delete")
     public String cancelPlacement(@PathVariable Long id,
                                   RedirectAttributes redirectAttributes) {
 
@@ -2120,12 +2120,31 @@ public class AdminController {
 
         // ✅ Soft cancel (instead of delete)
         p.setStatus(PlacementStatus.CANCELLED);
-
         placementRepository.save(p);
 
-        redirectAttributes.addFlashAttribute("success", "Placement cancelled successfully.");
+        // ✅ IMPORTANT: allow student to re-submit company info after mid-internship company change.
+        // Student submission is blocked unless the latest CompanyInfo is REJECTED.
+        // So when we cancel a placement, mark the linked CompanyInfo as REJECTED too.
+        try {
+            Long companyInfoId = p.getCompanyInfoId();
+            if (companyInfoId != null) {
+                CompanyInfo ci = companyInfoRepository.findById(companyInfoId).orElse(null);
+                if (ci != null && ci.getStatus() != CompanyInfoStatus.REJECTED) {
+                    ci.setStatus(CompanyInfoStatus.REJECTED);
+                    companyInfoRepository.save(ci);
+                }
+            }
+        } catch (Exception ignored) {
+            // Do not block placement cancellation if company info update fails.
+        }
+
+        redirectAttributes.addFlashAttribute(
+                "success",
+                "Placement cancelled successfully. Student can now submit a new company information form."
+        );
         return "redirect:/admin/placements";
     }
+
 
 
     // ============================
