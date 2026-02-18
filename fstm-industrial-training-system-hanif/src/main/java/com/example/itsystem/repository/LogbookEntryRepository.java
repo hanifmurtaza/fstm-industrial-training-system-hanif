@@ -33,6 +33,9 @@ public interface LogbookEntryRepository extends JpaRepository<LogbookEntry, Long
     Page<LogbookEntry> findByEndorsedTrueAndEndorsedByLecturerFalse(Pageable pageable);
 
     long countByStatusAndEndorsedFalse(ReviewStatus status);
+
+    // Sector-filtered: pending supervisor endorsement for a list of students
+    long countByStudentIdInAndStatusAndEndorsedFalse(List<Long> studentIds, ReviewStatus status);
     long countByEndorsedTrueAndEndorsedByLecturerFalse();
 
     // --- extra counters (from second version) ---

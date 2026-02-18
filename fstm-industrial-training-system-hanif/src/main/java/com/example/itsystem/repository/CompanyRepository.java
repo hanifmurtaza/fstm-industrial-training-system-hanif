@@ -18,6 +18,11 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     // Used by Admin list search (/admin/company-master?q=...)
     Page<Company> findByNameContainingIgnoreCase(String q, Pageable pageable);
 
+    // Sector filter for Company Master page
+    Page<Company> findBySector(String sector, Pageable pageable);
+
+    Page<Company> findByNameContainingIgnoreCaseAndSector(String q, String sector, Pageable pageable);
+
     // Used by "Promote to Master" to dedupe on name
     Optional<Company> findByNameIgnoreCase(String name);
 

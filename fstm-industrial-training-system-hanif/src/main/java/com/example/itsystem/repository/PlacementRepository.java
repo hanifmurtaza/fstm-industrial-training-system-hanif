@@ -26,6 +26,27 @@ public interface PlacementRepository extends JpaRepository<Placement, Long> {
     Page<Placement> findByStatus(PlacementStatus status, Pageable pageable);
     long countByStatus(PlacementStatus status);
 
+    // Dashboard sector-filter helpers
+    @Query("""
+        select count(distinct p.studentId)
+        from Placement p
+        join Company c on c.id = p.companyId
+        where p.status in :statuses
+          and c.sector = :sector
+    """)
+    long countDistinctStudentsByCompanySectorAndStatusIn(@Param("sector") String sector,
+                                                         @Param("statuses") List<PlacementStatus> statuses);
+
+    @Query("""
+        select count(p)
+        from Placement p
+        join Company c on c.id = p.companyId
+        where p.status = :status
+          and c.sector = :sector
+    """)
+    long countByStatusAndCompanySector(@Param("status") PlacementStatus status,
+                                       @Param("sector") String sector);
+
     Page<Placement> findByStatusNot(PlacementStatus status, Pageable pageable);
 
     // --- Admin list with optional search + session (session is derived from the student's User.session) ---

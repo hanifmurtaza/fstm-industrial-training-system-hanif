@@ -89,7 +89,16 @@ public class AdminController {
     // ============================
     @GetMapping("/dashboard")
     public String dashboard(Model model, HttpSession httpSession) {
-        long studentCount   = userRepository.countByRole("student");
+        // Sector filter (stored in HTTP session)
+        CompanySector sectorFilter = resolveAdminSector(null, httpSession);
+
+        long studentCount;
+        if (sectorFilter == null) {
+            studentCount = userRepository.countByRole("student");
+        } else {
+            // Strictly count students that match the active sector filter
+            studentCount = companyInfoRepository.countDistinctStudentsBySectorNonRejected(sectorFilter);
+        }
         long companyCount   = companyRepository.count();
         long evalCount      = evaluationRepository.count();
         long documentCount  = documentRepository.count();
@@ -99,18 +108,30 @@ public class AdminController {
         model.addAttribute("evalCount", evalCount);
         model.addAttribute("documentCount", documentCount);
 
-        long pendingCompanyInfo = companyInfoRepository.countByStatus(CompanyInfoStatus.PENDING);
+        long pendingCompanyInfo = (sectorFilter == null)
+                ? companyInfoRepository.countByStatus(CompanyInfoStatus.PENDING)
+                : companyInfoRepository.countByStatusAndSector(CompanyInfoStatus.PENDING, sectorFilter);
         model.addAttribute("pendingCompanyInfo", pendingCompanyInfo);
 
         if (placementRepository != null) {
-            long awaitingApproval = placementRepository.countByStatus(PlacementStatus.AWAITING_ADMIN);
+            long awaitingApproval = (sectorFilter == null)
+                    ? placementRepository.countByStatus(PlacementStatus.AWAITING_ADMIN)
+                    : placementRepository.countByStatusAndCompanySector(PlacementStatus.AWAITING_ADMIN, sectorFilter.name());
             model.addAttribute("awaitingApproval", awaitingApproval);
         } else {
             model.addAttribute("awaitingApproval", 0L);
         }
 
         if (logbookEntryRepository != null) {
-            long awaitingSup = logbookEntryRepository.countByStatusAndEndorsedFalse(ReviewStatus.PENDING);
+            long awaitingSup;
+            if (sectorFilter == null) {
+                awaitingSup = logbookEntryRepository.countByStatusAndEndorsedFalse(ReviewStatus.PENDING);
+            } else {
+                List<Long> sectorStudentIds = companyInfoRepository.findDistinctStudentIdsBySectorNonRejected(sectorFilter);
+                awaitingSup = (sectorStudentIds == null || sectorStudentIds.isEmpty())
+                        ? 0L
+                        : logbookEntryRepository.countByStudentIdInAndStatusAndEndorsedFalse(sectorStudentIds, ReviewStatus.PENDING);
+            }
             long pendingLecturer = logbookEntryRepository.countAwaitingLecturer();
             model.addAttribute("awaitingSupEndorse", awaitingSup);
             model.addAttribute("pendingLogbooksLecturer", pendingLecturer);
@@ -126,7 +147,29 @@ public class AdminController {
         model.addAttribute("currentSession", getConfiguredCurrentSession());
         model.addAttribute("selectedSession", sessionTerm);
 
+        model.addAttribute("sectorOptions", CompanySector.values());
+        model.addAttribute("selectedSector", sectorFilter == null ? SECTOR_ALL_SENTINEL : sectorFilter.name());
+
         return "admin-dashboard";
+    }
+
+
+    @PostMapping("/sector-filter")
+    public String setSectorFilter(@RequestParam("sector") String sector,
+                                  @RequestParam(value = "redirect", required = false) String redirect,
+                                  HttpSession httpSession,
+                                  RedirectAttributes ra) {
+        CompanySector resolved = resolveAdminSector(sector, httpSession);
+        if (resolved == null) {
+            ra.addFlashAttribute("toast", "Sector filter cleared (All sectors).");
+        } else {
+            ra.addFlashAttribute("toast", "Sector filter set to: " + resolved.name().replace('_', ' '));
+        }
+        logAction("SET_SECTOR_FILTER", "Set sector filter to " + (resolved == null ? "ALL" : resolved.name()));
+        if (redirect != null && !redirect.isBlank()) {
+            return "redirect:" + redirect;
+        }
+        return "redirect:/admin/dashboard";
     }
 
 
@@ -2169,19 +2212,32 @@ public class AdminController {
     // ============================
     @GetMapping("/company-master")
     public String companyMaster(@RequestParam(value = "q", required = false) String q,
+                                @RequestParam(value = "sector", required = false) String sector,
                                 @RequestParam(value = "page", defaultValue = "0") int page,
                                 @RequestParam(value = "size", defaultValue = "10") int size,
-                                Model model) {
+                                Model model,
+                                HttpSession httpSession) {
         requireBean(companyRepository, "CompanyRepository");
+
+        // Remember sector filter in HTTP session (shared across admin dashboard)
+        CompanySector sectorFilter = resolveAdminSector(sector, httpSession);
 
         Pageable p = PageRequest.of(page, size, Sort.by("name").ascending());
 
-        Page<Company> data = (q == null || q.isBlank())
-                ? companyRepository.findAll(p)
-                : companyRepository.findByNameContainingIgnoreCase(q.trim(), p);
+        Page<Company> data;
+        boolean hasQ = (q != null && !q.isBlank());
+        if (sectorFilter == null) {
+            data = hasQ ? companyRepository.findByNameContainingIgnoreCase(q.trim(), p)
+                    : companyRepository.findAll(p);
+        } else {
+            String sec = sectorFilter.name();
+            data = hasQ ? companyRepository.findByNameContainingIgnoreCaseAndSector(q.trim(), sec, p)
+                    : companyRepository.findBySector(sec, p);
+        }
 
         model.addAttribute("companies", data);
         model.addAttribute("sectorOptions", CompanySector.values());
+        model.addAttribute("selectedSector", sectorFilter == null ? SECTOR_ALL_SENTINEL : sectorFilter.name());
         model.addAttribute("q", q);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
@@ -2870,6 +2926,55 @@ public class AdminController {
     private static final String SETTING_CURRENT_SESSION = "CURRENT_SESSION";
     private static final String ADMIN_SELECTED_SESSION_ATTR = "ADMIN_SELECTED_SESSION";
     private static final String SESSION_ALL_SENTINEL = "__ALL__";
+
+    // ===== Current Sector Filter (Admin, stored in HTTP session) =====
+    private static final String ADMIN_SELECTED_SECTOR_ATTR = "ADMIN_SELECTED_SECTOR";
+    private static final String SECTOR_ALL_SENTINEL = "__ALL__";
+
+    /**
+     * Sector filter behavior:
+     * - If admin chooses a sector => remember it in HTTP session
+     * - If admin chooses "All sectors" => clear remembered sector and return null
+     * - If no sector param provided => fall back to remembered sector
+     */
+    private CompanySector resolveAdminSector(String requested, HttpSession httpSession) {
+        if (httpSession == null) {
+            return parseSectorOrNull(requested);
+        }
+
+        if (requested != null && SECTOR_ALL_SENTINEL.equalsIgnoreCase(requested.trim())) {
+            httpSession.removeAttribute(ADMIN_SELECTED_SECTOR_ATTR);
+            return null;
+        }
+
+        CompanySector parsed = parseSectorOrNull(requested);
+        if (parsed != null) {
+            httpSession.setAttribute(ADMIN_SELECTED_SECTOR_ATTR, parsed.name());
+            return parsed;
+        }
+
+        Object saved = httpSession.getAttribute(ADMIN_SELECTED_SECTOR_ATTR);
+        if (saved instanceof String s && !s.isBlank()) {
+            try {
+                return CompanySector.valueOf(s.trim());
+            } catch (Exception ignored) {
+                httpSession.removeAttribute(ADMIN_SELECTED_SECTOR_ATTR);
+            }
+        }
+        return null;
+    }
+
+    private CompanySector parseSectorOrNull(String v) {
+        if (v == null) return null;
+        String s = v.trim();
+        if (s.isEmpty()) return null;
+        if (SECTOR_ALL_SENTINEL.equalsIgnoreCase(s)) return null;
+        try {
+            return CompanySector.valueOf(s);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
 
     private String normalizeSessionParam(String s) {
         if (s == null) return null;

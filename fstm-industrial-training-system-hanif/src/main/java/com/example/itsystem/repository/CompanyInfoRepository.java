@@ -2,6 +2,7 @@ package com.example.itsystem.repository;
 
 import com.example.itsystem.model.CompanyInfo;
 import com.example.itsystem.model.CompanyInfoStatus;
+import com.example.itsystem.model.CompanySector;
 import com.example.itsystem.model.Department;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,12 +32,31 @@ public interface CompanyInfoRepository extends JpaRepository<CompanyInfo, Long> 
         order by ci.id desc
     """)
     Page<CompanyInfo> searchAdminCompanyInfo(@Param("status") CompanyInfoStatus status,
-                                            @Param("session") String session,
-                                            @Param("department") Department department,
-                                            Pageable pageable);
+                                             @Param("session") String session,
+                                             @Param("department") Department department,
+                                             Pageable pageable);
 
     // For dashboard cards: pending count, etc.
     long countByStatus(CompanyInfoStatus status);
+
+    // Sector-filter counts (used by admin dashboard)
+    long countByStatusAndSector(CompanyInfoStatus status, CompanySector sector);
+
+    @Query("""
+        select count(distinct ci.studentId)
+        from CompanyInfo ci
+        where ci.sector = :sector
+          and ci.status <> com.example.itsystem.model.CompanyInfoStatus.REJECTED
+    """)
+    long countDistinctStudentsBySectorNonRejected(@Param("sector") CompanySector sector);
+
+    @Query("""
+        select distinct ci.studentId
+        from CompanyInfo ci
+        where ci.sector = :sector
+          and ci.status <> com.example.itsystem.model.CompanyInfoStatus.REJECTED
+    """)
+    java.util.List<Long> findDistinctStudentIdsBySectorNonRejected(@Param("sector") CompanySector sector);
 
     Optional<CompanyInfo> findFirstByStudentIdOrderByIdDesc(Long studentId);
 }
