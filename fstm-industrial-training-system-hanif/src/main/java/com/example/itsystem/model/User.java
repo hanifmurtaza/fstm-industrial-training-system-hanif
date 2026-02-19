@@ -2,6 +2,7 @@ package com.example.itsystem.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(
@@ -44,6 +45,13 @@ public class User {
     private String company;
 
     private Long companyId;
+
+    // ================= Policy acknowledgements =================
+    /** Student acknowledgement for "Changing Industrial Training Company" policy. */
+    @Column(nullable = false)
+    private Boolean changeCompanyPolicyAccepted = Boolean.FALSE;
+
+    private LocalDateTime changeCompanyPolicyAcceptedAt;
 
 
 
@@ -137,5 +145,15 @@ public class User {
 
     public Long getCompanyId() { return companyId; }
     public void setCompanyId(Long companyId) { this.companyId = companyId; }
+
+    public Boolean getChangeCompanyPolicyAccepted() { return changeCompanyPolicyAccepted; }
+    public void setChangeCompanyPolicyAccepted(Boolean changeCompanyPolicyAccepted) {
+        this.changeCompanyPolicyAccepted = changeCompanyPolicyAccepted;
+    }
+
+    public LocalDateTime getChangeCompanyPolicyAcceptedAt() { return changeCompanyPolicyAcceptedAt; }
+    public void setChangeCompanyPolicyAcceptedAt(LocalDateTime changeCompanyPolicyAcceptedAt) {
+        this.changeCompanyPolicyAcceptedAt = changeCompanyPolicyAcceptedAt;
+    }
 
 }

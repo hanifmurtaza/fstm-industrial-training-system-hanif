@@ -169,8 +169,26 @@
 
         <div class="alert alert-light border mt-3 mb-0">
           <div class="small">
+            <!-- Policy acknowledgement -->
+            <div class="mb-2">
+              <div th:if="${changePolicyAccepted}" class="text-success fw-semibold">
+                ✔ You have acknowledged this policy on
+                <span th:text="${changePolicyAcceptedAt != null ? #temporals.format(changePolicyAcceptedAt, 'yyyy-MM-dd HH:mm') : '-'}">2026-02-20 12:00</span>.
+              </div>
+
+              <form th:if="${!changePolicyAccepted}" th:action="@{/student/policy/change-company/accept}" method="post" class="d-flex align-items-center gap-2 flex-wrap">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" id="ackChangePolicy" onchange="if(this.checked){ this.form.submit(); }">
+                  <label class="form-check-label" for="ackChangePolicy">
+                    I have read and understand the policy above.
+                  </label>
+                </div>
+              </form>
+            </div>
+
             If you need to proceed with a placement change request, please contact <b>Admin Faculty</b>.<br>
-            <span class="text-muted">Email: ****CHANGEME****</span>
+
           </div>
         </div>
 

@@ -10,6 +10,7 @@ import com.example.itsystem.repository.*;
 import com.example.itsystem.util.UpmGradeUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.time.LocalDateTime;
 
 import com.example.itsystem.service.FileStorageService;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -81,9 +82,19 @@ public class StudentController {
         User user = (User) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        model.addAttribute("name", user.getName());
+        // Refresh user from DB so dashboard shows latest info (e.g., policy acknowledgement)
+        User dbUser = userRepository.findById(user.getId()).orElse(user);
+        // keep session user in sync for later flows
+        session.setAttribute("user", dbUser);
 
-        VisitSchedule visit = visitScheduleService.findUpcomingForStudent(user.getId());
+        model.addAttribute("name", dbUser.getName());
+
+        // Policy acknowledgement (Changing Industrial Training Company)
+        boolean policyAccepted = Boolean.TRUE.equals(dbUser.getChangeCompanyPolicyAccepted());
+        model.addAttribute("changePolicyAccepted", policyAccepted);
+        model.addAttribute("changePolicyAcceptedAt", dbUser.getChangeCompanyPolicyAcceptedAt());
+
+        VisitSchedule visit = visitScheduleService.findUpcomingForStudent(dbUser.getId());
         model.addAttribute("visitSchedule", visit);
 
         // Announcements (STUDENT only)
@@ -105,7 +116,7 @@ public class StudentController {
 
 
         // ====== Keep your original StudentAssessment lookup logic ======
-        String byUser = (user.getSession() != null && !user.getSession().isBlank()) ? user.getSession() : null;
+        String byUser = (dbUser.getSession() != null && !dbUser.getSession().isBlank()) ? dbUser.getSession() : null;
         String fallbackDefault = "2024/2025-2";
 
         ArrayList<String> candidates = new ArrayList<>();
@@ -115,11 +126,11 @@ public class StudentController {
 
         StudentAssessment sa = null;
         for (String s : candidates) {
-            sa = studentAssessmentRepository.findByStudentUserIdAndSession(user.getId(), s).orElse(null);
+            sa = studentAssessmentRepository.findByStudentUserIdAndSession(dbUser.getId(), s).orElse(null);
             if (sa != null) break;
         }
         if (sa == null) {
-            sa = studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(user.getId()).orElse(null);
+            sa = studentAssessmentRepository.findTopByStudentUserIdOrderByIdDesc(dbUser.getId()).orElse(null);
         }
 
         model.addAttribute("sa", sa);
@@ -154,7 +165,7 @@ public class StudentController {
 
         // ====== Visiting Lecturer (40) from visit_evaluation ======
         VisitEvaluation ve = visitEvaluationRepository
-                .findFirstByStudentIdOrderByCreatedAtDesc(user.getId())
+                .findFirstByStudentIdOrderByCreatedAtDesc(dbUser.getId())
                 .orElse(null);
 
         boolean hasVL = (ve != null);
@@ -241,6 +252,26 @@ public class StudentController {
 
 
         return "student-dashboard";
+    }
+
+    // Student acknowledges the "Changing Industrial Training Company" policy
+    @PostMapping("/student/policy/change-company/accept")
+    public String acceptChangeCompanyPolicy(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+        if (!"student".equals(user.getRole())) return "redirect:/login";
+
+        User dbUser = userRepository.findById(user.getId()).orElse(null);
+        if (dbUser == null) return "redirect:/student-dashboard";
+
+        if (!Boolean.TRUE.equals(dbUser.getChangeCompanyPolicyAccepted())) {
+            dbUser.setChangeCompanyPolicyAccepted(Boolean.TRUE);
+            dbUser.setChangeCompanyPolicyAcceptedAt(LocalDateTime.now());
+            userRepository.save(dbUser);
+        }
+
+        session.setAttribute("user", dbUser);
+        return "redirect:/student-dashboard";
     }
 
     // 放在 StudentController 类里任意位置即可（private helper）
