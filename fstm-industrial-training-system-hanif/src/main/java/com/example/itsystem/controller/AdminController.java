@@ -2243,6 +2243,7 @@ public class AdminController {
     @GetMapping("/company-master")
     public String companyMaster(@RequestParam(value = "q", required = false) String q,
                                 @RequestParam(value = "sector", required = false) String sector,
+                                @RequestParam(value = "state", required = false) String state,
                                 @RequestParam(value = "page", defaultValue = "0") int page,
                                 @RequestParam(value = "size", defaultValue = "10") int size,
                                 Model model,
@@ -2252,22 +2253,22 @@ public class AdminController {
         // Remember sector filter in HTTP session (shared across admin dashboard)
         CompanySector sectorFilter = resolveAdminSector(sector, httpSession);
 
+        MalaysiaState stateFilter = null;
+        if (state != null && !state.isBlank() && !"__ALL__".equals(state)) {
+            stateFilter = parseMalaysiaState(state);
+        }
+
         Pageable p = PageRequest.of(page, size, Sort.by("name").ascending());
 
-        Page<Company> data;
-        boolean hasQ = (q != null && !q.isBlank());
-        if (sectorFilter == null) {
-            data = hasQ ? companyRepository.findByNameContainingIgnoreCase(q.trim(), p)
-                    : companyRepository.findAll(p);
-        } else {
-            String sec = sectorFilter.name();
-            data = hasQ ? companyRepository.findByNameContainingIgnoreCaseAndSector(q.trim(), sec, p)
-                    : companyRepository.findBySector(sec, p);
-        }
+        String qv = (q == null || q.isBlank()) ? null : q.trim();
+        String sec = (sectorFilter == null) ? null : sectorFilter.name();
+        Page<Company> data = companyRepository.searchCompanyMaster(qv, sec, stateFilter, p);
 
         model.addAttribute("companies", data);
         model.addAttribute("sectorOptions", CompanySector.values());
         model.addAttribute("selectedSector", sectorFilter == null ? SECTOR_ALL_SENTINEL : sectorFilter.name());
+        model.addAttribute("stateOptions", MalaysiaState.values());
+        model.addAttribute("selectedState", stateFilter == null ? "__ALL__" : stateFilter.name());
         model.addAttribute("q", q);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", data.getTotalPages());
