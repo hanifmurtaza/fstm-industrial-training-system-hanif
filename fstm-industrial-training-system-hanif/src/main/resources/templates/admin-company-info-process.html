@@ -235,6 +235,12 @@
                     <div class="section-title">Company Location</div>
                     <div class="fw-semibold" th:text="${info.addressLine1 != null ? info.addressLine1 : '-'}">-</div>
                     <div th:if="${info.addressLine2 != null and !#strings.isEmpty(info.addressLine2)}" th:text="${info.addressLine2}">Line 2</div>
+                    <div class="small-note" th:if="${info.postcode != null and !#strings.isEmpty(info.postcode)}">
+                        Postcode: <span class="fw-semibold" th:text="${info.postcode}">-</span>
+                    </div>
+                    <div class="small-note" th:if="${info.district != null and !#strings.isEmpty(info.district)}">
+                        District: <span class="fw-semibold" th:text="${info.district}">-</span>
+                    </div>
                     <div class="small-note" th:if="${info.state != null}">
                         <span th:text="${info.state.name() == 'OTHER' ? (info.stateOther != null ? info.stateOther : 'Other') : #strings.capitalize(#strings.toLowerCase(#strings.replace(info.state.name(),'_',' ')))}">State</span>
                     </div>
@@ -505,6 +511,18 @@
                                     <label class="form-label fw-semibold">Address Line 2</label>
                                     <input type="text" class="form-control" name="newCompanyAddressLine2"
                                            th:placeholder="${info.addressLine2}" th:value="${info.addressLine2}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Postcode</label>
+                                    <input type="text" class="form-control" name="newCompanyPostcode"
+                                           th:placeholder="${info.postcode}" th:value="${info.postcode}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">District</label>
+                                    <input type="text" class="form-control" name="newCompanyDistrict"
+                                           th:placeholder="${info.district}" th:value="${info.district}">
                                 </div>
 
                                 <div class="col-md-6">

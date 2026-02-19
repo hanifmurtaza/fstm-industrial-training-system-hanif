@@ -1887,6 +1887,8 @@ public class AdminController {
                                      @RequestParam(required = false) String newCompanyAddress,
                                      @RequestParam(required = false) String newCompanyAddressLine1,
                                      @RequestParam(required = false) String newCompanyAddressLine2,
+                                     @RequestParam(required = false) String newCompanyPostcode,
+                                     @RequestParam(required = false) String newCompanyDistrict,
                                      @RequestParam(required = false) String newCompanyState,
                                      @RequestParam(required = false) String newCompanyStateOther,
                                      @RequestParam(required = false) String sector,
@@ -1954,23 +1956,29 @@ public class AdminController {
             // ✅ Detailed address (preferred). If admin leaves them empty, fall back to student submission.
             String l1 = trimToNull(newCompanyAddressLine1);
             String l2 = trimToNull(newCompanyAddressLine2);
+            String pc = trimToNull(newCompanyPostcode);
+            String dist = trimToNull(newCompanyDistrict);
             MalaysiaState st = parseMalaysiaState(newCompanyState);
             String other = trimToNull(newCompanyStateOther);
 
             if (l1 == null) l1 = info.getAddressLine1();
             if (l2 == null) l2 = info.getAddressLine2();
+            if (pc == null) pc = info.getPostcode();
+            if (dist == null) dist = info.getDistrict();
             if (st == null) st = info.getState();
             if (st == MalaysiaState.OTHER && other == null) other = info.getStateOther();
             if (st != MalaysiaState.OTHER) other = null;
 
             company.setAddressLine1(trimToNull(l1));
             company.setAddressLine2(trimToNull(l2));
+            company.setPostcode(trimToNull(pc));
+            company.setDistrict(trimToNull(dist));
             company.setState(st);
             company.setStateOther(other);
 
             // ✅ Keep legacy address string for existing UIs (override only if admin explicitly fills it)
             String legacyOverride = trimToNull(newCompanyAddress);
-            company.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getState(), company.getStateOther()));
+            company.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getPostcode(), company.getDistrict(), company.getState(), company.getStateOther()));
 
             // ✅ normalize sector to enum name string for Company
             if (sector != null && !sector.isBlank()) {
@@ -2171,11 +2179,13 @@ public class AdminController {
         // ✅ Copy detailed location from student submission (CompanyInfo)
         company.setAddressLine1(trimToNull(ci.getAddressLine1()));
         company.setAddressLine2(trimToNull(ci.getAddressLine2()));
+        company.setPostcode(trimToNull(ci.getPostcode()));
+        company.setDistrict(trimToNull(ci.getDistrict()));
         company.setState(ci.getState());
         company.setStateOther(ci.getState() == MalaysiaState.OTHER ? trimToNull(ci.getStateOther()) : null);
 
         // Keep legacy combined address for older UI
-        company.setAddress(buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getState(), company.getStateOther()));
+        company.setAddress(buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getPostcode(), company.getDistrict(), company.getState(), company.getStateOther()));
         companyRepository.save(company);
 
         ci.setLinkedCompanyId(company.getId());
@@ -2282,6 +2292,8 @@ public class AdminController {
                                 @RequestParam(required = false) String address,
                                 @RequestParam(required = false) String addressLine1,
                                 @RequestParam(required = false) String addressLine2,
+                                @RequestParam(required = false) String postcode,
+                                @RequestParam(required = false) String district,
                                 @RequestParam(required = false) String companyState,
                                 @RequestParam(required = false) String companyStateOther,
                                 @RequestParam(required = false) String sector,
@@ -2305,13 +2317,15 @@ public class AdminController {
         // ✅ Detailed location (new) + keep legacy combined address for older UI
         c.setAddressLine1(trimToNull(addressLine1));
         c.setAddressLine2(trimToNull(addressLine2));
+        c.setPostcode(trimToNull(postcode));
+        c.setDistrict(trimToNull(district));
         MalaysiaState st = parseMalaysiaState(companyState);
         c.setState(st);
         c.setStateOther((st == MalaysiaState.OTHER) ? trimToNull(companyStateOther) : null);
 
         // If admin still passes legacy address field, keep it as override; otherwise auto-build.
         String legacyOverride = trimToNull(address);
-        c.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(c.getAddressLine1(), c.getAddressLine2(), c.getState(), c.getStateOther()));
+        c.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(c.getAddressLine1(), c.getAddressLine2(), c.getPostcode(), c.getDistrict(), c.getState(), c.getStateOther()));
 
         // ✅ Normalize sector into enum name (string)
         if (sector == null || sector.isBlank()) {
@@ -3037,9 +3051,11 @@ public class AdminController {
         }
     }
 
-    private String buildFullAddress(String line1, String line2, MalaysiaState state, String stateOther) {
+    private String buildFullAddress(String line1, String line2, String postcode, String district, MalaysiaState state, String stateOther) {
         String l1 = trimToNull(line1);
         String l2 = trimToNull(line2);
+        String pc = trimToNull(postcode);
+        String dist = trimToNull(district);
         String st;
         if (state == null) st = null;
         else if (state == MalaysiaState.OTHER) st = trimToNull(stateOther);
@@ -3050,6 +3066,14 @@ public class AdminController {
         if (l2 != null) {
             if (sb.length() > 0) sb.append(", ");
             sb.append(l2);
+        }
+        if (pc != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(pc);
+        }
+        if (dist != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(dist);
         }
         if (st != null) {
             if (sb.length() > 0) sb.append(", ");

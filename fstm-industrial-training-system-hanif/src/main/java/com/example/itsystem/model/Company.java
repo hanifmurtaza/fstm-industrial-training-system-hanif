@@ -24,6 +24,13 @@ public class Company {
     @Column(length = 255)
     private String addressLine2;
 
+    // ✅ Additional address sections (requested by faculty)
+    @Column(length = 20)
+    private String postcode;
+
+    @Column(length = 120)
+    private String district;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 40)
     private MalaysiaState state;
@@ -96,6 +103,22 @@ public class Company {
 
     public void setAddressLine2(String addressLine2) {
         this.addressLine2 = addressLine2;
+    }
+
+    public String getPostcode() {
+        return postcode;
+    }
+
+    public void setPostcode(String postcode) {
+        this.postcode = postcode;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public void setDistrict(String district) {
+        this.district = district;
     }
 
     public MalaysiaState getState() {

@@ -115,6 +115,21 @@
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
+                        <label class="form-label">Postcode <span class="text-danger" th:text="${(latestInfo != null && latestInfo.state != null && latestInfo.state.name() == 'OTHER') ? '' : '*'}">*</span></label>
+                        <input type="text" class="form-control" name="postcode"
+                               placeholder="Example: 43300"
+                               th:value="${latestInfo != null && latestInfo.postcode != null ? latestInfo.postcode : ''}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">District <span class="text-danger" th:text="${(latestInfo != null && latestInfo.state != null && latestInfo.state.name() == 'OTHER') ? '' : '*'}">*</span></label>
+                        <input type="text" class="form-control" name="district"
+                               placeholder="Example: Seri Kembangan"
+                               th:value="${latestInfo != null && latestInfo.district != null ? latestInfo.district : ''}">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
                         <label class="form-label">State / Territory <span class="text-danger">*</span></label>
                         <select class="form-select" name="companyState" id="companyState" required
                                 th:with="selectedState=${latestInfo != null && latestInfo.state != null ? latestInfo.state.name() : ''}">

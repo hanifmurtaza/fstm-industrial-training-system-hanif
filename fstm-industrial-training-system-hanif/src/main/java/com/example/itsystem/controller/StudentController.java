@@ -302,6 +302,8 @@ public class StudentController {
                                     // ✅ New detailed address fields
                                     @RequestParam(required = false) String addressLine1,
                                     @RequestParam(required = false) String addressLine2,
+                                    @RequestParam(required = false) String postcode,
+                                    @RequestParam(required = false) String district,
                                     @RequestParam(required = false) String companyState,
                                     @RequestParam(required = false) String companyStateOther,
                                     @RequestParam String supervisorName,
@@ -378,9 +380,11 @@ public class StudentController {
         info.setStudentId(student.getId());
         info.setCompanyName(companyName.trim());
 
-        // ✅ Detailed location validation (Address Line 1 + State)
+        // ✅ Detailed location validation (Address Line 1 + Postcode + District + State)
         String line1 = (addressLine1 != null) ? addressLine1.trim() : "";
         String line2 = (addressLine2 != null) ? addressLine2.trim() : "";
+        String pc = (postcode != null) ? postcode.trim() : "";
+        String dist = (district != null) ? district.trim() : "";
 
         // If old UI still posts companyAddress, treat it as Address Line 1
         if (line1.isBlank() && companyAddress != null && !companyAddress.trim().isBlank()) {
@@ -412,14 +416,30 @@ public class StudentController {
             return "redirect:/student/company-info";
         }
 
+        // Postcode & District rules:
+        // - For Malaysia states: required
+        // - For OTHER (outside Malaysia): optional
+        if (stateEnum != MalaysiaState.OTHER) {
+            if (pc.isBlank()) {
+                ra.addFlashAttribute("error", "Postcode is required.");
+                return "redirect:/student/company-info";
+            }
+            if (dist.isBlank()) {
+                ra.addFlashAttribute("error", "District is required.");
+                return "redirect:/student/company-info";
+            }
+        }
+
         // Save detailed fields
         info.setAddressLine1(line1);
         info.setAddressLine2(line2.isBlank() ? null : line2);
+        info.setPostcode(pc.isBlank() ? null : pc);
+        info.setDistrict(dist.isBlank() ? null : dist);
         info.setState(stateEnum);
         info.setStateOther(stateEnum == MalaysiaState.OTHER ? stateOther : null);
 
         // Keep legacy address string for existing admin pages and master-company promotion
-        info.setAddress(buildFullCompanyAddress(line1, line2, stateEnum, stateOther));
+        info.setAddress(buildFullCompanyAddress(line1, line2, pc, dist, stateEnum, stateOther));
         info.setSupervisorName(supervisorName.trim());
         info.setSupervisorEmail(supervisorEmail.trim());
         info.setSupervisorPhone(supervisorPhone);
@@ -451,13 +471,23 @@ public class StudentController {
     /**
      * Build a single-line address string for backward compatibility.
      */
-    private String buildFullCompanyAddress(String line1, String line2, MalaysiaState state, String stateOther) {
+    private String buildFullCompanyAddress(String line1, String line2, String postcode, String district, MalaysiaState state, String stateOther) {
         StringBuilder sb = new StringBuilder();
         if (line1 != null && !line1.isBlank()) sb.append(line1.trim());
 
         if (line2 != null && !line2.isBlank()) {
             if (sb.length() > 0) sb.append(", ");
             sb.append(line2.trim());
+        }
+
+        if (postcode != null && !postcode.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(postcode.trim());
+        }
+
+        if (district != null && !district.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(district.trim());
         }
 
         String stateText;

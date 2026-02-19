@@ -103,6 +103,16 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label class="form-label fw-semibold">Postcode</label>
+                    <input class="form-control" name="postcode" th:value="${company.postcode}" placeholder="e.g., 43300">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">District</label>
+                    <input class="form-control" name="district" th:value="${company.district}" placeholder="e.g., Seri Kembangan">
+                </div>
+
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">State / Territory</label>
                     <select class="form-select" name="companyState" id="companyState">
                         <option value="" th:selected="${company.state == null}" disabled>Select a state</option>

@@ -563,6 +563,8 @@ public class IndustrySupervisorController {
                                 @RequestParam(required = false) String address,
                                 @RequestParam(required = false) String addressLine1,
                                 @RequestParam(required = false) String addressLine2,
+                                @RequestParam(required = false) String postcode,
+                                @RequestParam(required = false) String district,
                                 @RequestParam(required = false) String companyState,
                                 @RequestParam(required = false) String companyStateOther,
                                 @RequestParam(required = false) String defaultJobScope,
@@ -608,12 +610,14 @@ public class IndustrySupervisorController {
         // ✅ Detailed address (preferred) + keep legacy combined address
         company.setAddressLine1(trimToNull(addressLine1));
         company.setAddressLine2(trimToNull(addressLine2));
+        company.setPostcode(trimToNull(postcode));
+        company.setDistrict(trimToNull(district));
         MalaysiaState st = parseMalaysiaState(companyState);
         company.setState(st);
         company.setStateOther((st == MalaysiaState.OTHER) ? trimToNull(companyStateOther) : null);
 
         String legacyOverride = trimToNull(address);
-        company.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getState(), company.getStateOther()));
+        company.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getPostcode(), company.getDistrict(), company.getState(), company.getStateOther()));
         company.setDefaultJobScope(defaultJobScope);
         company.setTypicalAllowance(typicalAllowance);
         company.setAccommodation(accommodation);
@@ -829,9 +833,11 @@ public class IndustrySupervisorController {
         }
     }
 
-    private String buildFullAddress(String line1, String line2, MalaysiaState state, String stateOther) {
+    private String buildFullAddress(String line1, String line2, String postcode, String district, MalaysiaState state, String stateOther) {
         String l1 = trimToNull(line1);
         String l2 = trimToNull(line2);
+        String pc = trimToNull(postcode);
+        String dist = trimToNull(district);
         String st;
         if (state == null) st = null;
         else if (state == MalaysiaState.OTHER) st = trimToNull(stateOther);
@@ -842,6 +848,14 @@ public class IndustrySupervisorController {
         if (l2 != null) {
             if (sb.length() > 0) sb.append(", ");
             sb.append(l2);
+        }
+        if (pc != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(pc);
+        }
+        if (dist != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(dist);
         }
         if (st != null) {
             if (sb.length() > 0) sb.append(", ");
