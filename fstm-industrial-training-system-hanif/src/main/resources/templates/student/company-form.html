@@ -3,12 +3,12 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout2}">
 <head>
-    <title>Internship Company Information</title>
+    <title>Industrial Training Company Information</title>
 </head>
 <body>
 <section layout:fragment="content" class="container mt-4">
 
-    <h3 class="mb-3">Fill in Internship Company Information</h3>
+    <h3 class="mb-3">Fill in Industrial Training Company Information</h3>
 
     <!-- Flash messages -->
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
@@ -25,7 +25,7 @@
             </p>
 
             <p class="mb-1">
-                <strong>Internship:</strong>
+                <strong>Industrial Training Duration:</strong>
                 <span th:text="${latestInfo.internshipStartDate != null ? latestInfo.internshipStartDate : '-'}"></span>
                 &nbsp;to&nbsp;
                 <span th:text="${latestInfo.internshipEndDate != null ? latestInfo.internshipEndDate : '-'}"></span>
@@ -164,16 +164,16 @@
                 <!-- ✅ Internship Dates -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label">Internship Start Date</label>
+                        <label class="form-label">Industrial Training Start Date</label>
                         <input type="date" class="form-control" name="internshipStartDate" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Internship End Date</label>
+                        <label class="form-label">Industrial Training End Date</label>
                         <input type="date" class="form-control" name="internshipEndDate" required>
                     </div>
                     <div class="col-12">
                         <div class="form-text text-muted">
-                            Internship duration must be greater than 24 weeks.
+                            Industrial Training duration must be greater than 24 weeks.
                         </div>
                     </div>
                 </div>
@@ -182,7 +182,7 @@
                 <div class="mb-3">
                     <label class="form-label">Offer Letter (PDF) <span class="text-danger">*</span></label>
                     <input type="file" class="form-control" name="offerLetter" accept="application/pdf" required>
-                    <div class="form-text text-muted">Upload your internship offer letter in PDF format.</div>
+                    <div class="form-text text-muted">Upload your Industrial Training offer letter in PDF format.</div>
                 </div>
 
                 <div class="mb-3">
