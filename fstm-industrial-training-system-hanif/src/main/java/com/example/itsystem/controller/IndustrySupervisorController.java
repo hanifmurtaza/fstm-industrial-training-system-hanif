@@ -786,12 +786,13 @@ public class IndustrySupervisorController {
                         : fallbackSession();
 
                 int b30 = 0;
-                b30 += clamp(Optional.ofNullable(form.getDisciplineAttendance()).orElse(1), 1, 5);
-                b30 += clamp(Optional.ofNullable(form.getKnowledgeSkills()).orElse(1), 1, 5);
-                b30 += clamp(Optional.ofNullable(form.getAttitudeInitiative()).orElse(1), 1, 5);
-                b30 += clamp(Optional.ofNullable(form.getInterestResponsibility()).orElse(1), 1, 5);
-                b30 += clamp(Optional.ofNullable(form.getCommunicationCooperation()).orElse(1), 1, 5);
-                b30 += clamp(Optional.ofNullable(form.getProfessionalAppearance()).orElse(1), 1, 5);
+                // Section B is scored 0–5 per attribute (faculty rubric)
+                b30 += clamp(Optional.ofNullable(form.getDisciplineAttendance()).orElse(0), 0, 5);
+                b30 += clamp(Optional.ofNullable(form.getKnowledgeSkills()).orElse(0), 0, 5);
+                b30 += clamp(Optional.ofNullable(form.getAttitudeInitiative()).orElse(0), 0, 5);
+                b30 += clamp(Optional.ofNullable(form.getInterestResponsibility()).orElse(0), 0, 5);
+                b30 += clamp(Optional.ofNullable(form.getCommunicationCooperation()).orElse(0), 0, 5);
+                b30 += clamp(Optional.ofNullable(form.getProfessionalAppearance()).orElse(0), 0, 5);
 
                 int c10 = clamp(Optional.ofNullable(form.getOverallMark10()).orElse(0), 0, 10);
 

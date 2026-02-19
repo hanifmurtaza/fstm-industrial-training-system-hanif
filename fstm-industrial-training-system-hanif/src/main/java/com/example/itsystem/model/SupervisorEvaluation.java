@@ -35,7 +35,7 @@ public class SupervisorEvaluation {
     @Column(length = 20)
     private InternshipNature internshipNature;
 
-    // Section B (1–5 each)
+    // Section B (0–5 each)
     @Column private Integer disciplineAttendance;      // Disiplin & Kehadiran
     @Column private Integer knowledgeSkills;           // Pengetahuan & Kemahiran
     @Column private Integer attitudeInitiative;        // Sikap & Inisiatif
