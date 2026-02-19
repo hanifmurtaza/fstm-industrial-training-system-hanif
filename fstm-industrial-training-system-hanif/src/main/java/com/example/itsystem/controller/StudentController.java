@@ -27,6 +27,7 @@ import com.example.itsystem.model.VisitSchedule;
 import com.example.itsystem.model.StudentAssessment;
 import com.example.itsystem.model.CompanyInfo;
 import com.example.itsystem.model.CompanyInfoStatus;
+import com.example.itsystem.model.MalaysiaState;
 import com.example.itsystem.model.Company;
 import com.example.itsystem.model.Placement;
 import com.example.itsystem.model.PlacementStatus;
@@ -296,7 +297,13 @@ public class StudentController {
      */
     @PostMapping("/student/company-info")
     public String submitCompanyInfo(@RequestParam String companyName,
+                                    // Legacy single textbox (kept for backward compatibility)
                                     @RequestParam(required = false) String companyAddress,
+                                    // ✅ New detailed address fields
+                                    @RequestParam(required = false) String addressLine1,
+                                    @RequestParam(required = false) String addressLine2,
+                                    @RequestParam(required = false) String companyState,
+                                    @RequestParam(required = false) String companyStateOther,
                                     @RequestParam String supervisorName,
                                     @RequestParam String supervisorEmail,
                                     @RequestParam(required = false) String supervisorPhone,
@@ -370,7 +377,49 @@ public class StudentController {
         CompanyInfo info = new CompanyInfo();
         info.setStudentId(student.getId());
         info.setCompanyName(companyName.trim());
-        info.setAddress(companyAddress);
+
+        // ✅ Detailed location validation (Address Line 1 + State)
+        String line1 = (addressLine1 != null) ? addressLine1.trim() : "";
+        String line2 = (addressLine2 != null) ? addressLine2.trim() : "";
+
+        // If old UI still posts companyAddress, treat it as Address Line 1
+        if (line1.isBlank() && companyAddress != null && !companyAddress.trim().isBlank()) {
+            line1 = companyAddress.trim();
+        }
+
+        if (line1.isBlank()) {
+            ra.addFlashAttribute("error", "Address Line 1 is required.");
+            return "redirect:/student/company-info";
+        }
+
+        MalaysiaState stateEnum = null;
+        if (companyState != null && !companyState.isBlank()) {
+            try {
+                stateEnum = MalaysiaState.valueOf(companyState.trim());
+            } catch (Exception ignored) {
+                stateEnum = null;
+            }
+        }
+
+        if (stateEnum == null) {
+            ra.addFlashAttribute("error", "Please select a state.");
+            return "redirect:/student/company-info";
+        }
+
+        String stateOther = (companyStateOther != null) ? companyStateOther.trim() : "";
+        if (stateEnum == MalaysiaState.OTHER && stateOther.isBlank()) {
+            ra.addFlashAttribute("error", "Please specify the state/country for 'Other'.");
+            return "redirect:/student/company-info";
+        }
+
+        // Save detailed fields
+        info.setAddressLine1(line1);
+        info.setAddressLine2(line2.isBlank() ? null : line2);
+        info.setState(stateEnum);
+        info.setStateOther(stateEnum == MalaysiaState.OTHER ? stateOther : null);
+
+        // Keep legacy address string for existing admin pages and master-company promotion
+        info.setAddress(buildFullCompanyAddress(line1, line2, stateEnum, stateOther));
         info.setSupervisorName(supervisorName.trim());
         info.setSupervisorEmail(supervisorEmail.trim());
         info.setSupervisorPhone(supervisorPhone);
@@ -397,6 +446,34 @@ public class StudentController {
 
         ra.addFlashAttribute("success", "Your company information has been submitted and is now pending approval.");
         return "redirect:/student/company-info";
+    }
+
+    /**
+     * Build a single-line address string for backward compatibility.
+     */
+    private String buildFullCompanyAddress(String line1, String line2, MalaysiaState state, String stateOther) {
+        StringBuilder sb = new StringBuilder();
+        if (line1 != null && !line1.isBlank()) sb.append(line1.trim());
+
+        if (line2 != null && !line2.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(line2.trim());
+        }
+
+        String stateText;
+        if (state == null) {
+            stateText = null;
+        } else if (state == MalaysiaState.OTHER) {
+            stateText = (stateOther != null && !stateOther.isBlank()) ? stateOther.trim() : "Other";
+        } else {
+            stateText = state.name().replace('_', ' ');
+        }
+
+        if (stateText != null && !stateText.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(stateText);
+        }
+        return sb.toString();
     }
 
     // ==========================

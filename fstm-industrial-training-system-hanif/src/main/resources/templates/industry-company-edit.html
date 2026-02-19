@@ -286,10 +286,46 @@
           </div>
 
 
+          <!-- ✅ Detailed location (Address Line 1/2 + State) -->
           <div class="col-12">
-            <label class="form-label">Address</label>
-            <textarea class="form-control" th:field="*{address}" rows="2"
-                      placeholder="Company address"></textarea>
+            <label class="form-label">Address Line 1</label>
+            <input type="text" class="form-control" th:field="*{addressLine1}" placeholder="e.g., No. 12, Jalan Example" />
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Address Line 2</label>
+            <input type="text" class="form-control" th:field="*{addressLine2}" placeholder="e.g., Taman ABC, 43000" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">State / Territory</label>
+            <select class="form-select" name="companyState" id="companyState"
+                    th:with="selectedState=${company.state != null ? company.state.name() : ''}">
+              <option value="" th:selected="${selectedState == ''}" disabled>Select a state</option>
+              <option value="JOHOR" th:selected="${selectedState == 'JOHOR'}">Johor</option>
+              <option value="KEDAH" th:selected="${selectedState == 'KEDAH'}">Kedah</option>
+              <option value="KELANTAN" th:selected="${selectedState == 'KELANTAN'}">Kelantan</option>
+              <option value="MELAKA" th:selected="${selectedState == 'MELAKA'}">Melaka</option>
+              <option value="NEGERI_SEMBILAN" th:selected="${selectedState == 'NEGERI_SEMBILAN'}">Negeri Sembilan</option>
+              <option value="PAHANG" th:selected="${selectedState == 'PAHANG'}">Pahang</option>
+              <option value="PENANG" th:selected="${selectedState == 'PENANG'}">Penang</option>
+              <option value="PERAK" th:selected="${selectedState == 'PERAK'}">Perak</option>
+              <option value="PERLIS" th:selected="${selectedState == 'PERLIS'}">Perlis</option>
+              <option value="SABAH" th:selected="${selectedState == 'SABAH'}">Sabah</option>
+              <option value="SARAWAK" th:selected="${selectedState == 'SARAWAK'}">Sarawak</option>
+              <option value="SELANGOR" th:selected="${selectedState == 'SELANGOR'}">Selangor</option>
+              <option value="TERENGGANU" th:selected="${selectedState == 'TERENGGANU'}">Terengganu</option>
+              <option value="KUALA_LUMPUR" th:selected="${selectedState == 'KUALA_LUMPUR'}">Kuala Lumpur</option>
+              <option value="PUTRAJAYA" th:selected="${selectedState == 'PUTRAJAYA'}">Putrajaya</option>
+              <option value="LABUAN" th:selected="${selectedState == 'LABUAN'}">Labuan</option>
+              <option value="OTHER" th:selected="${selectedState == 'OTHER'}">Other (Outside Malaysia)</option>
+            </select>
+          </div>
+
+          <div class="col-md-6" id="companyStateOtherWrap" style="display:none;">
+            <label class="form-label">Other State / Country</label>
+            <input type="text" class="form-control" name="companyStateOther" id="companyStateOther"
+                   th:value="${company.stateOther}" placeholder="e.g., Singapore, Indonesia" />
           </div>
 
           <div class="col-12">
@@ -393,5 +429,21 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      (function(){
+        const stateSelect = document.getElementById('companyState');
+        const otherWrap = document.getElementById('companyStateOtherWrap');
+        const toggle = () => {
+          const v = (stateSelect && stateSelect.value) ? stateSelect.value : '';
+          if (v === 'OTHER') otherWrap.style.display = '';
+          else otherWrap.style.display = 'none';
+        };
+        if (stateSelect && otherWrap) {
+          stateSelect.addEventListener('change', toggle);
+          toggle();
+        }
+      })();
+    </script>
 </body>
 </html>

@@ -232,8 +232,15 @@
         <div class="card-body-pad">
             <div class="row g-3">
                 <div class="col-md-8">
-                    <div class="section-title">Address</div>
-                    <div th:text="${info.address}">Address</div>
+                    <div class="section-title">Company Location</div>
+                    <div class="fw-semibold" th:text="${info.addressLine1 != null ? info.addressLine1 : '-'}">-</div>
+                    <div th:if="${info.addressLine2 != null and !#strings.isEmpty(info.addressLine2)}" th:text="${info.addressLine2}">Line 2</div>
+                    <div class="small-note" th:if="${info.state != null}">
+                        <span th:text="${info.state.name() == 'OTHER' ? (info.stateOther != null ? info.stateOther : 'Other') : #strings.capitalize(#strings.toLowerCase(#strings.replace(info.state.name(),'_',' ')))}">State</span>
+                    </div>
+                    <div class="small-note" th:if="${info.state == null and info.address != null}">
+                        <span th:text="${info.address}">Legacy address</span>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <div class="section-title">Session</div>
@@ -487,10 +494,56 @@
                                     <div class="small-note mt-2">Please select the most suitable sector based on the faculty list.</div>
                                 </div>
 
+                                <!-- ✅ Detailed company location (Address Line 1/2 + State) -->
                                 <div class="col-12">
-                                    <label class="form-label fw-semibold">Address (optional)</label>
+                                    <label class="form-label fw-semibold">Address Line 1</label>
+                                    <input type="text" class="form-control" name="newCompanyAddressLine1"
+                                           th:placeholder="${info.addressLine1}" th:value="${info.addressLine1}">
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Address Line 2</label>
+                                    <input type="text" class="form-control" name="newCompanyAddressLine2"
+                                           th:placeholder="${info.addressLine2}" th:value="${info.addressLine2}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">State / Territory</label>
+                                    <select class="form-select" name="newCompanyState" id="newCompanyState"
+                                            th:with="selectedState=${info.state != null ? info.state.name() : ''}">
+                                        <option value="" th:selected="${selectedState == ''}" disabled>Select a state</option>
+                                        <option value="JOHOR" th:selected="${selectedState == 'JOHOR'}">Johor</option>
+                                        <option value="KEDAH" th:selected="${selectedState == 'KEDAH'}">Kedah</option>
+                                        <option value="KELANTAN" th:selected="${selectedState == 'KELANTAN'}">Kelantan</option>
+                                        <option value="MELAKA" th:selected="${selectedState == 'MELAKA'}">Melaka</option>
+                                        <option value="NEGERI_SEMBILAN" th:selected="${selectedState == 'NEGERI_SEMBILAN'}">Negeri Sembilan</option>
+                                        <option value="PAHANG" th:selected="${selectedState == 'PAHANG'}">Pahang</option>
+                                        <option value="PENANG" th:selected="${selectedState == 'PENANG'}">Penang</option>
+                                        <option value="PERAK" th:selected="${selectedState == 'PERAK'}">Perak</option>
+                                        <option value="PERLIS" th:selected="${selectedState == 'PERLIS'}">Perlis</option>
+                                        <option value="SABAH" th:selected="${selectedState == 'SABAH'}">Sabah</option>
+                                        <option value="SARAWAK" th:selected="${selectedState == 'SARAWAK'}">Sarawak</option>
+                                        <option value="SELANGOR" th:selected="${selectedState == 'SELANGOR'}">Selangor</option>
+                                        <option value="TERENGGANU" th:selected="${selectedState == 'TERENGGANU'}">Terengganu</option>
+                                        <option value="KUALA_LUMPUR" th:selected="${selectedState == 'KUALA_LUMPUR'}">Kuala Lumpur</option>
+                                        <option value="PUTRAJAYA" th:selected="${selectedState == 'PUTRAJAYA'}">Putrajaya</option>
+                                        <option value="LABUAN" th:selected="${selectedState == 'LABUAN'}">Labuan</option>
+                                        <option value="OTHER" th:selected="${selectedState == 'OTHER'}">Other (Outside Malaysia)</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6" id="newCompanyStateOtherWrap" style="display:none;">
+                                    <label class="form-label fw-semibold">Other State / Country</label>
+                                    <input type="text" class="form-control" name="newCompanyStateOther" id="newCompanyStateOther"
+                                           th:placeholder="${info.stateOther}" th:value="${info.stateOther}">
+                                </div>
+
+                                <!-- Legacy (optional) - keep for safety if admin wants to paste full address -->
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Full Address (legacy, optional)</label>
                                     <input type="text" class="form-control" name="newCompanyAddress"
                                            th:placeholder="${info.address}" th:value="${info.address}">
+                                    <div class="small-note mt-1">If filled, this will override the auto-combined address.</div>
                                 </div>
                             </div>
                         </div>
@@ -706,6 +759,19 @@
 
             toggleCompany();
             toggleSupervisor();
+
+            // Detailed state/country toggle
+            const stateSelect = document.getElementById('newCompanyState');
+            const otherWrap = document.getElementById('newCompanyStateOtherWrap');
+            const toggleStateOther = () => {
+                const v = stateSelect ? stateSelect.value : '';
+                if (v === 'OTHER') otherWrap.style.display = '';
+                else otherWrap.style.display = 'none';
+            };
+            if (stateSelect && otherWrap) {
+                stateSelect.addEventListener('change', toggleStateOther);
+                toggleStateOther();
+            }
         })();
     </script>
 

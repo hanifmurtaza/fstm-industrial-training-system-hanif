@@ -98,10 +98,52 @@
                            th:value="${latestInfo != null ? latestInfo.companyName : ''}" required>
                 </div>
 
+                <!-- ✅ Detailed Company Location (Faculty request) -->
                 <div class="mb-3">
-                    <label class="form-label">Company Address</label>
-                    <textarea class="form-control" name="companyAddress" rows="2"
-                              th:text="${latestInfo != null ? latestInfo.address : ''}"></textarea>
+                    <label class="form-label">Address Line 1 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="addressLine1" required
+                           th:value="${latestInfo != null && latestInfo.addressLine1 != null ? latestInfo.addressLine1 : ''}">
+                    <div class="form-text text-muted">Example: No. 12, Jalan SS 15/4</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Address Line 2 (Optional)</label>
+                    <input type="text" class="form-control" name="addressLine2"
+                           th:value="${latestInfo != null && latestInfo.addressLine2 != null ? latestInfo.addressLine2 : ''}">
+                    <div class="form-text text-muted">Example: Building / Floor / Unit</div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">State / Territory <span class="text-danger">*</span></label>
+                        <select class="form-select" name="companyState" id="companyState" required
+                                th:with="selectedState=${latestInfo != null && latestInfo.state != null ? latestInfo.state.name() : ''}">
+                            <option value="" th:selected="${selectedState == ''}" disabled>Select a state</option>
+                            <option value="JOHOR" th:selected="${selectedState == 'JOHOR'}">Johor</option>
+                            <option value="KEDAH" th:selected="${selectedState == 'KEDAH'}">Kedah</option>
+                            <option value="KELANTAN" th:selected="${selectedState == 'KELANTAN'}">Kelantan</option>
+                            <option value="MELAKA" th:selected="${selectedState == 'MELAKA'}">Melaka</option>
+                            <option value="NEGERI_SEMBILAN" th:selected="${selectedState == 'NEGERI_SEMBILAN'}">Negeri Sembilan</option>
+                            <option value="PAHANG" th:selected="${selectedState == 'PAHANG'}">Pahang</option>
+                            <option value="PENANG" th:selected="${selectedState == 'PENANG'}">Penang</option>
+                            <option value="PERAK" th:selected="${selectedState == 'PERAK'}">Perak</option>
+                            <option value="PERLIS" th:selected="${selectedState == 'PERLIS'}">Perlis</option>
+                            <option value="SABAH" th:selected="${selectedState == 'SABAH'}">Sabah</option>
+                            <option value="SARAWAK" th:selected="${selectedState == 'SARAWAK'}">Sarawak</option>
+                            <option value="SELANGOR" th:selected="${selectedState == 'SELANGOR'}">Selangor</option>
+                            <option value="TERENGGANU" th:selected="${selectedState == 'TERENGGANU'}">Terengganu</option>
+                            <option value="KUALA_LUMPUR" th:selected="${selectedState == 'KUALA_LUMPUR'}">Kuala Lumpur</option>
+                            <option value="PUTRAJAYA" th:selected="${selectedState == 'PUTRAJAYA'}">Putrajaya</option>
+                            <option value="LABUAN" th:selected="${selectedState == 'LABUAN'}">Labuan</option>
+                            <option value="OTHER" th:selected="${selectedState == 'OTHER'}">Other (Outside Malaysia)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6" id="stateOtherWrap" style="display:none;">
+                        <label class="form-label">Other State / Country <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="companyStateOther" id="companyStateOther"
+                               placeholder="Example: Singapore, Indonesia"
+                               th:value="${latestInfo != null && latestInfo.stateOther != null ? latestInfo.stateOther : ''}">
+                    </div>
                 </div>
 
                 <!-- ✅ Internship Dates -->
@@ -152,6 +194,27 @@
             </form>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const stateSelect = document.getElementById('companyState');
+            const otherWrap = document.getElementById('stateOtherWrap');
+            const otherInput = document.getElementById('companyStateOther');
+
+            function syncOther() {
+                const v = stateSelect ? stateSelect.value : '';
+                const show = v === 'OTHER';
+                if (otherWrap) otherWrap.style.display = show ? '' : 'none';
+                if (otherInput) otherInput.required = show;
+                if (!show && otherInput) otherInput.value = '';
+            }
+
+            if (stateSelect) {
+                stateSelect.addEventListener('change', syncOther);
+                syncOther();
+            }
+        })();
+    </script>
 
 </section>
 </body>

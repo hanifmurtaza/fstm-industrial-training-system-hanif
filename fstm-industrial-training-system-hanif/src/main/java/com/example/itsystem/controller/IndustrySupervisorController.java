@@ -423,7 +423,7 @@ public class IndustrySupervisorController {
                                   @RequestParam(required = false) String benefits,
                                   @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate reportDutyDate,
                                   @RequestParam(required = false) String sector,
-                                  org.springframework.web.servlet.mvc.support.RedirectAttributes ra,
+                                  RedirectAttributes ra,
                                   HttpSession session) {
 
         if (notIndustry(session)) return "redirect:/login";
@@ -561,6 +561,10 @@ public class IndustrySupervisorController {
                                 @RequestParam String name,
                                 @RequestParam(required = false) String sector,
                                 @RequestParam(required = false) String address,
+                                @RequestParam(required = false) String addressLine1,
+                                @RequestParam(required = false) String addressLine2,
+                                @RequestParam(required = false) String companyState,
+                                @RequestParam(required = false) String companyStateOther,
                                 @RequestParam(required = false) String defaultJobScope,
                                 @RequestParam(required = false) BigDecimal typicalAllowance,
                                 @RequestParam(required = false) Boolean accommodation,
@@ -600,7 +604,16 @@ public class IndustrySupervisorController {
         }
 
         company.setName(name);
-        company.setAddress(address);
+
+        // ✅ Detailed address (preferred) + keep legacy combined address
+        company.setAddressLine1(trimToNull(addressLine1));
+        company.setAddressLine2(trimToNull(addressLine2));
+        MalaysiaState st = parseMalaysiaState(companyState);
+        company.setState(st);
+        company.setStateOther((st == MalaysiaState.OTHER) ? trimToNull(companyStateOther) : null);
+
+        String legacyOverride = trimToNull(address);
+        company.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getState(), company.getStateOther()));
         company.setDefaultJobScope(defaultJobScope);
         company.setTypicalAllowance(typicalAllowance);
         company.setAccommodation(accommodation);
@@ -798,6 +811,57 @@ public class IndustrySupervisorController {
 
         ra.addFlashAttribute("toast", "Evaluation submitted successfully.");
         return "redirect:/industry/evaluations";
+    }
+
+    // ===== Company location helpers =====
+    private String trimToNull(String v) {
+        if (v == null) return null;
+        String s = v.trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    private MalaysiaState parseMalaysiaState(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return MalaysiaState.valueOf(raw.trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String buildFullAddress(String line1, String line2, MalaysiaState state, String stateOther) {
+        String l1 = trimToNull(line1);
+        String l2 = trimToNull(line2);
+        String st;
+        if (state == null) st = null;
+        else if (state == MalaysiaState.OTHER) st = trimToNull(stateOther);
+        else st = prettyState(state);
+
+        StringBuilder sb = new StringBuilder();
+        if (l1 != null) sb.append(l1);
+        if (l2 != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(l2);
+        }
+        if (st != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(st);
+        }
+        return sb.length() == 0 ? null : sb.toString();
+    }
+
+    private String prettyState(MalaysiaState s) {
+        if (s == null) return null;
+        String raw = s.name().toLowerCase().replace('_', ' ');
+        String[] parts = raw.split(" ");
+        StringBuilder out = new StringBuilder();
+        for (String p : parts) {
+            if (p.isBlank()) continue;
+            out.append(Character.toUpperCase(p.charAt(0)))
+                    .append(p.length() > 1 ? p.substring(1) : "")
+                    .append(' ');
+        }
+        return out.toString().trim();
     }
 
 }

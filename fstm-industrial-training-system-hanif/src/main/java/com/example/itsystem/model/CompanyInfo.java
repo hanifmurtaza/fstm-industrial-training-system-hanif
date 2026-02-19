@@ -32,6 +32,21 @@ public class CompanyInfo {
     @Column(length = 500)
     private String address;
 
+    // ✅ Detailed company location (requested by faculty)
+    @Column(length = 255)
+    private String addressLine1;
+
+    @Column(length = 255)
+    private String addressLine2;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 40)
+    private MalaysiaState state;
+
+    /** If state == OTHER, store the state/country text here (e.g., "Singapore", "Indonesia") */
+    @Column(length = 120)
+    private String stateOther;
+
     @Column(length = 120)
     private String supervisorName;
 
@@ -107,6 +122,18 @@ public class CompanyInfo {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public String getAddressLine1() { return addressLine1; }
+    public void setAddressLine1(String addressLine1) { this.addressLine1 = addressLine1; }
+
+    public String getAddressLine2() { return addressLine2; }
+    public void setAddressLine2(String addressLine2) { this.addressLine2 = addressLine2; }
+
+    public MalaysiaState getState() { return state; }
+    public void setState(MalaysiaState state) { this.state = state; }
+
+    public String getStateOther() { return stateOther; }
+    public void setStateOther(String stateOther) { this.stateOther = stateOther; }
 
     public String getSupervisorName() { return supervisorName; }
     public void setSupervisorName(String supervisorName) { this.supervisorName = supervisorName; }

@@ -996,7 +996,7 @@ public class AdminController {
     @PostMapping("/lecturers/save")
     public String saveLecturer(@ModelAttribute("lecturer") User lecturer,
                                @RequestParam(required = false) String rawPassword,
-                               org.springframework.web.servlet.mvc.support.RedirectAttributes ra) {
+                               RedirectAttributes ra) {
 
         // make sure role is always teacher
         lecturer.setRole("teacher");
@@ -1885,6 +1885,10 @@ public class AdminController {
                                      @RequestParam(required = false) Long existingCompanyId,
                                      @RequestParam(required = false) String newCompanyName,
                                      @RequestParam(required = false) String newCompanyAddress,
+                                     @RequestParam(required = false) String newCompanyAddressLine1,
+                                     @RequestParam(required = false) String newCompanyAddressLine2,
+                                     @RequestParam(required = false) String newCompanyState,
+                                     @RequestParam(required = false) String newCompanyStateOther,
                                      @RequestParam(required = false) String sector,
                                      @RequestParam(required = false) String supervisorMode,
                                      @RequestParam(required = false) Long existingSupervisorId,
@@ -1946,9 +1950,27 @@ public class AdminController {
             }
 
             company.setName(name);
-            company.setAddress((newCompanyAddress != null && !newCompanyAddress.isBlank())
-                    ? newCompanyAddress.trim()
-                    : info.getAddress());
+
+            // ✅ Detailed address (preferred). If admin leaves them empty, fall back to student submission.
+            String l1 = trimToNull(newCompanyAddressLine1);
+            String l2 = trimToNull(newCompanyAddressLine2);
+            MalaysiaState st = parseMalaysiaState(newCompanyState);
+            String other = trimToNull(newCompanyStateOther);
+
+            if (l1 == null) l1 = info.getAddressLine1();
+            if (l2 == null) l2 = info.getAddressLine2();
+            if (st == null) st = info.getState();
+            if (st == MalaysiaState.OTHER && other == null) other = info.getStateOther();
+            if (st != MalaysiaState.OTHER) other = null;
+
+            company.setAddressLine1(trimToNull(l1));
+            company.setAddressLine2(trimToNull(l2));
+            company.setState(st);
+            company.setStateOther(other);
+
+            // ✅ Keep legacy address string for existing UIs (override only if admin explicitly fills it)
+            String legacyOverride = trimToNull(newCompanyAddress);
+            company.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getState(), company.getStateOther()));
 
             // ✅ normalize sector to enum name string for Company
             if (sector != null && !sector.isBlank()) {
@@ -2145,7 +2167,15 @@ public class AdminController {
                 .orElseGet(Company::new);
 
         company.setName(ci.getCompanyName());
-        company.setAddress(ci.getAddress());
+
+        // ✅ Copy detailed location from student submission (CompanyInfo)
+        company.setAddressLine1(trimToNull(ci.getAddressLine1()));
+        company.setAddressLine2(trimToNull(ci.getAddressLine2()));
+        company.setState(ci.getState());
+        company.setStateOther(ci.getState() == MalaysiaState.OTHER ? trimToNull(ci.getStateOther()) : null);
+
+        // Keep legacy combined address for older UI
+        company.setAddress(buildFullAddress(company.getAddressLine1(), company.getAddressLine2(), company.getState(), company.getStateOther()));
         companyRepository.save(company);
 
         ci.setLinkedCompanyId(company.getId());
@@ -2249,6 +2279,10 @@ public class AdminController {
     public String upsertCompany(@RequestParam(required = false) Long id,
                                 @RequestParam String name,
                                 @RequestParam(required = false) String address,
+                                @RequestParam(required = false) String addressLine1,
+                                @RequestParam(required = false) String addressLine2,
+                                @RequestParam(required = false) String companyState,
+                                @RequestParam(required = false) String companyStateOther,
                                 @RequestParam(required = false) String sector,
                                 @RequestParam(required = false) String defaultJobScope,
                                 @RequestParam(required = false) BigDecimal typicalAllowance,
@@ -2266,7 +2300,17 @@ public class AdminController {
                 : companyRepository.findById(id).orElse(new Company());
 
         c.setName(name);
-        c.setAddress(address);
+
+        // ✅ Detailed location (new) + keep legacy combined address for older UI
+        c.setAddressLine1(trimToNull(addressLine1));
+        c.setAddressLine2(trimToNull(addressLine2));
+        MalaysiaState st = parseMalaysiaState(companyState);
+        c.setState(st);
+        c.setStateOther((st == MalaysiaState.OTHER) ? trimToNull(companyStateOther) : null);
+
+        // If admin still passes legacy address field, keep it as override; otherwise auto-build.
+        String legacyOverride = trimToNull(address);
+        c.setAddress(legacyOverride != null ? legacyOverride : buildFullAddress(c.getAddressLine1(), c.getAddressLine2(), c.getState(), c.getStateOther()));
 
         // ✅ Normalize sector into enum name (string)
         if (sector == null || sector.isBlank()) {
@@ -2974,6 +3018,57 @@ public class AdminController {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    // ===== Company location helpers =====
+    private String trimToNull(String v) {
+        if (v == null) return null;
+        String s = v.trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    private MalaysiaState parseMalaysiaState(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return MalaysiaState.valueOf(raw.trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String buildFullAddress(String line1, String line2, MalaysiaState state, String stateOther) {
+        String l1 = trimToNull(line1);
+        String l2 = trimToNull(line2);
+        String st;
+        if (state == null) st = null;
+        else if (state == MalaysiaState.OTHER) st = trimToNull(stateOther);
+        else st = prettyState(state);
+
+        StringBuilder sb = new StringBuilder();
+        if (l1 != null) sb.append(l1);
+        if (l2 != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(l2);
+        }
+        if (st != null) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(st);
+        }
+        return sb.length() == 0 ? null : sb.toString();
+    }
+
+    private String prettyState(MalaysiaState s) {
+        if (s == null) return null;
+        String raw = s.name().toLowerCase().replace('_', ' ');
+        String[] parts = raw.split(" ");
+        StringBuilder out = new StringBuilder();
+        for (String p : parts) {
+            if (p.isBlank()) continue;
+            out.append(Character.toUpperCase(p.charAt(0)))
+                    .append(p.length() > 1 ? p.substring(1) : "")
+                    .append(' ');
+        }
+        return out.toString().trim();
     }
 
     private String normalizeSessionParam(String s) {
